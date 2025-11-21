@@ -1,22 +1,29 @@
 <script setup>
-import { onMounted } from 'vue'
+import { ref, computed, onMounted } from 'vue'
 import { useTimelineStore } from '../stores/timelineStore.js'
 import { storeToRefs } from 'pinia'
+import { ElMessage, ElMessageBox } from 'element-plus'
 
 /**
- * 组件：DataEditor (数据编辑器)
- * 作用：一个内置的 CMS (Content Management System)，用于可视化的管理 gamedata.json。
- * 核心功能：
- * 1. 加载并显示所有干员数据。
- * 2. 修改干员的基础属性、技能数值、资源消耗。
- * 3. 编辑“允许挂载的异常状态” (Allowed Buffs)，并包含智能联动逻辑。
- * 4. 导出修改后的 JSON 文件。
+ * 视图：DataEditor
+ * 优化：
+ * 1. UI 顺序调整：允许状态 -> 默认状态。
+ * 2. 逻辑联动：默认状态的下拉框只显示已勾选的允许状态。
  */
 
 const store = useTimelineStore()
-const { characterRoster, iconDatabase, isLoading } = storeToRefs(store)
+const { characterRoster, iconDatabase } = storeToRefs(store)
 
-// 异常状态映射表 (Key -> 中文名)
+// === 1. 常量定义 ===
+
+const ELEMENTS = [
+  { label: '🔥 灼热 (Blaze)', value: 'blaze' },
+  { label: '❄️ 寒冷 (Cold)', value: 'cold' },
+  { label: '⚡ 电磁 (Emag)', value: 'emag' },
+  { label: '🌿 自然 (Nature)', value: 'nature' },
+  { label: '🛡️ 物理 (Physical)', value: 'physical' }
+]
+
 const EFFECT_NAMES = {
   "break": "破防", "armor_break": "碎甲", "stagger": "猛击", "knockdown": "倒地", "knockup": "击飞",
   "blaze_attach": "灼热附着", "emag_attach": "电磁附着", "cold_attach": "寒冷附着", "nature_attach": "自然附着",
@@ -24,93 +31,120 @@ const EFFECT_NAMES = {
   "burning": "燃烧", "conductive": "导电", "frozen": "冻结", "ice_shatter": "碎冰", "corrosion": "腐蚀",
   "default": "默认图标"
 }
-const effectKeys = Object.keys(EFFECT_NAMES);
+const effectKeys = Object.keys(EFFECT_NAMES)
+
+// === 2. 状态与计算属性 ===
+
+const searchQuery = ref('')
+const selectedCharId = ref(null)
+const activeTab = ref('basic')
+
+const filteredRoster = computed(() => {
+  let list = characterRoster.value || []
+  if (searchQuery.value) {
+    const q = searchQuery.value.toLowerCase()
+    list = list.filter(c => c.name.toLowerCase().includes(q) || c.id.toLowerCase().includes(q))
+  }
+  return list.sort((a, b) => (b.rarity || 0) - (a.rarity || 0))
+})
+
+const selectedChar = computed(() => {
+  return characterRoster.value.find(c => c.id === selectedCharId.value)
+})
+
+// === 3. 生命周期 ===
 
 onMounted(async () => {
   if (characterRoster.value.length === 0) {
     await store.fetchGameData()
   }
-
-  // === 数据清洗与迁移 (Migration) ===
-  // 确保加载的旧版本 JSON 数据也能兼容当前系统，自动填充缺失字段
-  characterRoster.value.forEach(char => {
-    // 资源系统默认值
-    if (char.ultimate_gaugeMax === undefined) char.ultimate_gaugeMax = 100;
-    if (char.skill_spCost === undefined) char.skill_spCost = 100;
-    if (char.skill_spReply === undefined) char.skill_spReply = 0;
-    if (char.ultimate_spReply === undefined) char.ultimate_spReply = 0;
-    if (char.ultimate_gaugeReply === undefined) char.ultimate_gaugeReply = 0;
-    if (char.skill_gaugeGain === undefined) char.skill_gaugeGain = 0;
-    if (char.link_gaugeGain === undefined) char.link_gaugeGain = 0;
-    if (char.execution_duration === undefined) char.execution_duration = 1.5;
-    if (char.execution_spGain === undefined) char.execution_spGain = 20;
-
-    // 数组结构默认值
-    if (!Array.isArray(char.exclusive_buffs)) char.exclusive_buffs = [];
-    const skills = ['attack','execution', 'skill', 'link', 'ultimate'];
-    skills.forEach(s => {
-      if (!Array.isArray(char[`${s}_allowed_types`])) char[`${s}_allowed_types`] = [];
-      if (!Array.isArray(char[`${s}_anomalies`])) char[`${s}_anomalies`] = [];
-    })
-  })
+  if (characterRoster.value.length > 0) {
+    selectedCharId.value = characterRoster.value[0].id
+  }
 })
 
-/**
- * 复选框变更处理 (含智能联动)
- * @param {Object} char 干员对象
- * @param {string} skillType 技能类型 (attack/skill/link/ultimate)
- * @param {string} key 异常状态 Key
- */
-function onCheckChange(char, skillType, key) {
-  const fieldName = `${skillType}_allowed_types`;
-  const list = char[fieldName];
-  const isChecked = list.includes(key);
+// === 4. 操作方法 ===
 
-  // 联动规则 1: 元素组联动 (Elemental Group Linkage)
-  // 例如：勾选 'burning' (燃烧)，自动勾选 'blaze_attach' 和 'blaze_burst'。
-  // 反之，取消勾选时，自动取消同组所有 Tag。
+function selectChar(id) {
+  selectedCharId.value = id
+  activeTab.value = 'basic'
+}
+
+function updateCharId(event) {
+  const newId = event.target.value
+  if (selectedChar.value) selectedChar.value.id = newId
+  selectedCharId.value = newId
+}
+
+function addNewCharacter() {
+  const newId = `char_${Date.now()}`
+  const newChar = {
+    id: newId, name: "新干员", rarity: 5, element: "physical", avatar: "/avatars/default.png", exclusive_buffs: [],
+    attack_duration: 2.5, attack_spGain: 15, attack_allowed_types: [], attack_anomalies: [],
+    skill_duration: 2, skill_spCost: 100, skill_spReply: 0, skill_gaugeGain: 0, skill_allowed_types: [], skill_anomalies: [],
+    link_duration: 1.5, link_cooldown: 15, link_spGain: 0, link_gaugeGain: 0, link_allowed_types: [], link_anomalies: [],
+    ultimate_duration: 3, ultimate_gaugeMax: 100, ultimate_spReply: 0, ultimate_gaugeReply: 0, ultimate_allowed_types: [], ultimate_anomalies: [],
+    execution_duration: 1.5, execution_spGain: 20, execution_allowed_types: [], execution_anomalies: []
+  }
+  characterRoster.value.unshift(newChar)
+  selectedCharId.value = newId
+  ElMessage.success('已添加新干员')
+}
+
+function deleteCurrentCharacter() {
+  if (!selectedChar.value) return
+  ElMessageBox.confirm(`确定要删除干员 "${selectedChar.value.name}" 吗？`, '警告', {
+    confirmButtonText: '删除', cancelButtonText: '取消', type: 'warning'
+  }).then(() => {
+    const idx = characterRoster.value.findIndex(c => c.id === selectedCharId.value)
+    if (idx !== -1) {
+      characterRoster.value.splice(idx, 1)
+      if (characterRoster.value.length > 0) selectedCharId.value = characterRoster.value[0].id
+      else selectedCharId.value = null
+      ElMessage.success('删除成功')
+    }
+  }).catch(() => {})
+}
+
+function onCheckChange(char, skillType, key) {
+  const fieldName = `${skillType}_allowed_types`
+  if (!char[fieldName]) char[fieldName] = []
+  const list = char[fieldName]
+  const isChecked = list.includes(key)
+
   const elementalGroups = [
     ['burning', 'blaze_attach', 'blaze_burst'],
     ['conductive', 'emag_attach', 'emag_burst'],
     ['frozen', 'cold_attach', 'cold_burst'],
     ['corrosion', 'nature_attach', 'nature_burst']
-  ];
+  ]
 
-  const group = elementalGroups.find(g => g.includes(key));
+  const group = elementalGroups.find(g => g.includes(key))
   if (group) {
     if (isChecked) {
-      // 自动补全同组
-      group.forEach(item => { if (!list.includes(item)) list.push(item); });
+      group.forEach(item => { if (!list.includes(item)) list.push(item) })
     } else {
-      // 自动移除同组
-      char[fieldName] = list.filter(item => !group.includes(item));
-      return;
+      char[fieldName] = list.filter(item => !group.includes(item))
     }
   }
 
-  // 联动规则 2: 物理控制联动 (Physical Control Linkage)
-  // 如果勾选了高级控制 (击飞/倒地)，自动允许基础控制 (破防/碎冰)。
-  if (isChecked) {
-    const physicalTriggers = ['knockup', 'knockdown', 'stagger','armor_break'];
-    if (physicalTriggers.includes(key)) {
-      if (!list.includes('break')) list.push('break');
-      if (!list.includes('ice_shatter')) list.push('ice_shatter');
-    }
+  const physicalGroup = ['stagger', 'armor_break', 'knockup', 'knockdown'];
+  const physicalBase = ['break', 'ice_shatter'];
+
+  if (isChecked && physicalGroup.includes(key)) {
+    physicalBase.forEach(baseItem => {
+      if (!list.includes(baseItem)) list.push(baseItem);
+    });
   }
 }
 
 function saveData() {
-  // 按稀有度降序排列，方便在排轴器中查找
   characterRoster.value.sort((a, b) => (b.rarity || 0) - (a.rarity || 0));
-
-  // 组装最终 JSON 结构
   const dataToSave = {
     SYSTEM_CONSTANTS: { MAX_SP: 300, SP_REGEN_PER_SEC: 8, SKILL_SP_COST_DEFAULT: 100 },
     ICON_DATABASE: iconDatabase.value,
     characterRoster: characterRoster.value
   }
-
-  // 创建 Blob 并下载
   const jsonData = JSON.stringify(dataToSave, null, 2)
   const blob = new Blob([jsonData], {type: 'application/json'})
   const link = document.createElement('a')
@@ -118,208 +152,301 @@ function saveData() {
   link.download = 'gamedata.json'
   link.click()
   URL.revokeObjectURL(link.href)
-
-  alert('gamedata.json 生成成功！\n请将其覆盖项目中的 public/gamedata.json 文件以应用更改。')
+  ElMessage.success('gamedata.json 已生成，请覆盖项目文件')
 }
 
-function addNewCharacter() {
-  const newId = `char_${Date.now()}`;
-  const newChar = {
-    id: newId, name: "新干员", rarity: 6, avatar: "/avatars/default.png", exclusive_buffs: [],
-    // 重击
-    attack_duration: 2.5, attack_spGain: 15, attack_allowed_types: [], attack_anomalies: [],
-    // 战技 (默认无CD, 消耗SP)
-    skill_duration: 2, skill_spCost: 100, skill_spReply: 0, skill_gaugeGain: 0,
-    skill_allowed_types: [], skill_anomalies: [],
-    // 连携
-    link_duration: 1, link_cooldown: 1, link_spCost: 0, link_spGain: 0, link_gaugeGain: 0,
-    link_allowed_types: [], link_anomalies: [],
-    // 终结技 (默认消耗充能)
-    ultimate_duration: 4, ultimate_gaugeMax: 1000, ultimate_spReply: 0, ultimate_gaugeReply: 0,
-    ultimate_allowed_types: [], ultimate_anomalies: [],
-    // 处决
-    execution_duration: 1.5, execution_spGain: 20, execution_allowed_types: [], execution_anomalies: []
-  };
-  characterRoster.value.push(newChar);
-  // 滚动到底部查看新干员
-  setTimeout(() => { window.scrollTo(0, document.body.scrollHeight); }, 100);
+function getAvailableAnomalyOptions(skillType) {
+  if (!selectedChar.value) return []
+
+  // 获取允许列表
+  const allowedList = selectedChar.value[`${skillType}_allowed_types`] || []
+
+  // 映射为选项对象
+  return allowedList.map(key => {
+    // 1. 全局状态
+    if (EFFECT_NAMES[key]) {
+      return { label: EFFECT_NAMES[key], value: key }
+    }
+    // 2. 专属状态
+    const exclusive = selectedChar.value.exclusive_buffs.find(b => b.key === key)
+    if (exclusive) {
+      return { label: `★ ${exclusive.name}`, value: key }
+    }
+    // 3. 未知/兜底
+    return { label: key, value: key }
+  })
+}
+
+function addAnomaly(targetKey, skillType) {
+  // 1. 安全检查与初始化
+  if (!selectedChar.value) return
+  if (!selectedChar.value[targetKey]) {
+    selectedChar.value[targetKey] = []
+  }
+
+  const list = selectedChar.value[targetKey]
+
+  // 2. 计算默认类型
+  const allowedList = selectedChar.value[`${skillType}_allowed_types`] || []
+  const defaultType = allowedList.length > 0 ? allowedList[0] : 'default'
+
+  // 3. 推入新数据
+  list.push({ type: defaultType, stacks: 1, duration: 0 })
 }
 </script>
 
 <template>
-  <div class="editor-container">
-    <header class="editor-header">
-      <h1>数据编辑器</h1>
-      <p><router-link to="/">返回主排轴器</router-link></p>
-      <div class="button-group">
-        <button @click="saveData" class="save-button">生成并下载 gamedata.json</button>
-        <button @click="addNewCharacter" class="add-button">添加新干员</button>
+  <div class="cms-layout">
+    <aside class="cms-sidebar">
+      <div class="sidebar-header">
+        <h2>干员列表</h2>
+        <button class="btn-add" @click="addNewCharacter">+ 新增</button>
       </div>
-    </header>
+      <div class="search-box">
+        <input v-model="searchQuery" placeholder="搜索干员..." />
+      </div>
+      <div class="char-list">
+        <div v-for="char in filteredRoster" :key="char.id"
+             class="char-item" :class="{ active: char.id === selectedCharId }"
+             @click="selectChar(char.id)">
+          <img :src="char.avatar" class="avatar-small" @error="e=>e.target.src='/avatars/default.png'" />
+          <div class="char-info">
+            <span class="char-name">{{ char.name }}</span>
+            <span class="char-meta" :class="`rarity-${char.rarity}`">{{ char.rarity }}★ {{ char.element }}</span>
+          </div>
+        </div>
+      </div>
+      <div class="sidebar-footer">
+        <button class="btn-save" @click="saveData">💾 下载数据</button>
+        <router-link to="/" class="btn-back">↩ 返回排轴</router-link>
+      </div>
+    </aside>
 
-    <div v-if="isLoading">正在加载数据...</div>
+    <main class="cms-content">
+      <div v-if="selectedChar" class="editor-panel">
+        <header class="panel-header">
+          <div class="header-left">
+            <img :src="selectedChar.avatar" class="avatar-large" />
+            <div>
+              <h1 class="edit-title">{{ selectedChar.name }} <span class="id-tag">{{ selectedChar.id }}</span></h1>
+            </div>
+          </div>
+          <button class="btn-danger" @click="deleteCurrentCharacter">删除干员</button>
+        </header>
 
-    <section v-if="!isLoading" class="data-section">
-      <div v-for="character in characterRoster" :key="character.id" class="item-card">
-        <div class="card-header"><h3>{{ character.name }}</h3><span class="rarity-badge">{{ character.rarity }} ★</span></div>
+        <div class="cms-tabs">
+          <button :class="{ active: activeTab === 'basic' }" @click="activeTab = 'basic'">基础信息</button>
+          <button :class="{ active: activeTab === 'attack' }" @click="activeTab = 'attack'">⚔️ 重击</button>
+          <button :class="{ active: activeTab === 'skill' }" @click="activeTab = 'skill'">⚡ 战技</button>
+          <button :class="{ active: activeTab === 'link' }" @click="activeTab = 'link'">🔗 连携</button>
+          <button :class="{ active: activeTab === 'ultimate' }" @click="activeTab = 'ultimate'">🌟 终结技</button>
+          <button :class="{ active: activeTab === 'execution' }" @click="activeTab = 'execution'">☠️ 处决</button>
+        </div>
 
-        <div class="form-grid">
-          <div class="form-field"><label>ID (唯一标识)</label><input type="text" v-model="character.id"></div>
-          <div class="form-field"><label>Name (显示名称)</label><input type="text" v-model="character.name"></div>
-          <div class="form-field"><label>Rarity (星级)</label><input type="number" v-model.number="character.rarity" min="1" max="6"></div>
-          <div class="form-field"><label>Avatar (头像路径)</label><input type="text" v-model="character.avatar"></div>
+        <div class="tab-content">
 
-          <div class="form-field full-width">
-            <label>专属 Buff (Exclusive Buffs)</label>
-            <div class="anomalies-list-editor">
-              <div v-for="(buff, idx) in character.exclusive_buffs" :key="idx" class="anomaly-row-edit">
-                <input type="text" v-model="buff.key" placeholder="Key (e.g. crystallize)" class="input-small">
-                <input type="text" v-model="buff.name" placeholder="名称" class="input-small">
-                <input type="text" v-model="buff.path" placeholder="/icons/..." class="input-wide">
-                <button @click="character.exclusive_buffs.splice(idx, 1)" class="btn-del">×</button>
+          <div v-show="activeTab === 'basic'" class="form-section">
+            <div class="form-row">
+              <div class="form-group"><label>名称</label><input v-model="selectedChar.name" type="text" /></div>
+              <div class="form-group"><label>ID (英文唯一)</label><input :value="selectedChar.id" @input="updateCharId" type="text" /></div>
+              <div class="form-group"><label>星级</label>
+                <select v-model.number="selectedChar.rarity"><option :value="6">6 ★</option><option :value="5">5 ★</option><option :value="4">4 ★</option></select>
               </div>
-              <button @click="character.exclusive_buffs.push({ key: '', name: '', path: '' })" class="btn-add-row">+ 添加专属 Buff</button>
+              <div class="form-group"><label>元素属性</label>
+                <select v-model="selectedChar.element">
+                  <option v-for="elm in ELEMENTS" :key="elm.value" :value="elm.value">{{ elm.label }}</option>
+                </select>
+              </div>
+            </div>
+            <div class="form-group"><label>头像路径</label><input v-model="selectedChar.avatar" type="text" /></div>
+            <div class="form-group">
+              <label>专属 Buff</label>
+              <div v-for="(buff, idx) in selectedChar.exclusive_buffs" :key="idx" class="exclusive-row">
+                <input v-model="buff.key" placeholder="Key" /><input v-model="buff.name" placeholder="Name" /><input v-model="buff.path" placeholder="Path" class="flex-grow" />
+                <button class="btn-icon" @click="selectedChar.exclusive_buffs.splice(idx, 1)">×</button>
+              </div>
+              <button class="btn-small" @click="selectedChar.exclusive_buffs.push({key:'',name:'',path:''})">+ 添加</button>
             </div>
           </div>
-        </div>
 
-        <hr>
-        <h4>⚔️ 重击 (Attack)</h4>
-        <div class="form-grid">
-          <div class="form-field"><label>Duration (s)</label><input type="number" v-model.number="character.attack_duration" step="0.1"></div>
-          <div class="form-field highlight"><label>SP Gain</label><input type="number" v-model.number="character.attack_spGain"></div>
-          <div class="form-field full-width"><label>允许的 Buff</label>
-            <div class="checkbox-group-container">
-              <label v-for="key in effectKeys" :key="key" class="checkbox-label">
-                <input type="checkbox" :value="key" v-model="character.attack_allowed_types" @change="onCheckChange(character, 'attack', key)">
-                {{ EFFECT_NAMES[key] }}
-              </label>
-              <label v-for="buff in character.exclusive_buffs" :key="buff.key" class="checkbox-label" style="color: #ffd700;">
-                <input type="checkbox" :value="buff.key" v-model="character.attack_allowed_types" @change="onCheckChange(character, 'attack', buff.key)">
-                ★ {{ buff.name }}
-              </label>
+          <div v-show="activeTab === 'attack'" class="form-section">
+            <div class="form-row">
+              <div class="form-group"><label>持续时间</label><input type="number" step="0.1" v-model.number="selectedChar.attack_duration"></div>
+              <div class="form-group"><label>SP 回复</label><input type="number" v-model.number="selectedChar.attack_spGain"></div>
             </div>
           </div>
-        </div>
 
-        <hr>
-        <h4>☠️ 处决 (Execution) - 无CD，回复技力</h4>
-        <div class="form-grid">
-          <div class="form-field"><label>Duration (s)</label><input type="number" v-model.number="character.execution_duration" step="0.1"></div>
-          <div class="form-field highlight"><label>SP Gain (回复)</label><input type="number" v-model.number="character.execution_spGain"></div>
-          <div class="form-field full-width"><label>允许的 Buff</label>
-            <div class="checkbox-group-container">
-              <label v-for="key in effectKeys" :key="key" class="checkbox-label">
-                <input type="checkbox" :value="key" v-model="character.execution_allowed_types" @change="onCheckChange(character, 'execution', key)">
-                {{ EFFECT_NAMES[key] }}
-              </label>
-              <label v-for="buff in character.exclusive_buffs" :key="buff.key" class="checkbox-label" style="color: #ffd700;">
-                <input type="checkbox" :value="buff.key" v-model="character.execution_allowed_types" @change="onCheckChange(character, 'execution', buff.key)">
-                ★ {{ buff.name }}
-              </label>
+          <div v-show="activeTab === 'skill'" class="form-section">
+            <div class="form-row">
+              <div class="form-group"><label>属性 (可选)</label>
+                <select v-model="selectedChar.skill_element"><option :value="undefined">跟随干员</option><option v-for="elm in ELEMENTS" :key="elm.value" :value="elm.value">{{ elm.label }}</option></select>
+              </div>
+              <div class="form-group"><label>持续时间</label><input type="number" step="0.1" v-model.number="selectedChar.skill_duration"></div>
+              <div class="form-group"><label>SP 消耗</label><input type="number" v-model.number="selectedChar.skill_spCost"></div>
+              <div class="form-group"><label>充能获取</label><input type="number" v-model.number="selectedChar.skill_gaugeGain"></div>
+            </div>
+
+            <div class="form-group"><label>允许挂载的状态</label>
+              <div class="checkbox-grid">
+                <label v-for="key in effectKeys" :key="`skill_${key}`" class="cb-item"><input type="checkbox" :value="key" v-model="selectedChar.skill_allowed_types" @change="onCheckChange(selectedChar, 'skill', key)">{{ EFFECT_NAMES[key] }}</label>
+                <label v-for="buff in selectedChar.exclusive_buffs" :key="`skill_${buff.key}`" class="cb-item exclusive"><input type="checkbox" :value="buff.key" v-model="selectedChar.skill_allowed_types">★ {{ buff.name }}</label>
+              </div>
+            </div>
+
+            <div class="form-group" style="margin-top: 20px; border-top: 1px dashed #444; padding-top: 15px;">
+              <label>默认附带状态 (Auto Anomalies)</label>
+              <div class="info-banner" v-if="getAvailableAnomalyOptions('skill').length === 0">请先在上方勾选允许的状态。</div>
+
+              <div v-for="(item, idx) in selectedChar.skill_anomalies" :key="idx" class="exclusive-row">
+                <select v-model="item.type" class="flex-grow">
+                  <option v-for="opt in getAvailableAnomalyOptions('skill')" :key="opt.value" :value="opt.value">{{ opt.label }}</option>
+                </select>
+                <input type="number" v-model.number="item.stacks" placeholder="层" style="width: 50px">
+                <input type="number" v-model.number="item.duration" placeholder="秒" step="0.1" style="width: 60px">
+                <button class="btn-icon" @click="selectedChar.skill_anomalies.splice(idx, 1)">×</button>
+              </div>
+              <button class="btn-small"
+                      @click="addAnomaly('skill_anomalies', 'skill')"
+                      :disabled="getAvailableAnomalyOptions('skill').length === 0">
+                + 添加默认状态
+              </button>
             </div>
           </div>
-        </div>
 
-        <hr>
-        <h4>⚡ 战技 (Skill) - 无CD，消耗技力</h4>
-        <div class="form-grid">
-          <div class="form-field"><label>Duration (s)</label><input type="number" v-model.number="character.skill_duration" step="0.1"></div>
-          <div class="form-field highlight"><label>SP Cost</label><input type="number" v-model.number="character.skill_spCost"></div>
-          <div class="form-field highlight"><label>SP Refund</label><input type="number" v-model.number="character.skill_spReply"></div>
-          <div class="form-field highlight-blue"><label>Gauge Gain</label><input type="number" v-model.number="character.skill_gaugeGain"></div>
-          <div class="form-field full-width"><label>允许的 Buff</label>
-            <div class="checkbox-group-container">
-              <label v-for="key in effectKeys" :key="key" class="checkbox-label">
-                <input type="checkbox" :value="key" v-model="character.skill_allowed_types" @change="onCheckChange(character, 'skill', key)">
-                {{ EFFECT_NAMES[key] }}
-              </label>
-              <label v-for="buff in character.exclusive_buffs" :key="buff.key" class="checkbox-label" style="color: #ffd700;">
-                <input type="checkbox" :value="buff.key" v-model="character.skill_allowed_types" @change="onCheckChange(character, 'skill', buff.key)">
-                ★ {{ buff.name }}
-              </label>
+          <div v-show="activeTab === 'link'" class="form-section">
+            <div class="form-row">
+              <div class="form-group"><label>持续时间</label><input type="number" step="0.1" v-model.number="selectedChar.link_duration"></div>
+              <div class="form-group"><label>冷却时间</label><input type="number" v-model.number="selectedChar.link_cooldown"></div>
+              <div class="form-group"><label>充能获取</label><input type="number" v-model.number="selectedChar.link_gaugeGain"></div>
+            </div>
+
+            <div class="form-group"><label>允许挂载的状态</label>
+              <div class="checkbox-grid">
+                <label v-for="key in effectKeys" :key="`link_${key}`" class="cb-item"><input type="checkbox" :value="key" v-model="selectedChar.link_allowed_types" @change="onCheckChange(selectedChar, 'link', key)">{{ EFFECT_NAMES[key] }}</label>
+                <label v-for="buff in selectedChar.exclusive_buffs" :key="`link_${buff.key}`" class="cb-item exclusive"><input type="checkbox" :value="buff.key" v-model="selectedChar.link_allowed_types">★ {{ buff.name }}</label>
+              </div>
+            </div>
+
+            <div class="form-group" style="margin-top: 20px; border-top: 1px dashed #444; padding-top: 15px;">
+              <label>默认附带状态 (Auto Anomalies)</label>
+              <div class="info-banner" v-if="getAvailableAnomalyOptions('link').length === 0">请先在上方勾选允许的状态。</div>
+              <div v-for="(item, idx) in selectedChar.link_anomalies" :key="idx" class="exclusive-row">
+                <select v-model="item.type" class="flex-grow">
+                  <option v-for="opt in getAvailableAnomalyOptions('link')" :key="opt.value" :value="opt.value">{{ opt.label }}</option>
+                </select>
+                <input type="number" v-model.number="item.stacks" placeholder="层" style="width: 50px">
+                <input type="number" v-model.number="item.duration" placeholder="秒" step="0.1" style="width: 60px">
+                <button class="btn-icon" @click="selectedChar.link_anomalies.splice(idx, 1)">×</button>
+              </div>
+              <button class="btn-small"
+                      @click="addAnomaly('link_anomalies', 'link')"
+                      :disabled="getAvailableAnomalyOptions('link').length === 0">
+                + 添加默认状态
+              </button>
             </div>
           </div>
-        </div>
 
-        <hr>
-        <h4>🔗 连携 (Link)</h4>
-        <div class="form-grid">
-          <div class="form-field"><label>Duration (s)</label><input type="number" v-model.number="character.link_duration" step="0.1"></div>
-          <div class="form-field"><label>Cooldown (s)</label><input type="number" v-model.number="character.link_cooldown"></div>
-          <div class="form-field highlight"><label>SP Gain (回能)</label><input type="number" v-model.number="character.link_spGain"></div>
-          <div class="form-field highlight-blue"><label>Gauge Gain</label><input type="number" v-model.number="character.link_gaugeGain"></div>
-          <div class="form-field full-width"><label>允许的 Buff</label>
-            <div class="checkbox-group-container">
-              <label v-for="key in effectKeys" :key="key" class="checkbox-label">
-                <input type="checkbox" :value="key" v-model="character.link_allowed_types" @change="onCheckChange(character, 'link', key)">
-                {{ EFFECT_NAMES[key] }}
-              </label>
-              <label v-for="buff in character.exclusive_buffs" :key="buff.key" class="checkbox-label" style="color: #ffd700;">
-                <input type="checkbox" :value="buff.key" v-model="character.link_allowed_types" @change="onCheckChange(character, 'link', buff.key)">
-                ★ {{ buff.name }}
-              </label>
+          <div v-show="activeTab === 'ultimate'" class="form-section">
+            <div class="form-row">
+              <div class="form-group"><label>属性 (可选)</label>
+                <select v-model="selectedChar.ultimate_element"><option :value="undefined">跟随干员</option><option v-for="elm in ELEMENTS" :key="elm.value" :value="elm.value">{{ elm.label }}</option></select>
+              </div>
+              <div class="form-group"><label>持续时间</label><input type="number" step="0.1" v-model.number="selectedChar.ultimate_duration"></div>
+              <div class="form-group"><label>充能消耗</label><input type="number" v-model.number="selectedChar.ultimate_gaugeMax"></div>
+            </div>
+
+            <div class="form-group"><label>允许挂载的状态</label>
+              <div class="checkbox-grid">
+                <label v-for="key in effectKeys" :key="`ultimate_${key}`" class="cb-item"><input type="checkbox" :value="key" v-model="selectedChar.ultimate_allowed_types" @change="onCheckChange(selectedChar, 'ultimate', key)">{{ EFFECT_NAMES[key] }}</label>
+                <label v-for="buff in selectedChar.exclusive_buffs" :key="`ultimate_${buff.key}`" class="cb-item exclusive"><input type="checkbox" :value="buff.key" v-model="selectedChar.ultimate_allowed_types">★ {{ buff.name }}</label>
+              </div>
+            </div>
+
+            <div class="form-group" style="margin-top: 20px; border-top: 1px dashed #444; padding-top: 15px;">
+              <label>默认附带状态 (Auto Anomalies)</label>
+              <div class="info-banner" v-if="getAvailableAnomalyOptions('ultimate').length === 0">请先在上方勾选允许的状态。</div>
+              <div v-for="(item, idx) in selectedChar.ultimate_anomalies" :key="idx" class="exclusive-row">
+                <select v-model="item.type" class="flex-grow">
+                  <option v-for="opt in getAvailableAnomalyOptions('ultimate')" :key="opt.value" :value="opt.value">{{ opt.label }}</option>
+                </select>
+                <input type="number" v-model.number="item.stacks" placeholder="层" style="width: 50px">
+                <input type="number" v-model.number="item.duration" placeholder="秒" step="0.1" style="width: 60px">
+                <button class="btn-icon" @click="selectedChar.ultimate_anomalies.splice(idx, 1)">×</button>
+              </div>
+              <button class="btn-small"
+                      @click="addAnomaly('ultimate_anomalies', 'ultimate')"
+                      :disabled="getAvailableAnomalyOptions('ultimate').length === 0">
+                + 添加默认状态
+              </button>
             </div>
           </div>
-        </div>
 
-        <hr>
-        <h4>🌟 终结技 (Ultimate) - 消耗充能</h4>
-        <div class="form-grid">
-          <div class="form-field"><label>Duration (s)</label><input type="number" v-model.number="character.ultimate_duration" step="0.1"></div>
-          <div class="form-field highlight-blue"><label>Gauge Max (Cost)</label><input type="number" v-model.number="character.ultimate_gaugeMax"></div>
-          <div class="form-field highlight"><label>SP Reply</label><input type="number" v-model.number="character.ultimate_spReply"></div>
-          <div class="form-field highlight-blue"><label>Gauge Reply</label><input type="number" v-model.number="character.ultimate_gaugeReply"></div>
-          <div class="form-field full-width"><label>允许的 Buff</label>
-            <div class="checkbox-group-container">
-              <label v-for="key in effectKeys" :key="key" class="checkbox-label">
-                <input type="checkbox" :value="key" v-model="character.ultimate_allowed_types" @change="onCheckChange(character, 'ultimate', key)">
-                {{ EFFECT_NAMES[key] }}
-              </label>
-              <label v-for="buff in character.exclusive_buffs" :key="buff.key" class="checkbox-label" style="color: #ffd700;">
-                <input type="checkbox" :value="buff.key" v-model="character.ultimate_allowed_types" @change="onCheckChange(character, 'ultimate', buff.key)">
-                ★ {{ buff.name }}
-              </label>
+          <div v-show="activeTab === 'execution'" class="form-section">
+            <div class="form-row">
+              <div class="form-group"><label>持续时间</label><input type="number" step="0.1" v-model.number="selectedChar.execution_duration"></div>
+              <div class="form-group"><label>SP 回复</label><input type="number" v-model.number="selectedChar.execution_spGain"></div>
             </div>
           </div>
-        </div>
 
+        </div>
       </div>
-    </section>
+      <div v-else class="empty-state">请从左侧选择干员</div>
+    </main>
   </div>
 </template>
 
 <style scoped>
-.editor-container { padding: 20px; color: #f0f0f0; background-color: #2c2c2c; height: 100vh; overflow-y: auto; box-sizing: border-box; }
-.editor-header { border-bottom: 1px solid #555; padding-bottom: 20px; }
-.editor-header a { color: #4a90e2; }
-.button-group { display: flex; gap: 15px; margin: 20px 0; }
-.save-button { background-color: #4CAF50; color: white; padding: 10px 15px; border: none; border-radius: 4px; cursor: pointer; font-size: 16px; }
-.add-button { background-color: #008CBA; color: white; padding: 10px 15px; border: none; border-radius: 4px; cursor: pointer; font-size: 16px; }
-.data-section { margin-top: 30px; }
-.item-card { background-color: #3a3a3a; border: 1px solid #555; border-radius: 8px; padding: 20px; margin-bottom: 20px; }
-.card-header { display: flex; align-items: center; justify-content: space-between; }
-.rarity-badge { background-color: #ffd700; color: #000; padding: 2px 8px; border-radius: 4px; font-weight: bold; font-size: 14px; }
-hr { border: 0; border-top: 1px solid #555; margin: 20px 0; }
-h4 { color: #f0f0f0; border-bottom: 1px solid #777; padding-bottom: 5px; margin-top: 10px; }
-.form-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); gap: 15px; }
-.form-field { display: flex; flex-direction: column; }
-.form-field.full-width { grid-column: 1 / -1; }
-.form-field label { margin-bottom: 5px; color: #aaa; font-size: 12px; }
-.form-field input { background-color: #2c2c2c; color: #f0f0f0; border: 1px solid #555; border-radius: 4px; padding: 8px; font-size: 16px; }
-
-/* 资源高亮样式 */
-.highlight input { border-color: #ffd700; color: #ffd700; } /* SP 相关 */
-.highlight-blue input { border-color: #00e5ff; color: #00e5ff; } /* 充能 相关 */
-
-/* 复选框和列表的样式保持原样 */
-.checkbox-group-container { display: grid; grid-template-columns: repeat(auto-fill, minmax(120px, 1fr)); gap: 8px; background: #222; padding: 10px; border: 1px solid #555; border-radius: 4px; }
-.checkbox-label { display: flex; align-items: center; gap: 6px; font-size: 13px; cursor: pointer; user-select: none; }
-.anomalies-list-editor { background: #222; padding: 10px; border: 1px solid #555; border-radius: 4px; display: flex; flex-direction: column; gap: 8px; }
-.anomaly-row-edit { display: flex; align-items: center; gap: 8px; background: #333; padding: 5px; border-radius: 4px; }
-.btn-del { background: #d32f2f; color: white; border: none; width: 24px; height: 24px; border-radius: 4px; cursor: pointer; font-weight: bold; }
-.btn-add-row { background: #444; color: #ffd700; border: 1px dashed #ffd700; padding: 8px; cursor: pointer; border-radius: 4px; }
-.input-tiny { width: 50px !important; padding: 4px !important; text-align: center; }
-.input-small { width: 120px !important; }
-.input-wide { flex-grow: 1; }
+.cms-layout { display: flex; height: 100vh; background-color: #1e1e1e; color: #f0f0f0; overflow: hidden; font-family: sans-serif; }
+.cms-sidebar { width: 280px; background-color: #252526; border-right: 1px solid #333; display: flex; flex-direction: column; }
+.sidebar-header { padding: 15px; border-bottom: 1px solid #333; display: flex; justify-content: space-between; align-items: center; }
+.sidebar-header h2 { margin: 0; font-size: 18px; color: #ffd700; }
+.btn-add { background: #444; border: none; color: #fff; padding: 4px 8px; border-radius: 4px; cursor: pointer; }
+.btn-add:hover { background: #555; }
+.search-box { padding: 10px; border-bottom: 1px solid #333; }
+.search-box input { width: 100%; padding: 8px; box-sizing: border-box; background: #333; border: 1px solid #444; color: #fff; border-radius: 4px; }
+.char-list { flex-grow: 1; overflow-y: auto; padding: 10px; }
+.char-item { display: flex; align-items: center; padding: 8px; border-radius: 6px; cursor: pointer; transition: background 0.2s; margin-bottom: 4px; }
+.char-item:hover { background-color: #333; }
+.char-item.active { background-color: #37373d; border-left: 3px solid #ffd700; }
+.avatar-small { width: 40px; height: 40px; border-radius: 50%; margin-right: 10px; background: #444; object-fit: cover; }
+.char-info { display: flex; flex-direction: column; }
+.char-name { font-weight: bold; font-size: 14px; }
+.char-meta { font-size: 12px; color: #888; }
+.rarity-6 { color: #ffd700; } .rarity-5 { color: #f0f0f0; }
+.sidebar-footer { padding: 15px; border-top: 1px solid #333; display: flex; flex-direction: column; gap: 10px; }
+.btn-save { width: 100%; padding: 10px; background: #2e7d32; border: none; color: white; border-radius: 4px; cursor: pointer; font-weight: bold; }
+.btn-save:hover { background: #388e3c; }
+.btn-back { text-align: center; color: #aaa; text-decoration: none; font-size: 12px; display: block; padding: 5px; }
+.btn-back:hover { color: #fff; }
+.cms-content { flex-grow: 1; overflow-y: auto; padding: 30px; background-color: #1e1e1e; }
+.editor-panel { max-width: 900px; margin: 0 auto; }
+.panel-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; border-bottom: 1px solid #444; padding-bottom: 20px; }
+.header-left { display: flex; align-items: center; gap: 20px; }
+.avatar-large { width: 80px; height: 80px; border-radius: 8px; background: #333; object-fit: cover; border: 2px solid #555; }
+.edit-title { margin: 0; font-size: 24px; }
+.id-tag { font-size: 14px; color: #666; font-weight: normal; margin-left: 10px; font-family: monospace; }
+.btn-danger { background: #d32f2f; color: white; border: none; padding: 8px 16px; border-radius: 4px; cursor: pointer; }
+.cms-tabs { display: flex; gap: 5px; margin-bottom: 20px; border-bottom: 1px solid #444; }
+.cms-tabs button { background: #2d2d2d; border: none; color: #aaa; padding: 10px 20px; cursor: pointer; border-radius: 4px 4px 0 0; transition: all 0.2s; }
+.cms-tabs button:hover { background: #333; color: #fff; }
+.cms-tabs button.active { background: #37373d; color: #ffd700; font-weight: bold; border-bottom: 2px solid #ffd700; }
+.form-section { background: #252526; padding: 20px; border-radius: 8px; animation: fadeIn 0.2s ease; }
+.form-row { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 20px; margin-bottom: 20px; }
+.form-group { margin-bottom: 15px; display: flex; flex-direction: column; }
+.form-group label { margin-bottom: 6px; color: #999; font-size: 12px; }
+.form-group input, .form-group select { background: #1e1e1e; border: 1px solid #444; color: #fff; padding: 10px; border-radius: 4px; font-size: 14px; }
+.form-group input:focus { border-color: #ffd700; outline: none; }
+.exclusive-row { display: flex; gap: 10px; margin-bottom: 10px; }
+.exclusive-row input { background: #1e1e1e; border: 1px solid #444; color: #fff; padding: 6px; border-radius: 4px; }
+.flex-grow { flex-grow: 1; }
+.btn-icon { background: none; border: none; color: #666; cursor: pointer; font-size: 18px; }
+.btn-icon:hover { color: #d32f2f; }
+.btn-small { background: #333; border: 1px dashed #666; color: #aaa; padding: 6px 12px; cursor: pointer; border-radius: 4px; width: 100%; }
+.btn-small:hover { border-color: #ffd700; color: #ffd700; }
+.checkbox-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); gap: 10px; background: #1e1e1e; padding: 15px; border-radius: 4px; border: 1px solid #333; }
+.cb-item { display: flex; align-items: center; gap: 8px; font-size: 13px; color: #ccc; cursor: pointer; user-select: none; }
+.cb-item.exclusive { color: #ffd700; }
+.info-banner { background: rgba(255, 255, 255, 0.05); padding: 10px; border-left: 3px solid #888; color: #ccc; margin-bottom: 20px; font-size: 13px; }
+.empty-state { display: flex; justify-content: center; align-items: center; height: 300px; color: #666; }
+@keyframes fadeIn { from { opacity: 0; transform: translateY(5px); } to { opacity: 1; transform: translateY(0); } }
 </style>

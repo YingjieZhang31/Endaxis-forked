@@ -30,30 +30,27 @@
       "id": "ENDMINISTRATOR",
       "name": "管理员",
       "rarity": 6,
+      "element": "physical",
       "avatar": "/avatars/ENDMINISTRATOR.png",
       "exclusive_buffs": [
         {
-          "key": "crystallize",
+          "key": "crystallization",
           "name": "结晶",
           "path": "/icons/crystallization.png"
         }
       ],
       "attack_duration": 2.5,
-      "attack_cooldown": 0,
-      "attack_spCost": 0,
-      "attack_spGain": 10,
-      "attack_allowed_types": [
-        "default"
-      ],
+      "attack_spGain": 15,
+      "attack_allowed_types": [],
       "attack_anomalies": [],
       "skill_duration": 2,
-      "skill_cooldown": 0,
       "skill_spCost": 100,
-      "skill_spGain": 0,
+      "skill_spReply": 0,
+      "skill_gaugeGain": 0,
       "skill_allowed_types": [
         "stagger",
-        "ice_shatter",
-        "break"
+        "break",
+        "ice_shatter"
       ],
       "skill_anomalies": [
         {
@@ -64,73 +61,26 @@
       ],
       "link_duration": 1.5,
       "link_cooldown": 15,
-      "link_spCost": 0,
       "link_spGain": 0,
+      "link_gaugeGain": 0,
       "link_allowed_types": [
-        "crystallize"
+        "crystallization"
       ],
       "link_anomalies": [
         {
-          "type": "crystallize",
+          "type": "crystallization",
           "stacks": 1,
           "duration": 4
         }
       ],
-      "ultimate_duration": 4,
-      "ultimate_cooldown": 0,
-      "ultimate_spCost": 80,
-      "ultimate_spGain": 0,
+      "ultimate_duration": 3,
+      "ultimate_gaugeMax": 100,
+      "ultimate_spReply": 0,
+      "ultimate_gaugeReply": 0,
       "ultimate_allowed_types": [
         "default"
       ],
       "ultimate_anomalies": [],
-      "ultimate_gaugeMax": 100,
-      "skill_spReply": 0,
-      "ultimate_spReply": 0,
-      "ultimate_gaugeReply": 0,
-      "skill_gaugeGain": 0,
-      "link_gaugeGain": 0,
-      "execution_duration": 1.5,
-      "execution_spGain": 20,
-      "execution_allowed_types": [],
-      "execution_anomalies": []
-    },
-    {
-      "id": "POGRANICHNIK",
-      "name": "骏卫",
-      "rarity": 6,
-      "avatar": "/avatars/POGRANICHNIK.png",
-      "exclusive_buffs": [],
-      "attack_duration": 3,
-      "attack_cooldown": 0,
-      "attack_spCost": 0,
-      "attack_spGain": 10,
-      "attack_allowed_types": [],
-      "attack_anomalies": [],
-      "skill_duration": 2,
-      "skill_cooldown": 0,
-      "skill_spCost": 30,
-      "skill_spGain": 0,
-      "skill_allowed_types": [],
-      "skill_anomalies": [],
-      "link_duration": 1,
-      "link_cooldown": 1,
-      "link_spCost": 0,
-      "link_spGain": 0,
-      "link_allowed_types": [],
-      "link_anomalies": [],
-      "ultimate_duration": 4,
-      "ultimate_cooldown": 20,
-      "ultimate_spCost": 80,
-      "ultimate_spGain": 0,
-      "ultimate_allowed_types": [],
-      "ultimate_anomalies": [],
-      "ultimate_gaugeMax": 1000,
-      "skill_spReply": 0,
-      "ultimate_spReply": 0,
-      "ultimate_gaugeReply": 0,
-      "skill_gaugeGain": 0,
-      "link_gaugeGain": 0,
       "execution_duration": 1.5,
       "execution_spGain": 20,
       "execution_allowed_types": [],
@@ -140,23 +90,20 @@
       "id": "CHENQIANYU",
       "name": "陈千语",
       "rarity": 5,
+      "element": "physical",
       "avatar": "/avatars/CHENQIANYU.png",
       "exclusive_buffs": [],
       "attack_duration": 2.5,
-      "attack_cooldown": 0,
-      "attack_spCost": 0,
       "attack_spGain": 15,
-      "attack_allowed_types": [
-        "default"
-      ],
+      "attack_allowed_types": [],
       "attack_anomalies": [],
       "skill_duration": 2,
-      "skill_cooldown": 0,
       "skill_spCost": 100,
-      "skill_spGain": 0,
+      "skill_spReply": 0,
+      "skill_gaugeGain": 0,
       "skill_allowed_types": [
-        "break",
         "knockup",
+        "break",
         "ice_shatter"
       ],
       "skill_anomalies": [
@@ -167,9 +114,9 @@
         }
       ],
       "link_duration": 1.5,
-      "link_cooldown": 16,
-      "link_spCost": 0,
+      "link_cooldown": 15,
       "link_spGain": 0,
+      "link_gaugeGain": 0,
       "link_allowed_types": [
         "knockup",
         "break",
@@ -182,22 +129,16 @@
           "duration": 0
         }
       ],
-      "ultimate_duration": 5,
-      "ultimate_cooldown": 0,
-      "ultimate_spCost": 80,
-      "ultimate_spGain": 0,
+      "ultimate_duration": 3,
+      "ultimate_gaugeMax": 100,
+      "ultimate_spReply": 0,
+      "ultimate_gaugeReply": 0,
       "ultimate_allowed_types": [
         "default"
       ],
       "ultimate_anomalies": [],
-      "ultimate_gaugeMax": 1000,
-      "skill_spReply": 0,
-      "ultimate_spReply": 0,
-      "ultimate_gaugeReply": 0,
-      "skill_gaugeGain": 0,
-      "link_gaugeGain": 0,
-      "execution_duration": 1.5,
-      "execution_spGain": 20,
+      "execution_duration": 2.5,
+      "execution_spGain": 30,
       "execution_allowed_types": [],
       "execution_anomalies": []
     },
@@ -205,74 +146,77 @@
       "id": "ALESH",
       "name": "阿列什",
       "rarity": 5,
+      "element": "cold",
       "avatar": "/avatars/ALESH.png",
       "exclusive_buffs": [],
       "attack_duration": 3,
-      "attack_spCost": 0,
       "attack_spGain": 10,
-      "attack_allowed_types": [
-        "default"
-      ],
+      "attack_allowed_types": [],
       "attack_anomalies": [],
       "skill_duration": 2,
       "skill_spCost": 100,
-      "skill_spGain": 0,
-      "skill_allowed_types": [],
-      "skill_anomalies": [],
-      "link_duration": 1.5,
-      "link_cooldown": 5,
-      "link_spCost": 0,
-      "link_spGain": 10,
-      "link_allowed_types": [
-        "cold_attach",
+      "skill_spReply": 0,
+      "skill_gaugeGain": 17,
+      "skill_allowed_types": [
         "frozen",
+        "cold_attach",
         "cold_burst"
+      ],
+      "skill_anomalies": [
+        {
+          "type": "frozen",
+          "stacks": 1,
+          "duration": 5
+        }
+      ],
+      "link_duration": 1,
+      "link_cooldown": 5,
+      "link_spGain": 0,
+      "link_gaugeGain": 10,
+      "link_allowed_types": [
+        "default"
       ],
       "link_anomalies": [],
       "ultimate_duration": 3,
-      "ultimate_spCost": 80,
-      "ultimate_spGain": 0,
-      "ultimate_allowed_types": [
-        "cold_attach",
-        "frozen",
-        "cold_burst"
-      ],
-      "ultimate_anomalies": [],
       "ultimate_gaugeMax": 100,
-      "skill_spReply": 30,
-      "ultimate_spReply": 30,
+      "ultimate_spReply": 0,
       "ultimate_gaugeReply": 0,
-      "skill_gaugeGain": 17,
-      "link_gaugeGain": 10,
-      "execution_duration": 3,
-      "execution_spGain": 20,
-      "execution_allowed_types": [
-        "default"
+      "ultimate_allowed_types": [
+        "cold_burst",
+        "frozen",
+        "cold_attach"
       ],
+      "ultimate_anomalies": [
+        {
+          "type": "cold_burst",
+          "stacks": 1,
+          "duration": 0
+        }
+      ],
+      "execution_duration": 1.5,
+      "execution_spGain": 20,
+      "execution_allowed_types": [],
       "execution_anomalies": []
     },
     {
       "id": "ESTELLA",
       "name": "埃特拉",
       "rarity": 4,
+      "element": "cold",
       "avatar": "/avatars/ESTELLA.png",
       "exclusive_buffs": [],
-      "attack_duration": 3,
-      "attack_cooldown": 0,
-      "attack_spCost": 0,
-      "attack_spGain": 10,
-      "attack_allowed_types": [
-        "default"
-      ],
+      "attack_duration": 2.5,
+      "attack_spGain": 15,
+      "attack_allowed_types": [],
       "attack_anomalies": [],
       "skill_duration": 2,
-      "skill_cooldown": 0,
       "skill_spCost": 100,
-      "skill_spGain": 0,
+      "skill_spReply": 0,
+      "skill_gaugeGain": 0,
       "skill_allowed_types": [
-        "cold_attach",
+        "cold_burst",
         "frozen",
-        "cold_burst"
+        "cold_attach"
       ],
       "skill_anomalies": [
         {
@@ -282,13 +226,13 @@
         }
       ],
       "link_duration": 1.5,
-      "link_cooldown": 16,
-      "link_spCost": 0,
+      "link_cooldown": 15,
       "link_spGain": 0,
+      "link_gaugeGain": 0,
       "link_allowed_types": [
         "knockup",
-        "ice_shatter",
-        "break"
+        "break",
+        "ice_shatter"
       ],
       "link_anomalies": [
         {
@@ -302,20 +246,14 @@
           "duration": 0
         }
       ],
-      "ultimate_duration": 4,
-      "ultimate_cooldown": 0,
-      "ultimate_spCost": 80,
-      "ultimate_spGain": 0,
+      "ultimate_duration": 3,
+      "ultimate_gaugeMax": 100,
+      "ultimate_spReply": 0,
+      "ultimate_gaugeReply": 0,
       "ultimate_allowed_types": [
         "default"
       ],
       "ultimate_anomalies": [],
-      "ultimate_gaugeMax": 1000,
-      "skill_spReply": 0,
-      "ultimate_spReply": 0,
-      "ultimate_gaugeReply": 0,
-      "skill_gaugeGain": 0,
-      "link_gaugeGain": 0,
       "execution_duration": 1.5,
       "execution_spGain": 20,
       "execution_allowed_types": [],
@@ -323,26 +261,23 @@
     },
     {
       "id": "AKEKURI",
-      "name": "秋粟",
+      "name": "秋栗",
       "rarity": 4,
+      "element": "blaze",
       "avatar": "/avatars/AKEKURI.png",
       "exclusive_buffs": [],
-      "attack_duration": 3,
-      "attack_cooldown": 0,
-      "attack_spCost": 0,
-      "attack_spGain": 10,
-      "attack_allowed_types": [
-        "default"
-      ],
+      "attack_duration": 2.5,
+      "attack_spGain": 15,
+      "attack_allowed_types": [],
       "attack_anomalies": [],
       "skill_duration": 2,
-      "skill_cooldown": 0,
       "skill_spCost": 100,
-      "skill_spGain": 0,
+      "skill_spReply": 0,
+      "skill_gaugeGain": 0,
       "skill_allowed_types": [
-        "blaze_burst",
         "blaze_attach",
-        "burning"
+        "burning",
+        "blaze_burst"
       ],
       "skill_anomalies": [
         {
@@ -351,28 +286,22 @@
           "duration": 0
         }
       ],
-      "link_duration": 2,
-      "link_cooldown": 16,
-      "link_spCost": 0,
+      "link_duration": 1.5,
+      "link_cooldown": 15,
       "link_spGain": 0,
+      "link_gaugeGain": 0,
       "link_allowed_types": [
         "default"
       ],
       "link_anomalies": [],
-      "ultimate_duration": 4,
-      "ultimate_cooldown": 0,
-      "ultimate_spCost": 80,
-      "ultimate_spGain": 0,
+      "ultimate_duration": 3,
+      "ultimate_gaugeMax": 100,
+      "ultimate_spReply": 0,
+      "ultimate_gaugeReply": 0,
       "ultimate_allowed_types": [
         "default"
       ],
       "ultimate_anomalies": [],
-      "ultimate_gaugeMax": 1000,
-      "skill_spReply": 0,
-      "ultimate_spReply": 0,
-      "ultimate_gaugeReply": 0,
-      "skill_gaugeGain": 0,
-      "link_gaugeGain": 0,
       "execution_duration": 1.5,
       "execution_spGain": 20,
       "execution_allowed_types": [],

@@ -1,24 +1,26 @@
 <script setup>
+import { onMounted, ref } from 'vue'
+import { useTimelineStore } from '../stores/timelineStore.js'
+import html2canvas from 'html2canvas'
+import { ElLoading, ElMessage } from 'element-plus'
+
+// 子组件
 import TimelineGrid from '../components/TimelineGrid.vue'
 import ActionLibrary from '../components/ActionLibrary.vue'
 import PropertiesPanel from '../components/PropertiesPanel.vue'
 import SpMonitor from '../components/SpMonitor.vue'
-import html2canvas from 'html2canvas'
-import { ElLoading, ElMessage } from 'element-plus'
-import { onMounted, ref } from 'vue'
-import { useTimelineStore } from '../stores/timelineStore.js'
 
 /**
- * 组件：TimelineEditor (主界面)
- * 作用：应用的主容器，负责三栏布局 (库/主画布/属性) 的组装。
- * 核心功能：
- * 1. 布局管理：Grid + Flex 复合布局。
- * 2. 全局控制：缩放、保存、读取、导出图片。
- * 3. 导出长图引擎：实现了一个复杂的“展开-截图-还原”流程，支持导出超长排轴图。
+ * 视图：TimelineEditor (主工作台)
+ * 作用：组合所有核心组件，提供全局控制 (缩放、保存、导出)。
  */
 
 const store = useTimelineStore()
 const fileInputRef = ref(null)
+
+// ===================================================================================
+// 1. 项目管理 (Load / Save / Import)
+// ===================================================================================
 
 onMounted(() => {
   store.fetchGameData()
@@ -44,45 +46,44 @@ async function onFileSelected(event) {
   }
 }
 
+// ===================================================================================
+// 2. 长图导出逻辑 (Export Image)
+// ===================================================================================
+
 /**
- * 核心功能：导出高清长图
- * 原理：HTML2Canvas 无法截取 overflow:scroll 内部被隐藏的内容。
- * 策略：
- * 1. [Freeze]: 锁定界面，显示 Loading。
- * 2. [Expand]: 强制将所有滚动容器的 width/height 设为内容实际尺寸 (overflow: visible)，使整个时间轴在 DOM 上完全展开。
- * 3. [Patch]: 临时隐藏 ElementUI 的复杂组件 (Select)，替换为纯文本 Label 以修正渲染偏差。
- * 4. [Capture]: 截图。
- * 5. [Restore]: 恢复所有 DOM 样式到初始状态。
+ * 导出高清长图
+ * 难点：HTML2Canvas 无法截取 overflow:hidden/scroll 内部的内容。
+ * 策略：[Freeze] -> [Expand] -> [Patch] -> [Capture] -> [Restore]
  */
 async function exportAsImage() {
-  // 1. 计算画布总尺寸
-  // 预设导出 65秒 的长度，确保包含结尾
-  const durationSeconds = store.TOTAL_DURATION + 5
+  // 配置导出参数
+  const durationSeconds = store.TOTAL_DURATION + 5 // 多截 5s 留白
   const pixelsPerSecond = store.timeBlockWidth
   const sidebarWidth = 180
   const rightMargin = 100
   const contentWidth = durationSeconds * pixelsPerSecond
   const totalWidth = sidebarWidth + contentWidth + rightMargin
 
+  // 显示全屏 Loading，防止用户在导出期间操作
   const loading = ElLoading.service({
     lock: true,
     text: '正在进行像素级对齐并渲染长图...',
     background: 'rgba(0, 0, 0, 0.9)',
   })
 
-  // === 阶段 A: 状态备份 (Snapshot State) ===
+  // --- A. 状态备份 (Snapshot) ---
   const originalScrollLeft = store.timelineScrollLeft
-
-  // 获取关键 DOM 节点
   const workspaceEl = document.querySelector('.timeline-workspace')
   const timelineMain = document.querySelector('.timeline-main')
   const gridLayout = document.querySelector('.timeline-grid-layout')
   const scrollers = document.querySelectorAll('.tracks-content-scroller, .chart-scroll-wrapper, .timeline-grid-container')
   const tracksContent = document.querySelector('.tracks-content')
 
-  // 样式备份 Map (Element -> cssText)
+  // 样式备份 Map
   const styleMap = new Map()
-  const backupStyle = (el) => { if (el) styleMap.set(el, el.style.cssText) }
+  const backupStyle = (el) => {
+    if (el) styleMap.set(el, el.style.cssText)
+  }
 
   backupStyle(workspaceEl)
   backupStyle(timelineMain)
@@ -90,23 +91,25 @@ async function exportAsImage() {
   backupStyle(tracksContent)
   scrollers.forEach(el => backupStyle(el))
 
-  // 临时创建的 DOM 元素引用 (用于后续清理)
   const hiddenSelects = []
   const tempLabels = []
-  const modifiedRows = [] // 记录被修改过样式的行
 
   try {
-    // === 阶段 B: 归位与展开 (Reset & Expand) ===
+    // --- B. 归位与展开 (Expand) ---
     store.setScrollLeft(0)
     scrollers.forEach(el => el.scrollLeft = 0)
-    // 等待 Vue/DOM 滚动归零
-    await new Promise(resolve => setTimeout(resolve, 100))
+    await new Promise(resolve => setTimeout(resolve, 100)) // 等待 Vue 渲染
 
-    // 强制展开容器宽度
-    if (timelineMain) { timelineMain.style.width = `${totalWidth}px`; timelineMain.style.overflow = 'visible'; }
-    if (workspaceEl) { workspaceEl.style.width = `${totalWidth}px`; workspaceEl.style.overflow = 'visible'; }
+    // 强制撑开所有容器
+    if (timelineMain) {
+      timelineMain.style.width = `${totalWidth}px`;
+      timelineMain.style.overflow = 'visible';
+    }
+    if (workspaceEl) {
+      workspaceEl.style.width = `${totalWidth}px`;
+      workspaceEl.style.overflow = 'visible';
+    }
 
-    // 展开 Grid 布局
     if (gridLayout) {
       gridLayout.style.width = `${totalWidth}px`
       gridLayout.style.display = 'grid'
@@ -114,17 +117,16 @@ async function exportAsImage() {
       gridLayout.style.overflow = 'visible'
     }
 
-    // 展开所有滚动层
     scrollers.forEach(el => {
       el.style.width = '100%'
       el.style.overflow = 'visible'
       el.style.maxWidth = 'none'
     })
 
-    // 修正 SVG 和内容区宽度
     if (tracksContent) {
       tracksContent.style.width = `${contentWidth}px`
       tracksContent.style.minWidth = `${contentWidth}px`
+      // 修正 SVG 宽度
       const svgs = tracksContent.querySelectorAll('svg')
       svgs.forEach(svg => {
         svg.style.width = `${contentWidth}px`
@@ -132,28 +134,21 @@ async function exportAsImage() {
       })
     }
 
-    // === 阶段 C: 像素级修补 (Pixel Perfect Patching) ===
-    // 目标：解决左侧表头 (Header) 与右侧轨道 (Content) 在截图时的微小错位问题
+    // --- C. 控件修补 (Patching) ---
+    // html2canvas 渲染 Select 组件会有错位，临时替换为纯文本
     const rows = document.querySelectorAll('.track-info')
-
     store.teamTracksInfo.forEach((info, index) => {
       const row = rows[index]
       if (!row) return
 
-      // [修补 1] 结构对齐
-      // 备份当前行样式
-      backupStyle(row)
-      modifiedRows.push(row)
-
-      // 给左侧 Header 行添加与右侧 Track 行相同的 2px 透明边框。
-      // 原因：右侧 Track 行有 border-top/bottom 用于高亮 Drop 区域，
-      // 如果左侧没有，会导致截图时高度不一致，从而产生错位。
+      // 对齐高度：给 Header 行加上透明边框，与右侧 Track 行保持一致
+      const originalRowStyle = row.style.cssText
+      styleMap.set(row, originalRowStyle)
       row.style.borderTop = '2px solid transparent'
       row.style.borderBottom = '2px solid transparent'
       row.style.boxSizing = 'border-box'
 
-      // [修补 2] 替换控件
-      // html2canvas 渲染 ElementUI Select 组件效果极差，直接替换为纯文本
+      // 替换控件
       const select = row.querySelector('.character-select')
       if (select) {
         select.style.display = 'none'
@@ -161,44 +156,32 @@ async function exportAsImage() {
 
         const label = document.createElement('div')
         label.innerText = info.name || '未选择'
-
-        // 模拟文本样式
         Object.assign(label.style, {
-          color: '#f0f0f0',
-          fontSize: '16px',
-          fontWeight: 'bold',
-          height: '50px',
-          lineHeight: '50px',
-          paddingLeft: '10px',
-          flexGrow: '1',
-          whiteSpace: 'nowrap',
-          fontFamily: 'sans-serif',
-          // 微调：抵消字体渲染基线差异，使文字视觉垂直居中
-          marginTop: '15px'
+          color: '#f0f0f0', fontSize: '16px', fontWeight: 'bold',
+          height: '50px', lineHeight: '50px', paddingLeft: '10px',
+          flexGrow: '1', marginTop: '15px', fontFamily: 'sans-serif'
         })
-
         row.appendChild(label)
         tempLabels.push(label)
       }
     })
 
-    // 给 DOM 重排留出缓冲时间
-    await new Promise(resolve => setTimeout(resolve, 400))
+    await new Promise(resolve => setTimeout(resolve, 400)) // 等待重排
 
-    // === 阶段 D: 截图 (Capture) ===
+    // --- D. 截图 (Capture) ---
     const canvas = await html2canvas(workspaceEl, {
       backgroundColor: '#282828',
-      scale: 1.5, // 1.5倍清晰度
+      scale: 1.5, // 高清倍率
       width: totalWidth,
-      height: workspaceEl.scrollHeight + 20, // 略微多截一点底部防止切边
+      height: workspaceEl.scrollHeight + 20,
       windowWidth: totalWidth,
       useCORS: true,
       logging: false
     })
 
-    // === 阶段 E: 下载 (Download) ===
+    // --- E. 下载 (Download) ---
     const link = document.createElement('a')
-    link.download = `Endaxis_Full_${new Date().toISOString().slice(0,10)}.png`
+    link.download = `Endaxis_Full_${new Date().toISOString().slice(0, 10)}.png`
     link.href = canvas.toDataURL('image/png')
     link.click()
 
@@ -208,15 +191,10 @@ async function exportAsImage() {
     console.error(error)
     ElMessage.error('导出失败：' + error.message)
   } finally {
-    // === 阶段 F: 恢复现场 (Restore) ===
-    // 1. 移除临时 Label
+    // --- F. 恢复现场 (Restore) ---
     tempLabels.forEach(el => el.remove())
-    // 2. 显示 Select
     hiddenSelects.forEach(el => el.style.display = '')
-    // 3. 恢复所有被修改过的 DOM 样式 (包括容器宽高等)
     styleMap.forEach((cssText, el) => el.style.cssText = cssText)
-
-    // 4. 恢复滚动位置
     store.setScrollLeft(originalScrollLeft)
     loading.close()
   }
@@ -235,6 +213,7 @@ async function exportAsImage() {
     </aside>
 
     <main class="timeline-main">
+
       <header class="timeline-header" @click="store.selectTrack(null)">
         <span class="header-title">控制区</span>
 
@@ -242,9 +221,7 @@ async function exportAsImage() {
           <span class="zoom-label">🔍 缩放</span>
           <el-slider
               v-model="store.zoomLevel"
-              :min="0.2"
-              :max="2.0"
-              :step="0.1"
+              :min="0.2" :max="2.0" :step="0.1"
               :format-tooltip="(val) => `${Math.round(val * 100)}%`"
               size="small"
               style="width: 100px"
@@ -252,23 +229,11 @@ async function exportAsImage() {
         </div>
 
         <div class="header-controls">
-          <button class="control-btn export-img-btn" @click="exportAsImage">
-            📷 导出图片
-          </button>
+          <button class="control-btn export-img-btn" @click="exportAsImage">📷 导出图片</button>
+          <button class="control-btn save-btn" @click="store.exportProject">💾 保存项目</button>
+          <button class="control-btn load-btn" @click="triggerImport">📂 读取项目</button>
 
-          <button class="control-btn save-btn" @click="store.exportProject">
-            💾 保存项目
-          </button>
-          <button class="control-btn load-btn" @click="triggerImport">
-            📂 读取项目
-          </button>
-          <input
-              type="file"
-              ref="fileInputRef"
-              style="display: none"
-              accept=".json"
-              @change="onFileSelected"
-          />
+          <input type="file" ref="fileInputRef" style="display: none" accept=".json" @change="onFileSelected"/>
         </div>
       </header>
 
@@ -276,7 +241,6 @@ async function exportAsImage() {
         <div class="timeline-grid-container">
           <TimelineGrid/>
         </div>
-
         <div class="sp-monitor-panel">
           <SpMonitor/>
         </div>
@@ -302,10 +266,10 @@ async function exportAsImage() {
   color: #f0f0f0;
 }
 
-/* === 整体布局：三栏 Grid === */
+/* === 整体布局 === */
 .app-layout {
   display: grid;
-  grid-template-columns: 200px 1fr 250px; /* 左 中 右 */
+  grid-template-columns: 200px 1fr 250px; /* 左 | 中 | 右 */
   grid-template-rows: 100vh;
   height: 100vh;
   overflow: hidden;
@@ -324,7 +288,7 @@ async function exportAsImage() {
   z-index: 10;
 }
 
-/* 中间主区域 (Flex Column) */
+/* 中间栏 */
 .timeline-main {
   display: flex;
   flex-direction: column;
@@ -339,17 +303,24 @@ async function exportAsImage() {
   height: 50px;
   flex-shrink: 0;
   border-bottom: 1px solid #444;
+  background-color: #3a3a3a;
   display: flex;
   align-items: center;
   justify-content: space-between;
   padding: 0 20px;
-  background-color: #3a3a3a;
   cursor: default;
   user-select: none;
 }
 
-.header-title { font-weight: bold; color: #aaa; }
-.header-controls { display: flex; gap: 10px; }
+.header-title {
+  font-weight: bold;
+  color: #aaa;
+}
+
+.header-controls {
+  display: flex;
+  gap: 10px;
+}
 
 .control-btn {
   padding: 5px 12px;
@@ -364,13 +335,31 @@ async function exportAsImage() {
   gap: 5px;
   transition: all 0.2s;
 }
-.control-btn:hover { background-color: #555; border-color: #777; }
-.control-btn:active { transform: translateY(1px); }
-.save-btn:hover { border-color: #4CAF50; color: #4CAF50; }
-.load-btn:hover { border-color: #4a90e2; color: #4a90e2; }
-.export-img-btn:hover { border-color: #e6a23c; color: #e6a23c; }
 
-/* 缩放控件 */
+.control-btn:hover {
+  background-color: #555;
+  border-color: #777;
+}
+
+.control-btn:active {
+  transform: translateY(1px);
+}
+
+.save-btn:hover {
+  border-color: #4CAF50;
+  color: #4CAF50;
+}
+
+.load-btn:hover {
+  border-color: #4a90e2;
+  color: #4a90e2;
+}
+
+.export-img-btn:hover {
+  border-color: #e6a23c;
+  color: #e6a23c;
+}
+
 .zoom-controls {
   display: flex;
   align-items: center;
@@ -381,9 +370,13 @@ async function exportAsImage() {
   border-radius: 16px;
   border: 1px solid #444;
 }
-.zoom-label { font-size: 12px; color: #aaa; }
 
-/* 组合工作区 (Grid + Monitor) */
+.zoom-label {
+  font-size: 12px;
+  color: #aaa;
+}
+
+/* 工作区组合 */
 .timeline-workspace {
   flex-grow: 1;
   display: flex;
@@ -394,7 +387,7 @@ async function exportAsImage() {
 .timeline-grid-container {
   flex-grow: 1;
   overflow: hidden;
-  min-height: 0; /* 防止 flex 子项溢出 */
+  min-height: 0;
 }
 
 .sp-monitor-panel {

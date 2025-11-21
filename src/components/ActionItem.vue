@@ -3,85 +3,98 @@ import { computed } from 'vue'
 import { useTimelineStore } from '../stores/timelineStore.js'
 import { storeToRefs } from 'pinia'
 
-/**
- * 组件：ActionItem (动作块)
- * 作用：在 TimelineGrid 中渲染单个技能/动作块
- * 功能：显示名称、样式分类、选中状态、冷却条、异常状态条以及删除按钮
- */
 const props = defineProps({
   action: { type: Object, required: true }
 })
 
-// 1. 数据源获取
 const store = useTimelineStore()
 const { iconDatabase } = storeToRefs(store)
-
 const isSelected = computed(() => store.selectedActionId === props.action.instanceId)
 
+// ===================================================================================
+// 1. 样式计算 (Style Logic)
+// ===================================================================================
+
 /**
- * 计算属性：动态样式类
- * 根据动作类型 (link/execution/normal) 决定边框颜色
+ * 计算动作块的主题色
+ * 优先级：自定义 > 特殊类型(Link/Exec) > 自身属性(Element) > 干员属性 > 默认
  */
-const typeClass = computed(() => {
-  switch (props.action.type) {
-    case 'link': return 'style-link'
-    case 'execution': return 'style-execution'
-    default: return 'style-normal'
+const themeColor = computed(() => {
+  // 1. 自定义覆盖
+  if (props.action.customColor) return props.action.customColor
+
+  // 2. 特殊类型优先
+  if (props.action.type === 'link') return store.getColor('link')
+  if (props.action.type === 'execution') return store.getColor('execution')
+  if (props.action.type === 'attack') return store.getColor('physical') // 重击强制物理色
+
+  // 3. 自身属性 (DataEditor 中设置的 skill_element 等)
+  if (props.action.element) {
+    return store.getColor(props.action.element)
   }
+
+  // 4. 继承干员属性 (兼容旧逻辑)
+  // 这是一个稍显昂贵的查找，但 Vue computed 会缓存结果
+  let charId = null
+  for (const track of store.tracks) {
+    if (track.actions.some(a => a.instanceId === props.action.instanceId)) {
+      charId = track.id; break
+    }
+  }
+  if (charId) return store.getCharacterElementColor(charId)
+
+  // 5. 兜底
+  return store.getColor('default')
 })
 
 /**
- * 计算属性：主容器样式
- * 负责计算动作块在时间轴上的绝对位置 (left) 和宽度 (width)
- * 依赖 store.timeBlockWidth 实现响应式缩放
+ * 主容器样式：位置、尺寸、玻璃拟态背景
  */
 const style = computed(() => {
   const widthUnit = store.timeBlockWidth
-
-  // 坐标计算：时间 * 单位宽度
   const left = (props.action.startTime || 0) * widthUnit
   const width = (props.action.duration || 1) * widthUnit
-
-  // 最小宽度保护，防止持续时间极短时不可见
   const finalWidth = width < 2 ? 2 : width
+  const color = themeColor.value
 
   return {
     position: 'absolute', top: '0', height: '100%',
     left: `${left}px`, width: `${finalWidth}px`,
-    // 选中高亮样式
-    border: isSelected.value ? '2px solid #ffaa00' : undefined,
-    boxSizing: 'border-box', zIndex: isSelected.value ? 20 : 10,
+    boxSizing: 'border-box',
+    zIndex: isSelected.value ? 20 : 10,
+    // 视觉：同色系虚线框 + 半透明背景
+    border: `2px dashed ${isSelected.value ? '#ffffff' : color}`,
+    backgroundColor: hexToRgba(color, 0.15),
+    backdropFilter: 'blur(4px)',
+    color: isSelected.value ? '#ffffff' : color,
+    boxShadow: isSelected.value ? `0 0 10px ${color}` : 'none'
   }
 })
 
 /**
- * 计算属性：冷却条样式
- * 绘制在动作块下方的细线，指示冷却时间长度
+ * 冷却条样式 (底部细线)
  */
 const cdStyle = computed(() => {
   const widthUnit = store.timeBlockWidth
   const cd = props.action.cooldown || 0
-  // 宽度稍微加宽一点(+1单位)，视觉上更舒适
   const width = cd > 0 ? (cd + 1) * widthUnit : 0
-  return { width: `${width}px`, bottom: '-8px', left: '0' }
+  return {
+    width: `${width}px`, bottom: '-8px', left: '0',
+    opacity: 0.6
+  }
 })
 
 /**
- * 计算异常状态条 (Anomaly Bar) 的样式
- * * 布局策略：
- * 异常状态条悬浮在动作块上方，形成“阶梯状”排列，避免遮挡。
- * 每多一个 Buff，bottomOffset 增加 50%，实现垂直堆叠。
- * * @param {Object} effect 异常状态对象 {duration, type, ...}
- * @param {number} index 当前异常状态在列表中的索引
+ * 计算异常状态条的布局 (位置偏移)
  */
-function getAnomalyBarStyle(effect, index) {
+function getAnomalyRowStyle(effect, index) {
   const widthUnit = store.timeBlockWidth
   const duration = effect.duration || 0
   const bottomOffset = 100 + (index * 50)
   return {
-    width: `calc(${duration * widthUnit}px + 20px)`, // 20px 是图标的固定宽度
+    width: `calc(${duration * widthUnit}px + 21.5px)`,
     bottom: `${bottomOffset}%`,
-    left: 'calc(100% - 20px)', // 从动作块右侧边缘向内收缩 20px 开始绘制
+    left: 'calc(100% - 20px)',
     position: 'absolute',
     marginBottom: '4px',
     zIndex: 15 + index
@@ -89,104 +102,155 @@ function getAnomalyBarStyle(effect, index) {
 }
 
 /**
- * 获取图标路径
- * * 查找逻辑：
- * 1. 优先查找当前角色是否有“专属 Buff 图标” (例如 Endministrator 的 crystallize)。
- * 2. 如果没有专属，则去全局 ICON_DATABASE 查找通用图标。
- * 3. 都没有则返回默认图标。
+ * 获取状态条背景色
+ */
+function getEffectColor(type) {
+  return store.getColor(type)
+}
+
+/**
+ * 获取图标路径 (优先专属，其次通用)
  */
 function getIconPath(type) {
+  // 尝试查找专属图标
+  // 注意：这里为了简化，每次渲染都会遍历查找，如果性能敏感可以优化到 computed 或 store
   let charId = null;
-  // 反查当前动作块所属的干员 ID
   for (const track of store.tracks) {
     if (track.actions.some(a => a.instanceId === props.action.instanceId)) { charId = track.id; break; }
   }
-
   if (charId) {
     const charInfo = store.characterRoster.find(c => c.id === charId);
-    if (charInfo && charInfo.exclusive_buffs) {
+    if (charInfo?.exclusive_buffs) {
       const exclusive = charInfo.exclusive_buffs.find(b => b.key === type);
-      if (exclusive && exclusive.path) return exclusive.path;
+      if (exclusive?.path) return exclusive.path;
     }
   }
-  // 全局回退逻辑
   return (iconDatabase.value && iconDatabase.value[type]) ? iconDatabase.value[type] : (iconDatabase.value?.['default'] || '');
 }
+
+// ===================================================================================
+// 2. 工具函数 (Utils)
+// ===================================================================================
+
+function hexToRgba(hex, alpha) {
+  if (!hex) return `rgba(255,255,255,${alpha})`
+  let c = hex.substring(1).split('')
+  if (c.length === 3) c = [c[0], c[0], c[1], c[1], c[2], c[2]]
+  c = '0x' + c.join('')
+  return 'rgba(' + [(c >> 16) & 255, (c >> 8) & 255, c & 255].join(',') + ',' + alpha + ')'
+}
+
+// ===================================================================================
+// 3. 交互逻辑 (Interaction)
+// ===================================================================================
 
 function onDeleteClick() {
   store.removeAction(props.action.instanceId)
 }
+
+function onIconClick(evt, index) {
+  evt.stopPropagation();
+  if (store.isLinking) {
+    store.confirmLinking(props.action.instanceId, index)
+  } else {
+    store.selectAction(props.action.instanceId)
+  }
+}
 </script>
 
 <template>
-  <div
-      :id="`action-${action.instanceId}`"
-      class="action-item-wrapper"
-      :class="typeClass"
-      :style="style"
-      @click.stop
-  >
+  <div :id="`action-${action.instanceId}`" class="action-item-wrapper" :style="style" @click.stop>
+
     <div class="action-item-content drag-handle">{{ action.name }}</div>
 
     <div v-if="isSelected" class="delete-btn-modern" @click.stop="onDeleteClick" title="删除">
-      <svg viewBox="0 0 24 24" width="12" height="12" stroke="currentColor" stroke-width="3" fill="none" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+      <svg viewBox="0 0 24 24" width="12" height="12" stroke="currentColor" stroke-width="3" fill="none" stroke-linecap="round" stroke-linejoin="round">
+        <line x1="18" y1="6" x2="6" y2="18"></line>
+        <line x1="6" y1="6" x2="18" y2="18"></line>
+      </svg>
     </div>
 
     <div v-if="action.cooldown > 0" class="cd-bar-container" :style="cdStyle">
-      <div class="cd-line"></div><span class="cd-text">{{ action.cooldown }}s</span><div class="cd-end-mark"></div>
+      <div class="cd-line" :style="{ backgroundColor: themeColor }"></div>
+      <span class="cd-text" :style="{ color: themeColor }">{{ action.cooldown }}s</span>
+      <div class="cd-end-mark" :style="{ backgroundColor: themeColor }"></div>
     </div>
 
     <div class="anomalies-overlay">
-      <div v-for="(effect, index) in action.physicalAnomaly" :key="index" class="anomaly-row" :style="getAnomalyBarStyle(effect, index)">
+      <div v-for="(effect, index) in action.physicalAnomaly" :key="index" class="anomaly-row" :style="getAnomalyRowStyle(effect, index)">
 
         <div class="anomaly-icon-box"
              :id="`anomaly-${action.instanceId}-${index}`"
-             @click.stop="store.selectAction(action.instanceId)"
-        >
-          <img :src="getIconPath(effect.type)" class="anomaly-icon" />
+             @mousedown.stop="onIconClick($event, index)"
+             @click.stop>
+          <img :src="getIconPath(effect.type)" class="anomaly-icon"/>
           <div v-if="effect.stacks > 1" class="anomaly-stacks">{{ effect.stacks }}</div>
         </div>
 
-        <div class="anomaly-duration-bar" v-if="effect.duration > 0">
-          <div class="striped-bg"></div><span class="duration-text">{{ effect.duration }}s</span>
+        <div class="anomaly-duration-bar" v-if="effect.duration > 0"
+             :style="{ backgroundColor: getEffectColor(effect.type) }">
+          <div class="striped-bg"></div>
+          <span class="duration-text">{{ effect.duration }}s</span>
         </div>
+
       </div>
     </div>
   </div>
 </template>
 
 <style scoped>
-/* 基础容器：相对定位，启用 Flex 居中 */
-.action-item-wrapper { display: flex; align-items: center; justify-content: center; background-color: #4f4f4f; color: white; border: 2px dashed #ffffff; white-space: nowrap; cursor: grab; user-select: none; -webkit-user-select: none; position: relative; overflow: visible; }
-.action-item-wrapper:hover { background-color: #5a5a5a; }
+/* 基础容器 */
+.action-item-wrapper {
+  display: flex; align-items: center; justify-content: center;
+  white-space: nowrap; cursor: grab; user-select: none; position: relative; overflow: visible;
+  transition: background-color 0.2s, box-shadow 0.2s, filter 0.2s;
+  font-weight: bold; text-shadow: 0 1px 2px rgba(0,0,0,0.8);
+}
+.action-item-wrapper:hover { filter: brightness(1.2); z-index: 50 !important; }
 
-/* 类型差异化样式 */
-.style-normal { border: 2px dashed #e0e0e0; background-color: #4f4f4f; }
-.style-link { border: 2px dashed #ffd700 !important; background-color: #4f4f4f; color: #ffd700; }
-.style-execution { border: 2px dashed #ff4d4f !important; background-color: #4f4f4f; color: #ff4d4f; }
-
-/* 异常状态层交互逻辑：
-   1. .anomalies-overlay 设置 pointer-events: none，让鼠标点击可以穿透到下方的动作块，从而实现拖拽动作块。
-   2. .anomaly-icon-box 设置 pointer-events: auto，重新拦截鼠标点击，从而允许用户点击小图标来发起/接收连线。
-*/
 .anomalies-overlay { position: absolute; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none; overflow: visible; }
 .anomaly-row { display: flex; align-items: center; height: 22px; pointer-events: none; }
 
-.anomaly-icon-box { width: 20px; height: 20px; background-color: #333; border: 1px solid #999; box-sizing: border-box; display: flex; align-items: center; justify-content: center; position: relative; z-index: 2; flex-shrink: 0; pointer-events: auto; cursor: pointer;}
+/* 图标盒子 */
+.anomaly-icon-box {
+  width: 20px; height: 20px; background-color: #333; border: 1px solid #999; box-sizing: border-box;
+  display: flex; align-items: center; justify-content: center; position: relative; z-index: 100;
+  flex-shrink: 0; pointer-events: auto; cursor: pointer; transition: transform 0.1s, border-color 0.1s;
+  margin-right: 3px;
+}
+.anomaly-icon-box:hover { border-color: #ffd700; transform: scale(1.2); z-index: 101; }
 .anomaly-icon { width: 100%; height: 100%; object-fit: cover; }
-.anomaly-stacks { position: absolute; bottom: -2px; right: -2px; background-color: rgba(0,0,0,0.8); color: #ffd700; font-size: 8px; padding: 0 2px; border-radius: 2px; line-height: 1; }
+.anomaly-stacks { position: absolute; bottom: -2px; right: -2px; background-color: rgba(0, 0, 0, 0.8); color: #ffd700; font-size: 8px; padding: 0 2px; border-radius: 2px; line-height: 1; }
 
-.anomaly-duration-bar { flex-grow: 1; height: 14px; background-color: rgba(255, 255, 255, 0.2); border: 1px solid rgba(255, 255, 255, 0.4); border-left: none; position: relative; display: flex; align-items: center; overflow: hidden; box-sizing: border-box; }
-.striped-bg { position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: repeating-linear-gradient(45deg, transparent, transparent 4px, rgba(255, 255, 255, 0.1) 4px, rgba(255, 255, 255, 0.1) 8px); z-index: 1; }
-.duration-text { position: absolute; left: 4px; font-size: 10px; color: #fff; text-shadow: 1px 1px 2px black; z-index: 2; font-weight: bold; line-height: 1; }
+/* 状态条 */
+.anomaly-duration-bar {
+  flex-grow: 1; height: 16px; border: none; border-radius: 2px;
+  position: relative; display: flex; align-items: center; overflow: hidden; box-sizing: border-box;
+  box-shadow: 0 1px 2px rgba(0,0,0,0.5);
+}
 
-/* 冷却条样式 */
+.striped-bg {
+  position: absolute; top: 0; left: 0; width: 100%; height: 100%; z-index: 1;
+  background: repeating-linear-gradient(45deg, rgba(255, 255, 255, 0.2), rgba(255, 255, 255, 0.2) 2px, transparent 2px, transparent 6px);
+}
+
+.duration-text {
+  position: absolute; left: 4px; font-size: 11px; color: #fff;
+  text-shadow: 0 1px 2px rgba(0,0,0,0.8); z-index: 2; font-weight: bold; line-height: 1; font-family: sans-serif;
+}
+
+/* 冷却条 */
 .cd-bar-container { position: absolute; height: 4px; display: flex; align-items: center; pointer-events: none; }
-.cd-line { flex-grow: 1; height: 2px; background-color: #ffd700; margin-top: 1px; opacity: 0.3; }
-.cd-text { position: absolute; left: 0; top: 4px; font-size: 10px; color: #ffd700; font-weight: bold; line-height: 1; }
-.cd-end-mark { position: absolute; right: 0; top: -2px; width: 1px; height: 8px; background-color: #ffd700; }
+.cd-line { flex-grow: 1; height: 2px; margin-top: 1px; opacity: 0.6; }
+.cd-text { position: absolute; left: 0; top: 4px; font-size: 10px; font-weight: bold; line-height: 1; }
+.cd-end-mark { position: absolute; right: 0; top: -2px; width: 1px; height: 8px; }
 
-/* 删除按钮样式 */
-.delete-btn-modern { position: absolute; top: -8px; right: -8px; width: 18px; height: 18px; background-color: #333; border: 1px solid #666; color: #ccc; border-radius: 4px; display: flex; align-items: center; justify-content: center; cursor: pointer; z-index: 30; box-shadow: 0 2px 4px rgba(0, 0, 0, 0.4); transition: all 0.2s ease; }
+/* 删除按钮 */
+.delete-btn-modern {
+  position: absolute; top: -8px; right: -8px; width: 18px; height: 18px;
+  background-color: #333; border: 1px solid #666; color: #ccc; border-radius: 4px;
+  display: flex; align-items: center; justify-content: center; cursor: pointer; z-index: 30;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.4); transition: all 0.2s ease;
+}
 .delete-btn-modern:hover { background-color: #d32f2f; border-color: #d32f2f; color: white; transform: scale(1.1); }
 </style>
