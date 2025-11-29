@@ -569,9 +569,36 @@ export const useTimelineStore = defineStore('timeline', () => {
         tracks.value.forEach(track => {
             if (!track.actions) return
             track.actions.forEach(action => {
-                if (action.stagger > 0) { events.push({ time: action.startTime + action.duration, change: action.stagger, type: 'gain' }) }
+                // 1. 动作本身的基础失衡值 (通常在结束时结算)
+                if (action.stagger > 0) {
+                    events.push({ time: action.startTime + action.duration, change: action.stagger, type: 'gain' })
+                }
+
+                // 2. 遍历异常状态/多段判定的失衡值
+                if (action.physicalAnomaly && action.physicalAnomaly.length > 0) {
+                    const rowDelays = action.anomalyRowDelays || [];
+                    action.physicalAnomaly.forEach((row, rowIndex) => {
+                        // 计算该行的起始时间：动作开始时间 + 行延迟
+                        let currentTimeOffset = rowDelays[rowIndex] || 0;
+
+                        row.forEach(effect => {
+                            // 如果该效果配置了 stagger 数值，则添加事件
+                            if (effect.stagger > 0) {
+                                events.push({
+                                    time: action.startTime + currentTimeOffset,
+                                    change: effect.stagger,
+                                    type: 'gain'
+                                });
+                            }
+                            // 累加时间：当前效果持续时间作为间隔
+                            // 这里假设 duration 就是两段伤害之间的间隔
+                            currentTimeOffset += (effect.duration || 0);
+                        });
+                    });
+                }
             })
         })
+
         events.sort((a, b) => a.time - b.time)
         const points = []; const lockSegments = []; let currentVal = 0; let currentTime = 0; let lockedUntil = -1; points.push({ time: 0, val: 0 });
         const advanceTime = (targetTime) => { if (targetTime > currentTime) { points.push({ time: targetTime, val: currentVal }); currentTime = targetTime; } }
@@ -601,11 +628,33 @@ export const useTimelineStore = defineStore('timeline', () => {
                     events.push({ time: action.startTime, lockChange: 1, type: 'lock_start' })
                     events.push({ time: action.startTime + castTime, lockChange: -1, type: 'lock_end' })
                 }
+
+                // 1. 动作本身的基础回复 (结束时)
                 if (action.spGain > 0) {
                     events.push({ time: action.startTime + action.duration, valChange: action.spGain, type: 'gain' })
                 }
+
+                // 2. 遍历异常状态/多段判定的技力回复
+                if (action.physicalAnomaly && action.physicalAnomaly.length > 0) {
+                    const rowDelays = action.anomalyRowDelays || [];
+                    action.physicalAnomaly.forEach((row, rowIndex) => {
+                        let currentTimeOffset = rowDelays[rowIndex] || 0;
+                        row.forEach(effect => {
+                            // 如果该效果配置了 sp (spGain) 数值
+                            if (effect.sp > 0) {
+                                events.push({
+                                    time: action.startTime + currentTimeOffset,
+                                    valChange: effect.sp,
+                                    type: 'gain'
+                                });
+                            }
+                            currentTimeOffset += (effect.duration || 0);
+                        });
+                    });
+                }
             })
         })
+
         events.sort((a, b) => a.time - b.time)
         const points = [];
         let currentSp = (initialSp !== undefined && initialSp !== null && initialSp !== "") ? Number(initialSp) : 200;

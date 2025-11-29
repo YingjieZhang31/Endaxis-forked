@@ -406,6 +406,21 @@ function updateCustomBarItem(index, key, value) {
                @input="e => updateEffectProp('duration', Number(e.target.value))" min="0" step="0.5">
       </div>
 
+      <div class="form-row-group" style="display: flex; gap: 10px; margin-bottom: 8px;">
+        <div class="form-row" style="flex: 1;">
+          <label style="color: #ffd700;">技力回复</label>
+          <input type="number" :value="editingEffectData.sp || 0"
+                 @input="e => updateEffectProp('sp', Number(e.target.value))"
+                 style="border-color: #ffd700; color: #ffd700;">
+        </div>
+        <div class="form-row" style="flex: 1;">
+          <label style="color: #ff7875;">失衡值</label>
+          <input type="number" :value="editingEffectData.stagger || 0"
+                 @input="e => updateEffectProp('stagger', Number(e.target.value))"
+                 style="border-color: #ff7875; color: #ff7875;">
+        </div>
+      </div>
+
       <div class="editor-footer">
         <button class="effect-link-btn"
                 @click.stop="store.startLinking(currentFlatIndex)"

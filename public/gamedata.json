@@ -40,7 +40,7 @@
         }
       ],
       "attack_duration": 3.7,
-      "attack_spGain": 15,
+      "attack_spGain": 20,
       "attack_allowed_types": [
         "break",
         "armor_break",
@@ -75,15 +75,15 @@
         [
           {
             "type": "stagger",
-            "stacks": 1,
-            "duration": 0
+            "stacks": "",
+            "duration": ""
           }
         ]
       ],
       "link_duration": 1.2,
       "link_cooldown": 16,
       "link_spGain": 0,
-      "link_gaugeGain": 0,
+      "link_gaugeGain": 10,
       "link_allowed_types": [
         "crystallization"
       ],
@@ -98,7 +98,7 @@
       ],
       "ultimate_duration": 0.5,
       "ultimate_gaugeMax": 80,
-      "ultimate_gaugeReply": "",
+      "ultimate_gaugeReply": 0,
       "ultimate_allowed_types": [
         "default"
       ],
@@ -129,8 +129,8 @@
       "execution_anomalies": [],
       "skill_spGain": 0,
       "ultimate_spGain": 0,
-      "skill_teamGaugeGain": 0,
-      "link_stagger": 16,
+      "skill_teamGaugeGain": 8,
+      "link_stagger": 10,
       "accept_team_gauge": true,
       "skill_anomaly_delays": [
         0.5
@@ -139,7 +139,35 @@
       "link_anomaly_delays": [
         0.8
       ],
-      "variants": []
+      "variants": [
+        {
+          "id": "v_1764438597352",
+          "name": "强化连携",
+          "type": "link",
+          "duration": 1.2,
+          "stagger": 16,
+          "spGain": 0,
+          "allowedTypes": [
+            "crystallization"
+          ],
+          "physicalAnomaly": [
+            [
+              {
+                "type": "crystallization",
+                "stacks": 1,
+                "duration": 4
+              }
+            ]
+          ],
+          "anomalyRowDelays": [
+            0.8
+          ],
+          "cooldown": 16,
+          "gaugeGain": 0
+        }
+      ],
+      "skill_stagger": 10,
+      "ultimate_stagger": 25
     },
     {
       "id": "POGRANICHNK",
@@ -147,9 +175,15 @@
       "rarity": 6,
       "element": "physical",
       "avatar": "/Endaxis/avatars/POGRANICHNK.png",
-      "exclusive_buffs": [],
+      "exclusive_buffs": [
+        {
+          "key": "steel_oath",
+          "name": "铁誓",
+          "path": "/Endaxis/icons/steel_oath.png"
+        }
+      ],
       "attack_duration": 3.3,
-      "attack_spGain": 15,
+      "attack_spGain": 20,
       "attack_allowed_types": [
         "armor_break",
         "break",
@@ -185,14 +219,37 @@
           {
             "type": "armor_break",
             "stacks": 1,
-            "duration": 0
+            "duration": 0,
+            "sp": 5,
+            "stagger": 10
+          },
+          {
+            "type": "armor_break",
+            "stacks": 2,
+            "duration": 0,
+            "sp": 10,
+            "stagger": 0
+          },
+          {
+            "type": "armor_break",
+            "stacks": 3,
+            "duration": 0,
+            "sp": 20,
+            "stagger": 0
+          },
+          {
+            "type": "armor_break",
+            "stacks": 4,
+            "duration": 0,
+            "sp": 30,
+            "stagger": 0
           }
         ]
       ],
       "link_duration": 2.7,
       "link_cooldown": 18,
       "link_spGain": 0,
-      "link_gaugeGain": 0,
+      "link_gaugeGain": 10,
       "link_allowed_types": [
         "default"
       ],
@@ -201,17 +258,23 @@
           {
             "type": "default",
             "stacks": 1,
-            "duration": 0.6
+            "duration": 0.6,
+            "stagger": 3,
+            "sp": 5
           },
           {
             "type": "default",
             "stacks": 1,
-            "duration": 0.9
+            "duration": 0.9,
+            "sp": 7,
+            "stagger": 3
           },
           {
             "type": "default",
             "stacks": 1,
-            "duration": 0
+            "duration": 0,
+            "stagger": 4,
+            "sp": 13
           }
         ]
       ],
@@ -219,9 +282,47 @@
       "ultimate_gaugeMax": 90,
       "ultimate_gaugeReply": 0,
       "ultimate_allowed_types": [
-        "default"
+        "steel_oath"
       ],
-      "ultimate_anomalies": [],
+      "ultimate_anomalies": [
+        [
+          {
+            "type": "steel_oath",
+            "stacks": 5,
+            "duration": 0,
+            "sp": 0,
+            "stagger": 10
+          },
+          {
+            "type": "steel_oath",
+            "stacks": 4,
+            "duration": 0,
+            "sp": 7.5,
+            "stagger": 0
+          },
+          {
+            "type": "steel_oath",
+            "stacks": 3,
+            "duration": 0,
+            "sp": 7.5,
+            "stagger": 0
+          },
+          {
+            "type": "steel_oath",
+            "stacks": 2,
+            "duration": 0,
+            "sp": 7.5,
+            "stagger": 0
+          },
+          {
+            "type": "steel_oath",
+            "stacks": 1,
+            "duration": 0,
+            "sp": 30,
+            "stagger": 15
+          }
+        ]
+      ],
       "execution_duration": 1.5,
       "execution_spGain": 20,
       "execution_allowed_types": [
@@ -255,7 +356,118 @@
       ],
       "link_anomaly_delays": [
         0.7
-      ]
+      ],
+      "attack_stagger": 18,
+      "variants": [
+        {
+          "id": "POGRANICHNK_link3",
+          "name": "强化连携",
+          "type": "link",
+          "duration": 2.7,
+          "stagger": 0,
+          "spGain": 0,
+          "allowedTypes": [
+            "default"
+          ],
+          "physicalAnomaly": [
+            [
+              {
+                "type": "default",
+                "stacks": 1,
+                "duration": 0.6,
+                "stagger": 3,
+                "sp": 5
+              },
+              {
+                "type": "default",
+                "stacks": 1,
+                "duration": 0.9,
+                "sp": 7,
+                "stagger": 3
+              },
+              {
+                "type": "default",
+                "stacks": 1,
+                "duration": 0,
+                "stagger": 4,
+                "sp": 13
+              }
+            ]
+          ],
+          "anomalyRowDelays": [
+            0.7
+          ],
+          "cooldown": 18,
+          "gaugeGain": 10
+        },
+        {
+          "id": "POGRANICHNK_link1",
+          "name": "一层连携",
+          "type": "link",
+          "duration": 2.7,
+          "stagger": 0,
+          "spGain": 0,
+          "allowedTypes": [
+            "default"
+          ],
+          "physicalAnomaly": [
+            [
+              {
+                "type": "default",
+                "stacks": 1,
+                "duration": 0,
+                "stagger": 3,
+                "sp": 5
+              }
+            ]
+          ],
+          "anomalyRowDelays": [
+            0.7
+          ],
+          "cooldown": 18,
+          "gaugeGain": 10
+        },
+        {
+          "id": "POGRANICHNK_link2",
+          "name": "二层连携",
+          "type": "link",
+          "duration": 2.7,
+          "stagger": 0,
+          "spGain": 0,
+          "allowedTypes": [
+            "default"
+          ],
+          "physicalAnomaly": [
+            [
+              {
+                "type": "default",
+                "stacks": 1,
+                "duration": 0.6,
+                "stagger": 3,
+                "sp": 5
+              },
+              {
+                "type": "default",
+                "stacks": 1,
+                "duration": 0,
+                "sp": 7,
+                "stagger": 3
+              }
+            ]
+          ],
+          "anomalyRowDelays": [
+            0.7
+          ],
+          "cooldown": 18,
+          "gaugeGain": 10
+        }
+      ],
+      "link_stagger": 0,
+      "ultimate_stagger": 0,
+      "ultimate_anomaly_delays": [
+        0.5
+      ],
+      "skill_stagger": 0
     },
     {
       "id": "ARDELIA",
@@ -942,7 +1154,7 @@
         }
       ],
       "attack_duration": 3.2,
-      "attack_spGain": 15,
+      "attack_spGain": 21,
       "attack_allowed_types": [
         "break",
         "armor_break",
@@ -969,7 +1181,7 @@
       "skill_spCost": 100,
       "skill_spGain": 0,
       "skill_gaugeGain": 0,
-      "skill_teamGaugeGain": 6,
+      "skill_teamGaugeGain": 0,
       "skill_allowed_types": [
         "knockdown",
         "break",
@@ -981,19 +1193,23 @@
           {
             "type": "knockdown",
             "stacks": 1,
-            "duration": 0
+            "duration": 0,
+            "sp": 0,
+            "stagger": 0
           },
           {
             "type": "physical_weakness",
             "stacks": 1,
-            "duration": 10
+            "duration": 10,
+            "sp": 0,
+            "stagger": 0
           }
         ]
       ],
       "link_duration": 2,
       "link_cooldown": 16,
       "link_spGain": 0,
-      "link_gaugeGain": 0,
+      "link_gaugeGain": 10,
       "link_allowed_types": [
         "combo"
       ],
@@ -1002,7 +1218,9 @@
           {
             "type": "combo",
             "stacks": 1,
-            "duration": 0
+            "duration": 20,
+            "sp": 0,
+            "stagger": 0
           }
         ]
       ],
@@ -1020,17 +1238,16 @@
           {
             "type": "knockdown",
             "stacks": 1,
-            "duration": 2
+            "duration": 2,
+            "stagger": 5,
+            "sp": 0
           },
           {
             "type": "knockdown",
             "stacks": 1,
-            "duration": 1.9
-          },
-          {
-            "type": "knockdown",
-            "stacks": 1,
-            "duration": 0
+            "duration": 1.9,
+            "stagger": 5,
+            "sp": 0
           }
         ]
       ],
@@ -1065,6 +1282,52 @@
       ],
       "link_anomaly_delays": [
         0.7
+      ],
+      "skill_stagger": 10,
+      "link_stagger": 10,
+      "ultimate_stagger": 0,
+      "variants": [
+        {
+          "id": "LIFENG_ultimate",
+          "name": "强化终结技",
+          "type": "ultimate",
+          "duration": 0.5,
+          "stagger": 0,
+          "spGain": 0,
+          "allowedTypes": [
+            "knockdown",
+            "break",
+            "ice_shatter"
+          ],
+          "physicalAnomaly": [
+            [
+              {
+                "type": "knockdown",
+                "stacks": 1,
+                "duration": 2,
+                "stagger": 5,
+                "sp": 0
+              },
+              {
+                "type": "knockdown",
+                "stacks": 1,
+                "duration": 1.9,
+                "stagger": 5,
+                "sp": 0
+              },
+              {
+                "type": "knockdown",
+                "stacks": 1,
+                "duration": 0,
+                "stagger": 5,
+                "sp": 0
+              }
+            ]
+          ],
+          "anomalyRowDelays": [],
+          "gaugeCost": 90,
+          "gaugeGain": 0
+        }
       ]
     },
     {
@@ -1568,10 +1831,16 @@
       "rarity": 5,
       "element": "physical",
       "avatar": "/Endaxis/avatars/DAPAN.png",
-      "exclusive_buffs": [],
+      "exclusive_buffs": [
+        {
+          "key": "prep_ingredients",
+          "name": "备料",
+          "path": "/Endaxis/icons/prep_ingredients.png"
+        }
+      ],
       "accept_team_gauge": true,
       "attack_duration": 3.5,
-      "attack_spGain": 15,
+      "attack_spGain": 21,
       "attack_stagger": 20,
       "attack_allowed_types": [
         "break",
@@ -1600,7 +1869,7 @@
       "skill_spGain": 0,
       "skill_stagger": 0,
       "skill_gaugeGain": 0,
-      "skill_teamGaugeGain": 6,
+      "skill_teamGaugeGain": 0,
       "skill_allowed_types": [
         "knockup",
         "break",
@@ -1610,8 +1879,9 @@
         [
           {
             "type": "knockup",
-            "stacks": 1,
-            "duration": 0
+            "stacks": 2,
+            "duration": 0,
+            "stagger": 10
           }
         ]
       ],
@@ -1619,13 +1889,23 @@
       "link_cooldown": 20,
       "link_spGain": 0,
       "link_stagger": 0,
-      "link_gaugeGain": 0,
+      "link_gaugeGain": 10,
       "link_allowed_types": [
         "stagger",
         "break",
         "ice_shatter"
       ],
-      "link_anomalies": [],
+      "link_anomalies": [
+        [
+          {
+            "type": "stagger",
+            "stacks": 4,
+            "duration": 0,
+            "sp": 0,
+            "stagger": 15
+          }
+        ]
+      ],
       "ultimate_duration": 0.5,
       "ultimate_gaugeMax": 90,
       "ultimate_spGain": 0,
@@ -1635,19 +1915,33 @@
         "knockdown",
         "break",
         "ice_shatter",
-        "knockup"
+        "knockup",
+        "prep_ingredients"
       ],
       "ultimate_anomalies": [
         [
           {
             "type": "knockup",
             "stacks": 1,
-            "duration": 1.1
+            "duration": 1.1,
+            "sp": 0,
+            "stagger": 0
           },
           {
             "type": "knockdown",
             "stacks": 1,
-            "duration": 0
+            "duration": 0,
+            "sp": 0,
+            "stagger": 0
+          }
+        ],
+        [
+          {
+            "type": "prep_ingredients",
+            "stacks": 1,
+            "duration": 0,
+            "sp": 0,
+            "stagger": 0
           }
         ]
       ],
@@ -1677,6 +1971,35 @@
       "execution_anomalies": [],
       "skill_anomaly_delays": [
         1.5
+      ],
+      "variants": [
+        {
+          "id": "DAPAN_link",
+          "name": "强化连携",
+          "type": "link",
+          "duration": 2.1,
+          "stagger": 0,
+          "spGain": 0,
+          "allowedTypes": [
+            "stagger",
+            "break",
+            "ice_shatter"
+          ],
+          "physicalAnomaly": [
+            [
+              {
+                "type": "stagger",
+                "stacks": 4,
+                "duration": 0,
+                "sp": 0,
+                "stagger": 15
+              }
+            ]
+          ],
+          "anomalyRowDelays": [],
+          "cooldown": 12,
+          "gaugeGain": 10
+        }
       ]
     },
     {
@@ -1919,7 +2242,7 @@
       "avatar": "/Endaxis/avatars/CHENQIANYU.png",
       "exclusive_buffs": [],
       "attack_duration": 3.2,
-      "attack_spGain": 15,
+      "attack_spGain": 18,
       "attack_allowed_types": [
         "default",
         "conductive",
@@ -1954,8 +2277,10 @@
         [
           {
             "type": "knockup",
-            "stacks": 1,
-            "duration": 0
+            "stacks": 2,
+            "duration": 0,
+            "stagger": 10,
+            "sp": 0
           }
         ]
       ],
@@ -1972,8 +2297,10 @@
         [
           {
             "type": "knockup",
-            "stacks": 1,
-            "duration": 0
+            "stacks": 2,
+            "duration": 0,
+            "sp": 10,
+            "stagger": 10
           }
         ]
       ],
@@ -1983,24 +2310,42 @@
       "ultimate_allowed_types": [
         "default"
       ],
-      "ultimate_anomalies": [],
+      "ultimate_anomalies": [
+        [
+          {
+            "type": "default",
+            "stacks": 1,
+            "duration": 0,
+            "sp": 0,
+            "stagger": 15
+          },
+          {
+            "type": "default",
+            "stacks": 1,
+            "duration": 0,
+            "sp": 0,
+            "stagger": 20
+          }
+        ]
+      ],
       "execution_duration": 2.5,
       "execution_spGain": 30,
       "execution_allowed_types": [],
       "execution_anomalies": [],
       "skill_spGain": 0,
       "ultimate_spGain": 0,
-      "skill_teamGaugeGain": 6,
+      "skill_teamGaugeGain": 0,
       "attack_stagger": 16,
-      "skill_stagger": 40,
-      "link_stagger": 32,
+      "skill_stagger": 0,
+      "link_stagger": 0,
       "accept_team_gauge": true,
       "skill_anomaly_delays": [
         0.5
       ],
       "link_anomaly_delays": [
         0.6
-      ]
+      ],
+      "ultimate_stagger": 0
     },
     {
       "id": "ALESH",
@@ -2100,7 +2445,7 @@
       "accept_team_gauge": true,
       "attack_duration": 2.5,
       "attack_spGain": 15,
-      "attack_stagger": 0,
+      "attack_stagger": 22,
       "attack_allowed_types": [
         "break",
         "armor_break",
@@ -2180,7 +2525,7 @@
       "accept_team_gauge": true,
       "attack_duration": 2.5,
       "attack_spGain": 15,
-      "attack_stagger": 0,
+      "attack_stagger": 15,
       "attack_allowed_types": [
         "break",
         "armor_break",
@@ -2260,7 +2605,7 @@
       "accept_team_gauge": true,
       "attack_duration": 2.5,
       "attack_spGain": 15,
-      "attack_stagger": 0,
+      "attack_stagger": 15,
       "attack_allowed_types": [
         "break",
         "armor_break",
@@ -2417,7 +2762,8 @@
       "skill_teamGaugeGain": 6,
       "skill_stagger": 12,
       "link_stagger": 24,
-      "accept_team_gauge": true
+      "accept_team_gauge": true,
+      "attack_stagger": 17
     },
     {
       "id": "AKEKURI",
@@ -2489,7 +2835,8 @@
       "skill_spGain": 0,
       "ultimate_spGain": 0,
       "skill_teamGaugeGain": 6,
-      "accept_team_gauge": true
+      "accept_team_gauge": true,
+      "attack_stagger": 17
     }
   ]
 }

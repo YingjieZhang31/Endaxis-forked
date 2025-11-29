@@ -115,15 +115,22 @@ function deleteCurrentCharacter() {
 // === 变体动作核心逻辑 (Updated) ===
 
 function getSnapshotFromBase(char, type) {
-  // 1. 基础数值
+  // 基础数值
   const snapshot = {
     duration: char[`${type}_duration`] || 1,
     stagger: char[`${type}_stagger`] || 0,
     spGain: char[`${type}_spGain`] || 0,
     element: char[`${type}_element`],
-    // 2. 关键修复：同时深拷贝基础技能允许的效果池
     // 如果基础技能没有配置(undefined)，则默认为空数组
-    allowedTypes: char[`${type}_allowed_types`] ? [...char[`${type}_allowed_types`]] : []
+    allowedTypes: char[`${type}_allowed_types`] ? [...char[`${type}_allowed_types`]] : [],
+    // 深拷贝异常状态矩阵
+    physicalAnomaly: char[`${type}_anomalies`]
+        ? JSON.parse(JSON.stringify(char[`${type}_anomalies`]))
+        : [],
+    // 拷贝行延迟
+    anomalyRowDelays: char[`${type}_anomaly_delays`]
+        ? [...char[`${type}_anomaly_delays`]]
+        : []
   }
 
   if (type === 'skill') {
@@ -152,8 +159,6 @@ function addVariant() {
     id: `v_${Date.now()}`,
     name: '强化重击',
     type: defaultType,
-    physicalAnomaly: [],
-    anomalyRowDelays: [],
     ...baseStats
   })
 }
@@ -234,13 +239,13 @@ function addVariantRow(variant) {
   if (!variant.physicalAnomaly) variant.physicalAnomaly = []
   // 默认使用允许列表里的第一个，或者 'default'
   const defaultType = (variant.allowedTypes && variant.allowedTypes.length > 0) ? variant.allowedTypes[0] : 'default'
-  variant.physicalAnomaly.push([{ type: defaultType, stacks: 1, duration: 0 }])
+  variant.physicalAnomaly.push([{ type: defaultType, stacks: 1, duration: 0, sp: 0, stagger: 0 }])
 }
 
 function addVariantEffect(variant, rowIndex) {
   if (variant.physicalAnomaly && variant.physicalAnomaly[rowIndex]) {
     const defaultType = (variant.allowedTypes && variant.allowedTypes.length > 0) ? variant.allowedTypes[0] : 'default'
-    variant.physicalAnomaly[rowIndex].push({ type: defaultType, stacks: 1, duration: 0 })
+    variant.physicalAnomaly[rowIndex].push({ type: defaultType, stacks: 1, duration: 0, sp: 0, stagger: 0 })
   }
 }
 
@@ -361,7 +366,7 @@ function addAnomalyRow(char, skillType) {
   const allowedList = char[`${skillType}_allowed_types`] || []
   const defaultType = allowedList.length > 0 ? allowedList[0] : 'default'
 
-  char[key].push([{ type: defaultType, stacks: 1, duration: 0 }])
+  char[key].push([{ type: defaultType, stacks: 1, duration: 0, sp: 0, stagger: 0 }])
 }
 
 function addAnomalyToRow(char, skillType, rowIndex) {
@@ -370,7 +375,7 @@ function addAnomalyToRow(char, skillType, rowIndex) {
   const defaultType = allowedList.length > 0 ? allowedList[0] : 'default'
 
   if (rows[rowIndex]) {
-    rows[rowIndex].push({ type: defaultType, stacks: 1, duration: 0 })
+    rows[rowIndex].push({ type: defaultType, stacks: 1, duration: 0, sp: 0, stagger: 0 })
   }
 }
 
@@ -541,9 +546,9 @@ function setRowDelay(char, skillType, rowIndex, val) {
 
                 <div class="form-group"><label>持续时间</label><input type="number" step="0.1" v-model.number="variant.duration"></div>
                 <div class="form-group"><label>失衡值</label><input type="number" v-model.number="variant.stagger"></div>
-                <div class="form-group"><label>SP 回复</label><input type="number" v-model.number="variant.spGain"></div>
+                <div class="form-group"><label>技力回复</label><input type="number" v-model.number="variant.spGain"></div>
 
-                <div class="form-group" v-if="variant.type === 'skill'"><label>SP 消耗</label><input type="number" v-model.number="variant.spCost"></div>
+                <div class="form-group" v-if="variant.type === 'skill'"><label>技力消耗</label><input type="number" v-model.number="variant.spCost"></div>
                 <div class="form-group" v-if="variant.type === 'skill'"><label>自身充能</label><input type="number" v-model.number="variant.gaugeGain"></div>
                 <div class="form-group" v-if="variant.type === 'skill'"><label>队友充能</label><input type="number" v-model.number="variant.teamGaugeGain"></div>
 
@@ -586,12 +591,21 @@ function setRowDelay(char, skillType, rowIndex, val) {
                         <span class="card-label">R{{rIndex+1}}:C{{cIndex+1}}</span>
                         <button class="btn-icon-del" @click="removeVariantEffect(variant, rIndex, cIndex)">×</button>
                       </div>
+
                       <select v-model="item.type" class="card-input">
-                        <option v-for="opt in getVariantAvailableOptions(variant)" :key="opt.value" :value="opt.value">{{ opt.label }}</option>
+                        <option v-for="opt in getVariantAvailableOptions(variant)" :key="opt.value" :value="opt.value">
+                          {{ opt.label }}
+                        </option>
                       </select>
+
                       <div class="card-row">
                         <input type="number" v-model.number="item.stacks" placeholder="层" class="mini-input"><span class="unit">层</span>
                         <input type="number" v-model.number="item.duration" placeholder="秒" step="0.5" class="mini-input"><span class="unit">s</span>
+                      </div>
+
+                      <div class="card-row" style="margin-top: 4px; border-top: 1px dashed #444; padding-top: 4px;">
+                        <input type="number" v-model.number="item.sp" placeholder="技力" class="mini-input highlight-sp" title="此段回复技力"><span class="unit">回复技力</span>
+                        <input type="number" v-model.number="item.stagger" placeholder="失衡" class="mini-input highlight-stagger" title="此段造成失衡"><span class="unit">失衡值</span>
                       </div>
                     </div>
                     <button class="btn-add-col" @click="addVariantEffect(variant, rIndex)">+</button>
@@ -620,11 +634,11 @@ function setRowDelay(char, skillType, rowIndex, val) {
 
                 <div class="form-group"><label>持续时间 (s)</label><input type="number" step="0.1" v-model.number="selectedChar[`${type}_duration`]"></div>
 
-                <div class="form-group" v-if="type !== 'link'"><label>SP 回复</label><input type="number" v-model.number="selectedChar[`${type}_spGain`]"></div>
+                <div class="form-group" v-if="type !== 'link'"><label>技力回复</label><input type="number" v-model.number="selectedChar[`${type}_spGain`]"></div>
 
                 <div class="form-group" v-if="type === 'attack' || type === 'skill' || type === 'link' || type === 'ultimate'"><label>失衡值</label><input type="number" v-model.number="selectedChar[`${type}_stagger`]"></div>
 
-                <div class="form-group" v-if="type === 'skill'"><label>SP 消耗</label><input type="number" v-model.number="selectedChar[`${type}_spCost`]"></div>
+                <div class="form-group" v-if="type === 'skill'"><label>技力消耗</label><input type="number" v-model.number="selectedChar[`${type}_spCost`]"></div>
                 <div class="form-group" v-if="type === 'skill'"><label>自身充能</label><input type="number" v-model.number="selectedChar[`${type}_gaugeGain`]" @input="onSkillGaugeInput"></div>
                 <div class="form-group" v-if="type === 'skill'"><label>队友充能</label><input type="number" v-model.number="selectedChar[`${type}_teamGaugeGain`]"></div>
 
@@ -673,6 +687,10 @@ function setRowDelay(char, skillType, rowIndex, val) {
                       <div class="card-row">
                         <input type="number" v-model.number="item.stacks" placeholder="层" class="mini-input"><span class="unit">层</span>
                         <input type="number" v-model.number="item.duration" placeholder="秒" step="0.5" class="mini-input"><span class="unit">s</span>
+                      </div>
+                      <div class="card-row" style="margin-top: 4px; border-top: 1px dashed #444; padding-top: 4px;">
+                        <input type="number" v-model.number="item.sp" placeholder="技力" class="mini-input highlight-sp" title="此段回复技力"><span class="unit">回复技力</span>
+                        <input type="number" v-model.number="item.stagger" placeholder="失衡" class="mini-input highlight-stagger" title="此段造成失衡"><span class="unit">失衡值</span>
                       </div>
                     </div>
                     <button class="btn-add-col" @click="addAnomalyToRow(selectedChar, type, rIndex)">+</button>
@@ -846,6 +864,15 @@ function setRowDelay(char, skillType, rowIndex, val) {
 .delay-num { width: 30px !important; border: none !important; background: transparent !important; padding: 0 !important; height: 100% !important; font-size: 11px !important; text-align: center; color: #ffd700 !important; }
 .delay-num:focus { outline: none; }
 .delay-num::-webkit-outer-spin-button, .delay-num::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
+
+.highlight-sp {
+  border-color: #ffd700 !important;
+  color: #ffd700 !important;
+}
+.highlight-stagger {
+  border-color: #ff7875 !important;
+  color: #ff7875 !important;
+}
 
 .rarity-6-border { border: 2px solid transparent; background: linear-gradient(#2b2b2b, #2b2b2b) padding-box, linear-gradient(135deg, #FFD700, #FF8C00, #FF4500) border-box; box-shadow: 0 0 6px rgba(255, 140, 0, 0.3); }
 .rarity-5-border { border-color: #ffc400; }
