@@ -30,12 +30,11 @@ const EFFECT_NAMES = {
   "blaze_attach": "灼热附着", "emag_attach": "电磁附着", "cold_attach": "寒冷附着", "nature_attach": "自然附着",
   "blaze_burst": "灼热爆发", "emag_burst": "电磁爆发", "cold_burst": "寒冷爆发", "nature_burst": "自然爆发",
   "burning": "燃烧", "conductive": "导电", "frozen": "冻结", "ice_shatter": "碎冰", "corrosion": "腐蚀",
-  "consumed": "被消耗",
   "logic_tick": "分段判定",
   "default": "默认图标"
 }
 
-const HIDDEN_CHECKBOX_KEYS = ['default', 'consumed', 'logic_tick']
+const HIDDEN_CHECKBOX_KEYS = ['default', 'logic_tick']
 const effectKeys = Object.keys(EFFECT_NAMES).filter(key => !HIDDEN_CHECKBOX_KEYS.includes(key))
 
 // === 2. 状态与计算属性 ===
@@ -227,8 +226,7 @@ function getVariantAvailableOptions(variant) {
   const allowedList = variant.allowedTypes || []
 
   // 创建一个 Set，合并原有的 allowedList 和 强制显示的选项
-  // 这样无论上面勾没勾，这里都会有
-  const combinedKeys = new Set([...allowedList, 'default', 'logic_tick', 'consumed'])
+  const combinedKeys = new Set([...allowedList, 'default', 'logic_tick'])
 
   return Array.from(combinedKeys).map(key => {
     if (EFFECT_NAMES[key]) {
@@ -342,7 +340,7 @@ function saveData() {
 function getAvailableAnomalyOptions(skillType) {
   if (!selectedChar.value) return []
   const allowedList = selectedChar.value[`${skillType}_allowed_types`] || []
-  const combinedKeys = new Set([...allowedList, 'default', 'logic_tick', 'consumed'])
+  const combinedKeys = new Set([...allowedList, 'default', 'logic_tick'])
 
   return Array.from(combinedKeys).map(key => {
     if (EFFECT_NAMES[key]) {

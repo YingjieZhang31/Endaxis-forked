@@ -18,7 +18,7 @@ export const useTimelineStore = defineStore('timeline', () => {
         maxStagger: 100
     })
 
-    const BASE_BLOCK_WIDTH = 50 // 基础宽度
+    const BASE_BLOCK_WIDTH = 50
     const TOTAL_DURATION = 120
 
     const ELEMENT_COLORS = {
@@ -54,14 +54,12 @@ export const useTimelineStore = defineStore('timeline', () => {
     // 3. 交互状态 (UI State)
     // ===================================================================================
 
-    const selectedAnomalyIndex = ref(null)
-
     const activeTrackId = ref(null)
     const timelineScrollLeft = ref(0)
 
     const showCursorGuide = ref(false)
     const cursorCurrentTime = ref(0)
-    const snapStep = ref(0.5) // 吸附步长
+    const snapStep = ref(0.5)
 
     // 拖拽相关
     const globalDragOffset = ref(0)
@@ -71,6 +69,7 @@ export const useTimelineStore = defineStore('timeline', () => {
     const selectedConnectionId = ref(null)
     const selectedActionId = ref(null)
     const selectedLibrarySkillId = ref(null)
+    const selectedAnomalyIndex = ref(null)
     const multiSelectedIds = ref(new Set())
     const isBoxSelectMode = ref(false)
     const clipboard = ref(null)
@@ -164,7 +163,6 @@ export const useTimelineStore = defineStore('timeline', () => {
         const getAllowed = (list) => list || []
         const getRowDelays = (list) => list || []
 
-        // 1. 创建标准基础技能的辅助函数
         const createBaseSkill = (suffix, type, name) => {
             const globalId = `${activeChar.id}_${suffix}`
             const globalOverride = characterOverrides.value[globalId] || {}
@@ -212,39 +210,24 @@ export const useTimelineStore = defineStore('timeline', () => {
             }
         }
 
-        // 2. 创建变体技能的辅助函数
         const createVariantSkill = (variant) => {
-            // 使用 variants 数组里的 id 拼接生成全局唯一ID
             const globalId = `${activeChar.id}_variant_${variant.id}`
             const globalOverride = characterOverrides.value[globalId] || {}
-
-            // 变体的默认值，防止某些字段缺失导致报错
             const defaults = {
-                duration: 1,
-                cooldown: 0,
-                spCost: 0,
-                spGain: 0,
-                gaugeCost: 0,
-                gaugeGain: 0,
-                stagger: 0,
-                teamGaugeGain: 0,
-                element: activeChar.element || 'physical' // 默认继承角色属性
+                duration: 1, cooldown: 0, spCost: 0, spGain: 0, gaugeCost: 0, gaugeGain: 0,
+                stagger: 0, teamGaugeGain: 0, element: activeChar.element || 'physical'
             }
-
-            // 合并顺序：默认值 -> 变体原始数据 -> 运行时覆写
             const merged = { ...defaults, ...variant, ...globalOverride }
 
             return {
-                ...merged, // 包含了 name, type 等
-                id: globalId, // 强制覆盖 ID 为计算后的 globalId
-                // 确保异常状态数组存在
+                ...merged,
+                id: globalId,
                 physicalAnomaly: getAnomalies(variant.physicalAnomaly),
                 allowedTypes: getAllowed(variant.allowedTypes),
                 anomalyRowDelays: getRowDelays(variant.anomalyRowDelays)
             }
         }
 
-        // 3. 生成标准技能列表
         const standardSkills = [
             createBaseSkill('attack', 'attack', '重击'),
             createBaseSkill('execution', 'execution', '处决'),
@@ -253,10 +236,8 @@ export const useTimelineStore = defineStore('timeline', () => {
             createBaseSkill('ultimate', 'ultimate', '终结技')
         ]
 
-        // 4. 生成变体技能列表
         const variantSkills = (activeChar.variants || []).map(v => createVariantSkill(v))
 
-        // 5. 合并并返回
         return [...standardSkills, ...variantSkills]
     })
 
@@ -310,7 +291,6 @@ export const useTimelineStore = defineStore('timeline', () => {
         selectedLibrarySkillId.value = null
         selectedActionId.value = null
         multiSelectedIds.value.clear()
-        // 切换选中状态：如果已选中则取消，否则选中
         selectedConnectionId.value = (selectedConnectionId.value === connId) ? null : connId
     }
 
@@ -357,7 +337,6 @@ export const useTimelineStore = defineStore('timeline', () => {
     function removeCurrentSelection() {
         let actionCount = 0
         let connCount = 0
-
         const targets = new Set(multiSelectedIds.value)
         if (selectedActionId.value) targets.add(selectedActionId.value)
 
@@ -413,27 +392,14 @@ export const useTimelineStore = defineStore('timeline', () => {
     }
 
     function confirmLinking(targetId, targetEffectIndex = null) {
-        // 基础校验
         if (!isLinking.value || !linkingSourceId.value) return cancelLinking();
 
         if (linkingSourceId.value === targetId) {
             const isSourceEffect = linkingEffectIndex.value !== null;
             const isTargetEffect = targetEffectIndex !== null;
-
-            // 情况A: 只要有一方不是 Effect (即动作本体)，则禁止自连
-            // (防止 动作->动作, 动作->自身Effect, 自身Effect->动作)
-            if (!isSourceEffect || !isTargetEffect) {
-                cancelLinking();
-                return;
-            }
-            // 情况B: 都是 Effect，但由同一个图标连向同一个图标 (死循环)，禁止
-            if (linkingEffectIndex.value === targetEffectIndex) {
-                cancelLinking();
-                return;
-            }
-            // 情况C: 同一个动作下的不同图标 (Effect A -> Effect B)，允许通行！
+            if (!isSourceEffect || !isTargetEffect) { cancelLinking(); return; }
+            if (linkingEffectIndex.value === targetEffectIndex) { cancelLinking(); return; }
         }
-        // 查重逻辑 (防止重复建立相同的连线)
         const exists = connections.value.some(c =>
             c.from === linkingSourceId.value &&
             c.to === targetId &&
@@ -446,7 +412,8 @@ export const useTimelineStore = defineStore('timeline', () => {
                 from: linkingSourceId.value,
                 to: targetId,
                 fromEffectIndex: linkingEffectIndex.value,
-                toEffectIndex: targetEffectIndex
+                toEffectIndex: targetEffectIndex,
+                isConsumption: false // 默认为非消耗连线
             })
             commitState()
         }
@@ -456,6 +423,15 @@ export const useTimelineStore = defineStore('timeline', () => {
     function removeConnection(connId) {
         connections.value = connections.value.filter(c => c.id !== connId)
         commitState()
+    }
+
+    // 核心新增：更新连线属性（如切换 isConsumption）
+    function updateConnection(id, payload) {
+        const conn = connections.value.find(c => c.id === id)
+        if (conn) {
+            Object.assign(conn, payload)
+            commitState()
+        }
     }
 
     function updateAction(instanceId, newProperties) {
@@ -478,36 +454,24 @@ export const useTimelineStore = defineStore('timeline', () => {
     function changeTrackOperator(trackIndex, oldOperatorId, newOperatorId) {
         const track = tracks.value[trackIndex];
         if (track) {
-            // 检查新干员是否已经被占用
             if (tracks.value.some((t, i) => i !== trackIndex && t.id === newOperatorId)) {
                 alert('该干员已在另一条轨道上！');
                 return;
             }
-
-            // 1. 收集该轨道上即将被删除的所有动作 ID
             const actionIdsToDelete = new Set(track.actions.map(a => a.instanceId));
-
-            // 2. 过滤掉所有与这些动作有关的连线 (无论是作为起点 from 还是终点 to)
             if (actionIdsToDelete.size > 0) {
                 connections.value = connections.value.filter(conn =>
                     !actionIdsToDelete.has(conn.from) && !actionIdsToDelete.has(conn.to)
                 );
             }
-
-            // 3. 执行更换与清空
             track.id = newOperatorId;
             track.actions = [];
-
-            // 4. 更新选中状态
             if (activeTrackId.value === oldOperatorId) {
                 activeTrackId.value = newOperatorId;
             }
-
-            // 5. 如果当前选中的动作恰好是被删除的动作，清除选中状态
             if (selectedActionId.value && actionIdsToDelete.has(selectedActionId.value)) {
                 clearSelection();
             }
-
             commitState();
         }
     }
@@ -515,26 +479,17 @@ export const useTimelineStore = defineStore('timeline', () => {
     function clearTrack(trackIndex) {
         const track = tracks.value[trackIndex];
         if (!track) return;
-
-        // 1. 收集即将删除的动作 ID
         const actionIdsToDelete = new Set(track.actions.map(a => a.instanceId));
-
-        // 2. 清理连线
         if (actionIdsToDelete.size > 0) {
             connections.value = connections.value.filter(conn =>
                 !actionIdsToDelete.has(conn.from) && !actionIdsToDelete.has(conn.to)
             );
         }
-
-        // 3. 清空轨道
         track.id = null;
         track.actions = [];
-
-        // 4. 清理选中状态
         if (selectedActionId.value && actionIdsToDelete.has(selectedActionId.value)) {
             clearSelection();
         }
-
         commitState();
     }
 
@@ -580,7 +535,6 @@ export const useTimelineStore = defineStore('timeline', () => {
         commitState();
     }
 
-    // 键盘微调逻辑
     function nudgeSelection(delta) {
         const targets = new Set(multiSelectedIds.value)
         if (selectedActionId.value) targets.add(selectedActionId.value)
@@ -638,20 +592,14 @@ export const useTimelineStore = defineStore('timeline', () => {
         tracks.value.forEach(track => {
             if (!track.actions) return
             track.actions.forEach(action => {
-                // 1. 动作本身的基础失衡值 (通常在结束时结算)
                 if (action.stagger > 0) {
                     events.push({ time: action.startTime + action.duration, change: action.stagger, type: 'gain' })
                 }
-
-                // 2. 遍历异常状态/多段判定的失衡值
                 if (action.physicalAnomaly && action.physicalAnomaly.length > 0) {
                     const rowDelays = action.anomalyRowDelays || [];
                     action.physicalAnomaly.forEach((row, rowIndex) => {
-                        // 计算该行的起始时间：动作开始时间 + 行延迟
                         let currentTimeOffset = rowDelays[rowIndex] || 0;
-
                         row.forEach(effect => {
-                            // 如果该效果配置了 stagger 数值，则添加事件
                             if (effect.stagger > 0) {
                                 events.push({
                                     time: action.startTime + currentTimeOffset,
@@ -659,7 +607,6 @@ export const useTimelineStore = defineStore('timeline', () => {
                                     type: 'gain'
                                 });
                             }
-                            // 累加时间：当前效果持续时间作为间隔
                             currentTimeOffset += (effect.duration || 0);
                         });
                     });
@@ -696,19 +643,14 @@ export const useTimelineStore = defineStore('timeline', () => {
                     events.push({ time: action.startTime, lockChange: 1, type: 'lock_start' })
                     events.push({ time: action.startTime + castTime, lockChange: -1, type: 'lock_end' })
                 }
-
-                // 1. 动作本身的基础回复 (结束时)
                 if (action.spGain > 0) {
                     events.push({ time: action.startTime + action.duration, valChange: action.spGain, type: 'gain' })
                 }
-
-                // 2. 遍历异常状态/多段判定的技力回复
                 if (action.physicalAnomaly && action.physicalAnomaly.length > 0) {
                     const rowDelays = action.anomalyRowDelays || [];
                     action.physicalAnomaly.forEach((row, rowIndex) => {
                         let currentTimeOffset = rowDelays[rowIndex] || 0;
                         row.forEach(effect => {
-                            // 如果该效果配置了 sp (spGain) 数值
                             if (effect.sp > 0) {
                                 events.push({
                                     time: action.startTime + currentTimeOffset,
@@ -924,8 +866,8 @@ export const useTimelineStore = defineStore('timeline', () => {
         teamTracksInfo, activeSkillLibrary, timeBlockWidth, ELEMENT_COLORS, getActionPositionInfo, getIncomingConnections, getCharacterElementColor, isActionSelected,
         fetchGameData, exportProject, importProject, TOTAL_DURATION, selectTrack, changeTrackOperator, clearTrack, selectLibrarySkill, updateLibrarySkill, selectAction, updateAction, removeAction,
         addSkillToTrack, setDraggingSkill, setDragOffset, setScrollLeft, calculateGlobalSpData, calculateGaugeData, calculateGlobalStaggerData, updateTrackInitialGauge, updateTrackMaxGauge,
-        startLinking, confirmLinking, cancelLinking, removeConnection, getColor, toggleCursorGuide, toggleBoxSelectMode, setCursorTime, toggleSnapStep, nudgeSelection,
+        startLinking, confirmLinking, cancelLinking, removeConnection, updateConnection, getColor, toggleCursorGuide, toggleBoxSelectMode, setCursorTime, toggleSnapStep, nudgeSelection,
         setMultiSelection, clearSelection, copySelection, pasteSelection, removeCurrentSelection, undo, redo, commitState,
-        removeAnomaly, initAutoSave, loadFromBrowser, resetProject, selectedConnectionId, selectConnection, selectedAnomalyIndex,  selectAnomaly
+        removeAnomaly, initAutoSave, loadFromBrowser, resetProject, selectedConnectionId, selectConnection, selectedAnomalyIndex, selectAnomaly
     }
 })

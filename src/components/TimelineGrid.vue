@@ -329,6 +329,7 @@ function onBoxMouseUp() {
 
 function onActionMouseDown(evt, track, action) {
   evt.stopPropagation()
+  if (store.isLinking) return
   if (evt.button !== 0) return
   wasSelectedOnPress.value = store.multiSelectedIds.has(action.instanceId)
   if (!store.multiSelectedIds.has(action.instanceId)) store.selectAction(action.instanceId)
@@ -490,7 +491,11 @@ function onTrackDrop(track, evt) {
   nextTick(() => forceSvgUpdate())
 }
 function onTrackDragOver(evt) { evt.preventDefault(); evt.dataTransfer.dropEffect = 'copy' }
-function onActionClick(action) { if (!isDragStarted.value && wasSelectedOnPress.value && store.selectedActionId === action.instanceId) store.selectAction(action.instanceId) }
+function onActionClick(action) {
+  if (store.isLinking) {
+    store.confirmLinking(action.instanceId, null)
+  }
+}
 function onBackgroundClick(event) {
   if (!event || event.target === tracksContentRef.value || event.target.classList.contains('track-row') || event.target.classList.contains('time-block')) {
     store.cancelLinking(); store.selectTrack(null)

@@ -15,13 +15,13 @@ const store = useTimelineStore()
 
 // === 关于弹窗逻辑 ===
 const aboutDialogVisible = ref(false)
+const CURRENT_NOTICE_VERSION = '2025-11-30-update'
 
-// 用户第一次访问时自动弹出
 onMounted(() => {
-  const hasSeenIntro = localStorage.getItem('endaxis_has_seen_intro')
-  if (!hasSeenIntro) {
+  const lastSeenVersion = localStorage.getItem('endaxis_notice_version')
+  if (lastSeenVersion !== CURRENT_NOTICE_VERSION) {
     aboutDialogVisible.value = true
-    localStorage.setItem('endaxis_has_seen_intro', 'true')
+    localStorage.setItem('endaxis_notice_version', CURRENT_NOTICE_VERSION)
   }
 })
 
@@ -252,6 +252,14 @@ onUnmounted(() => { window.removeEventListener('keydown', handleGlobalKeydown) }
         <div class="about-section">
           <h3>欢迎使用</h3>
           <p>Endaxis 是一个专为《明日方舟：终末地》设计的可视化排轴工具。你可以通过拖拽技能、建立连线关系来规划战术流程。</p>
+        </div>
+
+        <div class="about-section">
+          <h3>项目概况</h3>
+          <p>
+            目前数值填好的干员只有：管理员，骏卫，黎风，陈千语，大潘。<br>
+            甚至不一定填好了，如果有玩家有干员的详细数据（释放技能所需时间，战技回复的充能等）都可以联系视频置顶评论的那个人（我）
+          </p>
         </div>
 
         <div class="about-section">

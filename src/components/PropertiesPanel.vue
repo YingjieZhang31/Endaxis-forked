@@ -10,7 +10,6 @@ const EFFECT_NAMES = {
   "blaze_attach": "灼热附着", "emag_attach": "电磁附着", "cold_attach": "寒冷附着", "nature_attach": "自然附着",
   "blaze_burst": "灼热爆发", "emag_burst": "电磁爆发", "cold_burst": "寒冷爆发", "nature_burst": "自然爆发",
   "burning": "燃烧", "conductive": "导电", "frozen": "冻结", "ice_shatter": "碎冰", "corrosion": "腐蚀",
-  "consumed": "被消耗",
   "logic_tick": "分段判定",
   "default": "默认图标"
 }
@@ -20,7 +19,7 @@ const GROUP_DEFINITIONS = [
   { label: ' 元素附着', matcher: (key) => key.endsWith('_attach') },
   { label: ' 元素爆发', matcher: (key) => key.endsWith('_burst') },
   { label: ' 异常状态 ', keys: ['burning', 'conductive', 'frozen', 'corrosion'] },
-  { label: ' 其他', keys: ['default', 'consumed', 'logic_tick'] }
+  { label: ' 其他', keys: ['default', 'logic_tick'] }
 ]
 
 const editingIndexObj = ref(null)
@@ -96,7 +95,6 @@ function removeEffect(r, c) {
   editingIndexObj.value = null;
 }
 
-// 【新增】获取和更新行延迟
 function getRowDelay(rowIndex) {
   const delays = selectedAction.value?.anomalyRowDelays || []
   return delays[rowIndex] || 0
@@ -114,7 +112,7 @@ function updateRowDelay(rowIndex, value) {
 const iconOptions = computed(() => {
   const allGlobalKeys = Object.keys(store.iconDatabase);
   const allowed = selectedAction.value?.allowedTypes;
-  const availableKeys = (allowed && allowed.length > 0) ? allGlobalKeys.filter(key => allowed.includes(key) || key === 'default' || key === 'consumed' || key === 'logic_tick') : allGlobalKeys;
+  const availableKeys = (allowed && allowed.length > 0) ? allGlobalKeys.filter(key => allowed.includes(key) || key === 'default' || key === 'logic_tick') : allGlobalKeys;
   const groups = [];
   if (currentCharacter.value && currentCharacter.value.exclusive_buffs) {
     let exclusiveOpts = currentCharacter.value.exclusive_buffs.map(buff => ({ label: `★ ${buff.name}`, value: buff.key, path: buff.path }));
@@ -140,47 +138,97 @@ const iconOptions = computed(() => {
   }
   return groups;
 })
-const relevantConnections = computed(() => {
-  if (!store.selectedActionId) return []
-  return store.connections.filter(c => c.from === store.selectedActionId || c.to === store.selectedActionId).map(conn => {
-    const isOutgoing = conn.from === store.selectedActionId
-    const otherActionId = isOutgoing ? conn.to : conn.from
-    let otherActionName = '未知动作';
-    for (const track of store.tracks) {
-      const action = track.actions.find(a => a.instanceId === otherActionId)
-      if (action) { otherActionName = action.name; break; }
+
+function getIconPath(type, actionContext = null) {
+
+  if (store.iconDatabase[type]) return store.iconDatabase[type]
+
+  if (actionContext) {
+    const track = store.tracks.find(t => t.actions.some(a => a.instanceId === actionContext.instanceId))
+    if (track) {
+      const charInfo = store.characterRoster.find(c => c.id === track.id)
+      if (charInfo?.exclusive_buffs) {
+        const exclusive = charInfo.exclusive_buffs.find(b => b.key === type)
+        if (exclusive?.path) return exclusive.path
+      }
     }
-    return {id: conn.id, direction: isOutgoing ? '连向' : '来自', otherActionName, isOutgoing}
-  })
-})
-function getIconPath(type) {
+  }
+
   if (currentCharacter.value && currentCharacter.value.exclusive_buffs) {
     const exclusive = currentCharacter.value.exclusive_buffs.find(b => b.key === type);
     if (exclusive) return exclusive.path;
   }
-  return store.iconDatabase[type] || store.iconDatabase['default'] || ''
+
+  return store.iconDatabase['default'] || ''
 }
+
+const relevantConnections = computed(() => {
+  if (!store.selectedActionId) return []
+
+  return store.connections
+      .filter(c => c.from === store.selectedActionId || c.to === store.selectedActionId)
+      .map(conn => {
+        const isOutgoing = conn.from === store.selectedActionId
+        const otherActionId = isOutgoing ? conn.to : conn.from
+
+        let otherActionName = '未知动作'
+        let otherAction = null
+        for (const track of store.tracks) {
+          const action = track.actions.find(a => a.instanceId === otherActionId)
+          if (action) {
+            otherActionName = action.name
+            otherAction = action
+            break
+          }
+        }
+
+        const myEffectIndex = isOutgoing ? conn.fromEffectIndex : conn.toEffectIndex
+        let myIconPath = null
+        if (myEffectIndex !== null && selectedAction.value) {
+          const allEffects = (selectedAction.value.physicalAnomaly || []).flat()
+          const effect = allEffects[myEffectIndex]
+          if (effect) myIconPath = getIconPath(effect.type, selectedAction.value)
+        }
+
+        const otherEffectIndex = isOutgoing ? conn.toEffectIndex : conn.fromEffectIndex
+        let otherIconPath = null
+        if (otherEffectIndex !== null && otherAction) {
+          const allEffects = (otherAction.physicalAnomaly || []).flat()
+          const effect = allEffects[otherEffectIndex]
+          if (effect) otherIconPath = getIconPath(effect.type, otherAction)
+        }
+
+        return {
+          id: conn.id,
+          direction: isOutgoing ? '连向' : '来自',
+          isOutgoing,
+          rawConnection: conn,
+          otherActionName,
+          myIconPath,
+          otherIconPath
+        }
+      })
+})
 
 function updateLibraryProp(key, value) {
   if (!selectedLibrarySkill.value) return
   store.updateLibrarySkill(selectedLibrarySkill.value.id, {[key]: value})
 }
+
 function updateActionProp(key, value) {
   if (!selectedAction.value) return;
   store.updateAction(store.selectedActionId, {[key]: value});
 }
+
 function updateActionGaugeWithLink(value) {
   if (!selectedAction.value) return
-  store.updateAction(store.selectedActionId, { gaugeGain: value, teamGaugeGain: value * 0.5 })
-}
-function updateLibraryGaugeWithLink(value) {
-  if (!selectedLibrarySkill.value) return
-  store.updateLibrarySkill(selectedLibrarySkill.value.id, { gaugeGain: value, teamGaugeGain: value * 0.5 })
+  store.updateAction(store.selectedActionId, {gaugeGain: value, teamGaugeGain: value * 0.5})
 }
 
-// ===================================================================================
-// 自定义时间条多条逻辑
-// ===================================================================================
+function updateLibraryGaugeWithLink(value) {
+  if (!selectedLibrarySkill.value) return
+  store.updateLibrarySkill(selectedLibrarySkill.value.id, {gaugeGain: value, teamGaugeGain: value * 0.5})
+}
 
 const customBarsList = computed(() => {
   return selectedAction.value?.customBars || []
@@ -188,30 +236,30 @@ const customBarsList = computed(() => {
 
 function addCustomBar() {
   const newList = [...customBarsList.value]
-  newList.push({ text: '', duration: 1, offset: 0 })
-  store.updateAction(store.selectedActionId, { customBars: newList })
+  newList.push({text: '', duration: 1, offset: 0})
+  store.updateAction(store.selectedActionId, {customBars: newList})
 }
 
 function removeCustomBar(index) {
   const newList = [...customBarsList.value]
   newList.splice(index, 1)
-  store.updateAction(store.selectedActionId, { customBars: newList })
+  store.updateAction(store.selectedActionId, {customBars: newList})
 }
 
 function updateCustomBarItem(index, key, value) {
   const newList = [...customBarsList.value]
-  newList[index] = { ...newList[index], [key]: value }
-  store.updateAction(store.selectedActionId, { customBars: newList })
+  newList[index] = {...newList[index], [key]: value}
+  store.updateAction(store.selectedActionId, {customBars: newList})
 }
 
 watch(
     () => store.selectedAnomalyIndex,
     (newVal) => {
       if (newVal) {
-        editingIndexObj.value = { r: newVal.rowIndex, c: newVal.colIndex }
+        editingIndexObj.value = {r: newVal.rowIndex, c: newVal.colIndex}
       }
     },
-    { immediate: true, deep: true }
+    {immediate: true, deep: true}
 )
 </script>
 
@@ -242,7 +290,7 @@ watch(
                @input="e => updateActionProp('cooldown', Number(e.target.value))">
       </div>
       <div class="form-group highlight" v-if="currentSkillType === 'link'">
-        <label>触发窗口（仅为展示连携窗口）</label>
+        <label>触发窗口</label>
         <input type="number" :value="selectedAction.triggerWindow || 0"
                @input="e => updateActionProp('triggerWindow', Number(e.target.value))" step="0.1">
       </div>
@@ -261,13 +309,11 @@ watch(
         <input type="number" :value="selectedAction.spGain"
                @input="e => updateActionProp('spGain', Number(e.target.value))">
       </div>
-
       <div class="form-group highlight-blue" v-if="!['attack', 'execution'].includes(currentSkillType)">
         <label>自身充能</label>
         <input type="number" :value="selectedAction.gaugeGain"
                @input="e => updateActionGaugeWithLink(Number(e.target.value))">
       </div>
-
       <div class="form-group highlight-blue" v-if="currentSkillType === 'skill'">
         <label>队友充能</label>
         <input type="number" :value="selectedAction.teamGaugeGain"
@@ -276,41 +322,36 @@ watch(
 
       <hr class="divider"/>
 
-      <div class="form-group highlight-cyan" style="border: 1px dashed #00e5ff; padding: 8px; border-radius: 4px; background: rgba(0, 229, 255, 0.05);">
+      <div class="form-group highlight-cyan"
+           style="border: 1px dashed #00e5ff; padding: 8px; border-radius: 4px; background: rgba(0, 229, 255, 0.05);">
         <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
           <label style="color: #00e5ff; font-weight: bold; margin: 0;">自定义时间条</label>
           <button class="add-bar-btn" @click="addCustomBar" title="添加一条">+</button>
         </div>
-
-        <div v-if="customBarsList.length === 0" style="color: #666; font-size: 12px; text-align: center; padding: 10px;">
-          暂无时间条，点击右上角添加
+        <div v-if="customBarsList.length === 0"
+             style="color: #666; font-size: 12px; text-align: center; padding: 10px;">
+          暂无时间条
         </div>
-
         <div v-for="(bar, index) in customBarsList" :key="index" class="custom-bar-item">
           <div class="bar-header">
             <span class="bar-index">#{{ index + 1 }}</span>
             <button class="remove-bar-btn" @click="removeCustomBar(index)">×</button>
           </div>
-
           <div style="margin-bottom: 6px;">
             <input type="text" :value="bar.text"
                    @input="e => updateCustomBarItem(index, 'text', e.target.value)"
-                   placeholder="显示文本"
-                   style="border-color: #00e5ff; width: 100%;">
+                   placeholder="显示文本" style="border-color: #00e5ff; width: 100%;">
           </div>
-
           <div style="display: flex; gap: 6px;">
             <div style="flex: 1;">
               <input type="number" :value="bar.duration"
                      @input="e => updateCustomBarItem(index, 'duration', Number(e.target.value))"
-                     step="0.5" placeholder="时长"
-                     style="border-color: #00e5ff; width: 100%;">
+                     step="0.5" placeholder="时长" style="border-color: #00e5ff; width: 100%;">
             </div>
             <div style="flex: 1;">
               <input type="number" :value="bar.offset"
                      @input="e => updateCustomBarItem(index, 'offset', Number(e.target.value))"
-                     step="0.1" placeholder="偏移"
-                     style="border-color: #00e5ff; width: 100%;">
+                     step="0.1" placeholder="偏移" style="border-color: #00e5ff; width: 100%;">
             </div>
           </div>
         </div>
@@ -321,9 +362,61 @@ watch(
       <div class="info-row"><label>现有连线</label></div>
       <div v-for="conn in relevantConnections" :key="conn.id" class="connection-item"
            :class="{ 'is-outgoing': conn.isOutgoing, 'is-incoming': !conn.isOutgoing }">
-        <span class="conn-icon">{{ conn.isOutgoing ? '➔' : '←' }}</span>
-        <span class="conn-text">{{ conn.direction }} {{ conn.otherActionName }}</span>
-        <div class="delete-conn-btn" @click="store.removeConnection(conn.id)" title="断开连线">×</div>
+
+        <div class="conn-visual-row">
+          <div class="conn-node">
+            <template v-if="conn.isOutgoing">
+              <img v-if="conn.myIconPath" :src="conn.myIconPath" class="conn-mini-icon" title="我方状态"/>
+              <span v-else class="conn-node-text">本动作</span>
+            </template>
+            <template v-else>
+              <img v-if="conn.otherIconPath" :src="conn.otherIconPath" class="conn-mini-icon" title="来源状态"/>
+              <span v-else class="conn-node-text">{{ conn.otherActionName }}</span>
+            </template>
+          </div>
+
+          <div class="conn-arrow">
+            <span v-if="conn.isOutgoing" style="color: #ffd700;">➔</span>
+            <span v-else style="color: #00e5ff;">➔</span>
+          </div>
+
+          <div class="conn-node">
+            <template v-if="conn.isOutgoing">
+              <img v-if="conn.otherIconPath" :src="conn.otherIconPath" class="conn-mini-icon" title="目标状态"/>
+              <span v-else class="conn-node-text">{{ conn.otherActionName }}</span>
+            </template>
+            <template v-else>
+              <img v-if="conn.myIconPath" :src="conn.myIconPath" class="conn-mini-icon" title="我方状态"/>
+              <span v-else class="conn-node-text">本动作</span>
+            </template>
+          </div>
+        </div>
+
+        <div class="conn-controls">
+          <div v-if="conn.isOutgoing && conn.rawConnection.fromEffectIndex != null"
+               class="consume-toggle"
+               :class="{ 'is-active': conn.rawConnection.isConsumption }"
+               @click="store.updateConnection(conn.id, { isConsumption: !conn.rawConnection.isConsumption })"
+               title="切换：状态是否被此动作消耗？">
+            <span class="toggle-icon">⚡</span>
+            <span class="toggle-text">消耗</span>
+          </div>
+
+          <div v-if="conn.rawConnection.isConsumption" class="offset-input-wrapper" title="消耗提前量 (秒)">
+            <span class="offset-label">提前</span>
+            <input
+                type="number"
+                class="mini-offset-input"
+                :value="conn.rawConnection.consumptionOffset || 0"
+                @input="e => store.updateConnection(conn.id, { consumptionOffset: Number(e.target.value) })"
+                step="0.1"
+                min="0"
+            />
+            <span class="offset-label">s</span>
+          </div>
+
+          <div class="delete-conn-btn" @click="store.removeConnection(conn.id)" title="断开连线">×</div>
+        </div>
       </div>
     </div>
 
@@ -344,7 +437,6 @@ watch(
         <template #item="{ element: row, index: rowIndex }">
           <div class="anomaly-editor-row">
             <div class="row-handle">⋮</div>
-
             <div class="row-delay-input" title="该行起始延迟 (秒)">
               <span class="delay-icon">↦</span>
               <input
@@ -356,7 +448,6 @@ watch(
                   class="delay-num"
               />
             </div>
-
             <draggable
                 :list="row"
                 item-key="type"
@@ -374,12 +465,10 @@ watch(
                 </div>
               </template>
             </draggable>
-
             <button class="add-to-row-btn" @click="addEffectToRow(rowIndex)" title="在此行追加效果">+</button>
           </div>
         </template>
       </draggable>
-
       <button class="add-effect-bar" @click="addRow"> + 添加新行</button>
     </div>
 
@@ -415,7 +504,8 @@ watch(
       <div class="form-row">
         <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 2px;">
           <label>持续(s)</label>
-          <label style="font-size: 10px; color: #888; display: flex; align-items: center; gap: 4px; cursor: pointer; user-select: none;">
+          <label
+              style="font-size: 10px; color: #888; display: flex; align-items: center; gap: 4px; cursor: pointer; user-select: none;">
             <input type="checkbox" :checked="editingEffectData.hideDuration"
                    @change="e => updateEffectProp('hideDuration', e.target.checked)"
                    style="width: 12px; height: 12px; margin: 0; vertical-align: middle;">
@@ -460,25 +550,25 @@ watch(
     </div>
     <div class="attribute-editor">
       <div class="form-group"><label>持续时间</label><input type="number" :value="selectedLibrarySkill.duration"
-                                                            @input="e => updateLibraryProp('duration', Number(e.target.value))"
-                                                            min="0.5" step="0.5"></div>
+          @input="e => updateLibraryProp('duration', Number(e.target.value))"
+          min="0.5" step="0.5"></div>
       <div class="form-group highlight-red" v-if="currentSkillType !== 'execution'"><label>失衡值</label><input
           type="number" :value="selectedLibrarySkill.stagger"
           @input="e => updateLibraryProp('stagger', Number(e.target.value))"></div>
       <div class="form-group" v-if="currentSkillType === 'link'"><label>冷却时间</label><input type="number"
-                                                                                               :value="selectedLibrarySkill.cooldown"
-                                                                                               @input="e => updateLibraryProp('cooldown', Number(e.target.value))"
-                                                                                               min="0"></div>
+          :value="selectedLibrarySkill.cooldown"
+          @input="e => updateLibraryProp('cooldown', Number(e.target.value))"
+          min="0"></div>
       <div class="form-group highlight" v-if="currentSkillType === 'skill'"><label>技力消耗</label><input type="number"
-                                                                                                          :value="selectedLibrarySkill.spCost"
-                                                                                                          @input="e => updateLibraryProp('spCost', Number(e.target.value))"
-                                                                                                          min="0"></div>
+          :value="selectedLibrarySkill.spCost"
+          @input="e => updateLibraryProp('spCost', Number(e.target.value))"
+          min="0"></div>
       <div class="form-group highlight-blue" v-if="currentSkillType === 'ultimate'"><label>充能消耗</label><input
           type="number" :value="selectedLibrarySkill.gaugeCost"
           @input="e => updateLibraryProp('gaugeCost', Number(e.target.value))" min="0"></div>
       <div class="form-group highlight"><label>技力回复</label><input type="number" :value="selectedLibrarySkill.spGain"
-                                                                      @input="e => updateLibraryProp('spGain', Number(e.target.value))"
-                                                                      min="0"></div>
+          @input="e => updateLibraryProp('spGain', Number(e.target.value))"
+          min="0"></div>
       <div class="form-group highlight-blue" v-if="!['attack', 'execution'].includes(currentSkillType)">
         <label>自身充能 (联动队友)</label>
         <input type="number" :value="selectedLibrarySkill.gaugeGain"
@@ -498,9 +588,6 @@ watch(
 </template>
 
 <style scoped>
-/* ==========================================
-   Panel Layout & Basic Elements
-   ========================================== */
 .properties-panel {
   padding: 15px;
   color: #e0e0e0;
@@ -554,9 +641,6 @@ watch(
   color: #666;
 }
 
-/* ==========================================
-   Forms & Inputs
-   ========================================== */
 .form-group {
   margin-bottom: 12px;
 }
@@ -598,9 +682,6 @@ input:focus, select:focus {
   color: #ff7875;
 }
 
-/* ==========================================
-   Buttons & Interactions
-   ========================================== */
 .link-btn {
   width: 100%;
   padding: 8px;
@@ -668,9 +749,6 @@ input:focus, select:focus {
   color: #d32f2f;
 }
 
-/* ==========================================
-   Anomalies Grid Editor
-   ========================================== */
 .anomalies-editor-container {
   background: #333;
   padding: 8px;
@@ -779,9 +857,6 @@ input:focus, select:focus {
   border-radius: 2px;
 }
 
-/* ==========================================
-   Effect Detail Editor
-   ========================================== */
 .effect-detail-editor {
   margin-top: 10px;
   background: #383838;
@@ -867,18 +942,15 @@ input:focus, select:focus {
   color: #eee;
 }
 
-/* ==========================================
-   Connection List
-   ========================================== */
 .connection-item {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  background-color: #3a3a3a;
-  padding: 8px;
+  flex-direction: column;
+  align-items: stretch;
+  gap: 0;
+  background: rgba(0, 0, 0, 0.2);
   border-radius: 4px;
-  margin-bottom: 5px;
-  border-left: 3px solid transparent;
+  margin-bottom: 6px;
+  border-left: 2px solid #555;
+  overflow: hidden;
 }
 
 .connection-item.is-outgoing {
@@ -889,9 +961,111 @@ input:focus, select:focus {
   border-left-color: #00e5ff;
 }
 
-/* ==========================================
-   Library Mode & Misc
-   ========================================== */
+.conn-visual-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 8px;
+}
+
+.conn-node {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  max-width: 45%;
+}
+
+.conn-mini-icon {
+  width: 20px;
+  height: 20px;
+  object-fit: contain;
+  border: 1px solid #555;
+  border-radius: 2px;
+  background: #333;
+}
+
+.conn-node-text {
+  font-size: 11px;
+  color: #ccc;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.conn-arrow {
+  font-size: 12px;
+  opacity: 0.6;
+}
+
+.conn-controls {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 8px;
+  border-top: 1px solid rgba(255, 255, 255, 0.05);
+  padding: 4px 8px;
+  background: rgba(0, 0, 0, 0.1);
+}
+
+.offset-input-wrapper {
+  display: flex;
+  align-items: center;
+  background: #222;
+  border: 1px solid #444;
+  border-radius: 4px;
+  padding: 0 4px;
+  margin-left: 4px;
+}
+
+.offset-label {
+  font-size: 10px;
+  color: #888;
+  user-select: none;
+}
+
+.mini-offset-input {
+  width: 30px !important;
+  background: transparent !important;
+  border: none !important;
+  color: #ffd700 !important;
+  font-size: 11px !important;
+  text-align: center;
+  padding: 2px 0 !important;
+  height: auto !important;
+}
+
+.mini-offset-input:focus { outline: none; }
+
+.consume-toggle {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 10px;
+  cursor: pointer;
+  padding: 2px 6px;
+  border-radius: 4px;
+  background: #222;
+  border: 1px solid #444;
+  color: #666;
+  transition: all 0.2s;
+}
+
+.consume-toggle:hover {
+  border-color: #666;
+  color: #aaa;
+}
+
+.consume-toggle.is-active {
+  background: rgba(255, 215, 0, 0.15);
+  border-color: #ffd700;
+  color: #ffd700;
+  font-weight: bold;
+}
+
+.toggle-icon {
+  font-size: 12px;
+}
+
 .library-mode .attribute-editor {
   border-color: #4a90e2;
 }
@@ -944,7 +1118,10 @@ input:focus, select:focus {
   font-size: 16px;
   padding-bottom: -2px;
 }
-.add-bar-btn:hover { background: #fff; }
+
+.add-bar-btn:hover {
+  background: #fff;
+}
 
 .custom-bar-item {
   background: rgba(0, 0, 0, 0.3);
@@ -955,14 +1132,31 @@ input:focus, select:focus {
 }
 
 .bar-header {
-  display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 4px;
 }
-.bar-index { font-size: 10px; color: #00e5ff; font-family: monospace; }
+
+.bar-index {
+  font-size: 10px;
+  color: #00e5ff;
+  font-family: monospace;
+}
 
 .remove-bar-btn {
-  background: none; border: none; color: #666; cursor: pointer; font-size: 14px; padding: 0; line-height: 1;
+  background: none;
+  border: none;
+  color: #666;
+  cursor: pointer;
+  font-size: 14px;
+  padding: 0;
+  line-height: 1;
 }
-.remove-bar-btn:hover { color: #ff7875; }
+
+.remove-bar-btn:hover {
+  color: #ff7875;
+}
 
 .row-delay-input {
   display: flex;
@@ -997,9 +1191,7 @@ input:focus, select:focus {
   outline: none;
 }
 
-/* Chrome/Safari 隐藏 number input 的上下箭头，保持界面整洁 */
-.delay-num::-webkit-outer-spin-button,
-.delay-num::-webkit-inner-spin-button {
+.delay-num::-webkit-outer-spin-button, .delay-num::-webkit-inner-spin-button {
   -webkit-appearance: none;
   margin: 0;
 }
