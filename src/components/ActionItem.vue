@@ -134,6 +134,20 @@ function hexToRgba(hex, alpha) {
   return 'rgba(' + [(c >> 16) & 255, (c >> 8) & 255, c & 255].join(',') + ',' + alpha + ')'
 }
 
+// 计算判定点的位置样式
+const renderableTicks = computed(() => {
+  const ticks = props.action.damageTicks || []
+  const widthUnit = store.timeBlockWidth
+
+  return ticks.map(tick => {
+    const left = (tick.offset || 0) * widthUnit
+    return {
+      style: { left: `${left}px` },
+      data: tick
+    }
+  })
+})
+
 const renderableAnomalies = computed(() => {
   const raw = props.action.physicalAnomaly || []
   if (raw.length === 0) return []
@@ -267,6 +281,15 @@ function onIconClick(evt, item, flatIndex) {
       </div>
     </template>
 
+    <div v-if="!isGhostMode" class="damage-ticks-layer">
+      <div v-for="(tick, idx) in renderableTicks" :key="idx"
+           class="damage-tick-wrapper"
+           :style="tick.style"
+           :title="`时间: ${tick.data.offset}s\n失衡: ${tick.data.stagger || 0}\nSP: ${tick.data.sp || 0}`">
+        <div class="tick-marker"></div>
+      </div>
+    </div>
+
     <div v-if="action.triggerWindow && action.triggerWindow !== 0" class="trigger-window-bar" :style="triggerWindowStyle">
       <div class="tw-dot"></div>
       <div class="tw-separator"></div>
@@ -278,10 +301,7 @@ function onIconClick(evt, item, flatIndex) {
 
         <div :id="`anomaly-${action.instanceId}-${index}`"
              class="anomaly-icon-box"
-             :class="{
-                'is-logic-tick': item.data.type === 'logic_tick',
-                'is-link-target': store.isLinking && store.linkingSourceId !== action.instanceId
-             }"
+             :class="{ 'is-link-target': store.isLinking && store.linkingSourceId !== action.instanceId }"
              @mousedown.stop="onIconClick($event, item, index)"
              @click.stop>
           <img :src="getIconPath(item.data.type)" class="anomaly-icon"/>
@@ -347,6 +367,49 @@ function onIconClick(evt, item, flatIndex) {
   color: #ffd700; font-size: 8px; padding: 0 2px; line-height: 1; border-radius: 2px;
 }
 
+/* 伤害节点样式 */
+.damage-ticks-layer {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+  z-index: 12;
+}
+
+.damage-tick-wrapper {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  width: 12px;
+  margin-left: -6px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: flex-end;
+  pointer-events: auto;
+  z-index: 20;
+}
+
+.tick-marker {
+  width: 6px;
+  height: 6px;
+  background-color: #ff4d4f;
+  border: 1px solid #333;
+  transform: translateY(50%) rotate(45deg);
+  box-shadow: 0 1px 2px rgba(0,0,0,0.5);
+  transition: all 0.15s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+}
+
+.damage-tick-wrapper:hover .tick-marker {
+  background-color: #ffd700;
+  border-color: #fff;
+  transform: translateY(50%) rotate(45deg) scale(2.0);
+  box-shadow: 0 0 8px rgba(255, 215, 0, 1);
+  z-index: 30;
+}
+
 /* === 时长条样式 === */
 .anomaly-duration-bar {
   height: 16px; border: none; border-radius: 2px; position: relative;
@@ -389,12 +452,6 @@ function onIconClick(evt, item, flatIndex) {
 }
 
 /* === 其他样式 === */
-.anomaly-icon-box.is-logic-tick {
-  width: 8px; height: 8px; border-radius: 50%; background-color: #ffd700;
-  border: none; margin-top: 6px; box-shadow: 0 0 4px rgba(255, 215, 0, 0.5);
-}
-.anomaly-icon-box.is-logic-tick .anomaly-icon, .anomaly-icon-box.is-logic-tick .anomaly-stacks { display: none; }
-.anomaly-icon-box.is-logic-tick:hover { transform: scale(1.5); background-color: #fff; }
 
 .cd-bar-container { position: absolute; height: 4px; display: flex; align-items: center; pointer-events: none; }
 .cd-line { flex-grow: 1; height: 2px; }

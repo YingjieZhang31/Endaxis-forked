@@ -644,6 +644,15 @@ export const useTimelineStore = defineStore('timeline', () => {
             if (!track.actions) return
             track.actions.forEach(action => {
                 if (action.stagger > 0) events.push({ time: action.startTime + action.duration, change: action.stagger, type: 'gain' })
+                if (action.damageTicks) {
+                    action.damageTicks.forEach(tick => {
+                        const staggerVal = Number(tick.stagger) || 0
+                        if (staggerVal > 0) {
+                            const tickTime = action.startTime + (Number(tick.offset) || 0)
+                            events.push({ time: tickTime, change: staggerVal, type: 'gain' })
+                        }
+                    })
+                }
                 if (action.physicalAnomaly) {
                     const rowDelays = action.anomalyRowDelays || [];
                     action.physicalAnomaly.forEach((row, rowIndex) => {
@@ -680,6 +689,15 @@ export const useTimelineStore = defineStore('timeline', () => {
                 if (action.spCost > 0) events.push({ time: action.startTime, valChange: -action.spCost, type: 'cost' })
                 if (action.type === 'skill') { events.push({ time: action.startTime, lockChange: 1, type: 'lock_start' }); events.push({ time: action.startTime + 0.5, lockChange: -1, type: 'lock_end' }) }
                 if (action.spGain > 0) events.push({ time: action.startTime + action.duration, valChange: action.spGain, type: 'gain' })
+                if (action.damageTicks) {
+                    action.damageTicks.forEach(tick => {
+                        const spVal = Number(tick.sp) || 0
+                        if (spVal > 0) {
+                            const tickTime = action.startTime + (Number(tick.offset) || 0)
+                            events.push({ time: tickTime, valChange: spVal, type: 'gain' })
+                        }
+                    })
+                }
                 if (action.physicalAnomaly) {
                     const rowDelays = action.anomalyRowDelays || [];
                     action.physicalAnomaly.forEach((row, rowIndex) => {

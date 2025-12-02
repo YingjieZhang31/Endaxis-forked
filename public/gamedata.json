@@ -229,34 +229,7 @@
       "link_spGain": 0,
       "link_gaugeGain": 10,
       "link_allowed_types": [],
-      "link_anomalies": [
-        [
-          {
-            "type": "logic_tick",
-            "stacks": 1,
-            "duration": 0.6,
-            "stagger": 3,
-            "sp": 5,
-            "hideDuration": true
-          },
-          {
-            "type": "logic_tick",
-            "stacks": 1,
-            "duration": 0.9,
-            "sp": 7,
-            "stagger": 3,
-            "hideDuration": true
-          },
-          {
-            "type": "logic_tick",
-            "stacks": 1,
-            "duration": 0,
-            "stagger": 4,
-            "sp": 13,
-            "hideDuration": true
-          }
-        ]
-      ],
+      "link_anomalies": [],
       "ultimate_duration": 0.5,
       "ultimate_gaugeMax": 90,
       "ultimate_gaugeReply": 0,
@@ -336,116 +309,7 @@
         0.7
       ],
       "attack_stagger": 18,
-      "variants": [
-        {
-          "id": "POGRANICHNK_link3",
-          "name": "强化连携",
-          "type": "link",
-          "duration": 2.7,
-          "stagger": 0,
-          "spGain": 0,
-          "allowedTypes": [
-            "default"
-          ],
-          "physicalAnomaly": [
-            [
-              {
-                "type": "logic_tick",
-                "stacks": 1,
-                "duration": 0.6,
-                "stagger": 3,
-                "sp": 5,
-                "hideDuration": true
-              },
-              {
-                "type": "logic_tick",
-                "stacks": 1,
-                "duration": 0.9,
-                "sp": 7,
-                "stagger": 3,
-                "hideDuration": true
-              },
-              {
-                "type": "logic_tick",
-                "stacks": 1,
-                "duration": 0,
-                "stagger": 4,
-                "sp": 13,
-                "hideDuration": true
-              }
-            ]
-          ],
-          "anomalyRowDelays": [
-            0.7
-          ],
-          "cooldown": 18,
-          "gaugeGain": 10
-        },
-        {
-          "id": "POGRANICHNK_link1",
-          "name": "一层连携",
-          "type": "link",
-          "duration": 2.7,
-          "stagger": 0,
-          "spGain": 0,
-          "allowedTypes": [
-            "default"
-          ],
-          "physicalAnomaly": [
-            [
-              {
-                "type": "logic_tick",
-                "stacks": 1,
-                "duration": 0,
-                "stagger": 3,
-                "sp": 5,
-                "hideDuration": true
-              }
-            ]
-          ],
-          "anomalyRowDelays": [
-            0.7
-          ],
-          "cooldown": 18,
-          "gaugeGain": 10
-        },
-        {
-          "id": "POGRANICHNK_link2",
-          "name": "二层连携",
-          "type": "link",
-          "duration": 2.7,
-          "stagger": 0,
-          "spGain": 0,
-          "allowedTypes": [
-            "default"
-          ],
-          "physicalAnomaly": [
-            [
-              {
-                "type": "logic_tick",
-                "stacks": 1,
-                "duration": 0.6,
-                "stagger": 3,
-                "sp": 5,
-                "hideDuration": true
-              },
-              {
-                "type": "logic_tick",
-                "stacks": 1,
-                "duration": 0,
-                "sp": 7,
-                "stagger": 3,
-                "hideDuration": true
-              }
-            ]
-          ],
-          "anomalyRowDelays": [
-            0.7
-          ],
-          "cooldown": 18,
-          "gaugeGain": 10
-        }
-      ],
+      "variants": [],
       "link_stagger": 0,
       "ultimate_stagger": 0,
       "ultimate_anomaly_delays": [

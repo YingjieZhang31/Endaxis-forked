@@ -20,7 +20,6 @@ const EFFECT_NAMES = {
   "blaze_attach": "灼热附着", "emag_attach": "电磁附着", "cold_attach": "寒冷附着", "nature_attach": "自然附着",
   "blaze_burst": "灼热爆发", "emag_burst": "电磁爆发", "cold_burst": "寒冷爆发", "nature_burst": "自然爆发",
   "burning": "燃烧", "conductive": "导电", "frozen": "冻结", "ice_shatter": "碎冰", "corrosion": "腐蚀",
-  "logic_tick": "分段判定",
   "default": "默认图标"
 }
 
@@ -29,7 +28,7 @@ const GROUP_DEFINITIONS = [
   { label: ' 元素附着', matcher: (key) => key.endsWith('_attach') },
   { label: ' 元素爆发', matcher: (key) => key.endsWith('_burst') },
   { label: ' 异常状态 ', keys: ['burning', 'conductive', 'frozen', 'corrosion'] },
-  { label: ' 其他', keys: ['default', 'logic_tick'] }
+  { label: ' 其他', keys: ['default'] }
 ]
 
 // ===================================================================================
@@ -183,7 +182,7 @@ const iconOptions = computed(() => {
   const allGlobalKeys = Object.keys(store.iconDatabase)
   const allowed = selectedAction.value?.allowedTypes
   const availableKeys = (allowed && allowed.length > 0)
-      ? allGlobalKeys.filter(key => allowed.includes(key) || key === 'default' || key === 'logic_tick')
+      ? allGlobalKeys.filter(key => allowed.includes(key) || key === 'default')
       : allGlobalKeys
 
   const groups = []
@@ -362,6 +361,28 @@ function updateCustomBarItem(index, key, value) {
   store.updateAction(store.selectedActionId, { customBars: newList })
 }
 
+function addDamageTick() {
+  const currentTicks = selectedAction.value.damageTicks ? [...selectedAction.value.damageTicks] : []
+  currentTicks.push({ offset: 0, stagger: 0, sp: 0 })
+  currentTicks.sort((a, b) => a.offset - b.offset)
+  store.updateAction(store.selectedActionId, { damageTicks: currentTicks })
+}
+
+function removeDamageTick(index) {
+  const currentTicks = [...(selectedAction.value.damageTicks || [])]
+  currentTicks.splice(index, 1)
+  store.updateAction(store.selectedActionId, { damageTicks: currentTicks })
+}
+
+function updateDamageTick(index, key, value) {
+  const currentTicks = [...(selectedAction.value.damageTicks || [])]
+  currentTicks[index] = { ...currentTicks[index], [key]: value }
+  if (key === 'offset') {
+    currentTicks.sort((a, b) => a.offset - b.offset)
+  }
+  store.updateAction(store.selectedActionId, { damageTicks: currentTicks })
+}
+
 </script>
 
 <template>
@@ -426,6 +447,67 @@ function updateCustomBarItem(index, key, value) {
         <CustomNumberInput :model-value="selectedAction.teamGaugeGain"
                @update:model-value="val => updateActionProp('teamGaugeGain', val)" :min="0"
                :border-color="HIGHLIGHT_COLORS.blue" text-align="left"/>
+      </div>
+
+      <hr class="divider"/>
+
+      <div class="form-group highlight-red"
+           style="border: 1px dashed #ff7875; padding: 8px; border-radius: 4px; background: rgba(255, 120, 117, 0.05);">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+          <label style="color: #ff7875; font-weight: bold; margin: 0;">伤害判定点</label>
+          <button class="add-bar-btn" @click="addDamageTick" title="添加判定点" style="background: #ff7875;">+</button>
+        </div>
+
+        <div v-if="!selectedAction.damageTicks || selectedAction.damageTicks.length === 0"
+             style="color: #666; font-size: 12px; text-align: center; padding: 10px;">
+          暂无判定点
+        </div>
+
+        <div v-for="(tick, index) in (selectedAction.damageTicks || [])" :key="index" class="custom-bar-item" style="border-left-color: #ff7875;">
+
+          <div class="bar-header">
+            <span class="bar-index" style="color: #ff7875;">HIT {{ index + 1 }}</span>
+            <button class="remove-bar-btn" @click="removeDamageTick(index)">×</button>
+          </div>
+
+          <div style="margin-bottom: 8px;">
+            <div style="display: flex; justify-content: space-between; margin-bottom: 2px;">
+              <label style="font-size:10px; color:#aaa;">触发时间 (相对于动作开始)</label>
+              <span style="font-size:10px; color:#666;">秒</span>
+            </div>
+            <CustomNumberInput
+                :model-value="tick.offset"
+                @update:model-value="val => updateDamageTick(index, 'offset', val)"
+                :step="0.1" :min="0"
+                :border-color="'#ff7875'"
+                text-align="left"
+                style="width: 100%;" />
+          </div>
+
+          <div style="display: flex; gap: 8px; margin-bottom: 2px;">
+
+            <div style="flex: 1;">
+              <label style="font-size:10px; color:#aaa; display: block; margin-bottom: 2px;">失衡值</label>
+              <CustomNumberInput
+                  :model-value="tick.stagger"
+                  @update:model-value="val => updateDamageTick(index, 'stagger', val)"
+                  :step="1" :min="0"
+                  :border-color="'#ff7875'"
+                  text-align="center"/>
+            </div>
+
+            <div style="flex: 1;">
+              <label style="font-size:10px; color:#aaa; display: block; margin-bottom: 2px;">技力回复</label>
+              <CustomNumberInput
+                  :model-value="tick.sp || 0"
+                  @update:model-value="val => updateDamageTick(index, 'sp', val)"
+                  :step="1" :min="0"
+                  :border-color="'#ffd700'"
+                  text-align="center"/>
+            </div>
+
+          </div>
+        </div>
       </div>
 
       <hr class="divider"/>
