@@ -116,7 +116,7 @@ function toggleEditEffect(r, c) {
   if (!effect._id) effect._id = Math.random().toString(36).substring(2, 9)
 
   if (store.selectedAnomalyId === effect._id) {
-    store.selectedAnomalyId = null
+    store.setSelectedAnomalyId(null)
   } else {
     // 调用 store 的方法选中，它会更新 store.selectedAnomalyId
     store.selectAnomaly(store.selectedActionId, r, c)
@@ -141,7 +141,7 @@ function addRow() {
   if (newRows && newRows.length > 0) {
     const lastRowIndex = newRows.length - 1
     const newEffect = newRows[lastRowIndex][0]
-    if (newEffect) store.selectedAnomalyId = newEffect._id
+    if (newEffect) store.setSelectedAnomalyId(newEffect._id)
   }
 }
 
@@ -151,14 +151,14 @@ function addEffectToRow(rowIndex) {
   const row = selectedAction.value.physicalAnomaly[rowIndex]
   if (row) {
     const newEffect = row[row.length - 1]
-    if (newEffect) store.selectedAnomalyId = newEffect._id
+    if (newEffect) store.setSelectedAnomalyId(newEffect._id)
   }
 }
 
 function removeEffect(r, c) {
   store.removeAnomaly(store.selectedActionId, r, c)
   // 删除后 ID 自动失效，computed 变为 null
-  store.selectedAnomalyId = null
+  store.setSelectedAnomalyId(null)
 }
 
 function getRowDelay(rowIndex) {
@@ -518,7 +518,6 @@ function updateCustomBarItem(index, key, value) {
                 :min="0"
                 text-align="left"
             />
-            <span class="offset-label">s</span>
           </div>
 
           <div class="delete-conn-btn" @click="store.removeConnection(conn.id)" title="断开连线">×</div>
@@ -569,7 +568,7 @@ function updateCustomBarItem(index, key, value) {
     <div v-if="editingEffectData && currentSelectedCoords" class="effect-detail-editor">
       <div class="editor-header">
         <span>编辑 R{{ currentSelectedCoords.rowIndex + 1 }} : C{{ currentSelectedCoords.colIndex + 1 }}</span>
-        <button class="close-btn" @click="store.selectedAnomalyId = null">×</button>
+        <button class="close-btn" @click="store.setSelectedAnomalyId(null)">×</button>
       </div>
 
       <div class="form-row full-width">
@@ -1091,27 +1090,33 @@ select {
   border-radius: 4px;
   padding: 0 4px;
   margin-left: 4px;
+  gap: 4px;
+  height: 22px;
 }
 
 .offset-label {
   font-size: 10px;
   color: #888;
   user-select: none;
+  white-space: nowrap;
 }
 
 .mini-offset-input {
-  width: 30px !important;
+  width: 50px !important;
   background: transparent !important;
   border: none !important;
+  --text-color: #ffd700;
   color: #ffd700 !important;
-  font-size: 11px !important;
+  font-size: 10px !important;
   text-align: center;
-  padding: 2px 0 !important;
-  height: auto !important;
+  padding: 0 !important;
+  height: 100% !important;
+  line-height: 20px;
 }
 
-.mini-offset-input:focus {
-  outline: none;
+:deep(.mini-offset-input .value-display) {
+  padding: 0 2px !important;
+  text-align: center !important;
 }
 
 .consume-toggle {

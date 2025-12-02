@@ -68,7 +68,7 @@ const getDomPosition = (elementId, containerEl, isSource) => {
   const y = (rect.top - containerRect.top) + (rect.height / 2) + containerEl.scrollTop
   return { x, y }
 }
-const getEffectIconPosition = (instanceId, effectIndex, containerEl) => { /* ...保持不变... */
+const getEffectIconPosition = (instanceId, effectIndex, containerEl) => {
   const domId = `anomaly-${instanceId}-${effectIndex}`
   const el = document.getElementById(domId)
   if (!el || !containerEl) return null
@@ -80,7 +80,7 @@ const getEffectIconPosition = (instanceId, effectIndex, containerEl) => { /* ...
   const relativeTop = (rect.top - containerRect.top) + scrollTop
   return { left: relativeLeft, right: relativeLeft + rect.width, centerY: relativeTop + (rect.height / 2) }
 }
-const getTriggerDotPosition = (instanceId, containerEl) => { /* ...保持不变... */
+const getTriggerDotPosition = (instanceId, containerEl) => {
   const actionEl = document.getElementById(`action-${instanceId}`)
   if (!actionEl) return null
   const dotEl = actionEl.querySelector('.tw-dot')
@@ -92,10 +92,6 @@ const getTriggerDotPosition = (instanceId, containerEl) => { /* ...保持不变.
   return { x, y }
 }
 
-// ===================================================================================
-// 主计算函数
-// ===================================================================================
-
 const calculatePoint = (nodeId, effectIndex, isSource, connection = null) => {
   const info = store.getActionPositionInfo(nodeId)
   if (!info) return null
@@ -106,42 +102,18 @@ const calculatePoint = (nodeId, effectIndex, isSource, connection = null) => {
     realEffectIndex = resolveRealIndex(info.action, effectIndex, targetId)
   }
 
-  // -----------------------------------------------------------
-  // 情况 A: 消耗连线
-  // -----------------------------------------------------------
   if (isSource && connection && connection.isConsumption) {
-    let finalX = null
-    let finalY = null
-
-    const targetInfo = store.getActionPositionInfo(connection.to)
-    if (targetInfo) {
-      const offset = connection.consumptionOffset || 0
-      finalX = (targetInfo.action.startTime - offset) * store.timeBlockWidth
-    }
-
-    let rowIndex = -1
     if (realEffectIndex !== null && realEffectIndex !== undefined) {
-      let current = 0
-      const rows = info.action.physicalAnomaly || []
-      for(let r=0; r<rows.length; r++){
-        if(realEffectIndex < current + rows[r].length) { rowIndex = r; break; }
-        current += rows[r].length
+      const domId = `transfer-${nodeId}-${realEffectIndex}`
+      const domPos = getDomPosition(domId, props.containerRef, true)
+
+      if (domPos) {
+        return { x: domPos.x, y: domPos.y }
       }
     }
-
-    if (rowIndex !== -1) {
-      finalY = getTrackCenterY(info.trackIndex) - 33 - (rowIndex * 25)
-    }
-
-    if (finalX !== null) {
-      if (finalY === null) finalY = getTrackCenterY(info.trackIndex)
-      return { x: finalX, y: finalY }
-    }
+    return null
   }
 
-  // -----------------------------------------------------------
-  // 情况 B: 连线端点是具体的 Effect 图标 (回退到 DOM，因为图标中心很难算)
-  // -----------------------------------------------------------
   if (realEffectIndex !== undefined && realEffectIndex !== null) {
     const iconPos = getEffectIconPosition(nodeId, realEffectIndex, props.containerRef)
     if (iconPos) {
@@ -149,15 +121,11 @@ const calculatePoint = (nodeId, effectIndex, isSource, connection = null) => {
       if (isSource) return { x: iconPos.right, y }
       else return { x: iconPos.left, y }
     }
-    // 兜底
     const domId = `anomaly-${nodeId}-${realEffectIndex}`
     const pos = getDomPosition(domId, props.containerRef, isSource)
     if (pos) return { x: pos.x, y: pos.y }
   }
 
-  // -----------------------------------------------------------
-  // 情况 C: 连向动作本体
-  // -----------------------------------------------------------
   if (!isSource && info.action.triggerWindow && info.action.triggerWindow !== 0) {
     const dotPos = getTriggerDotPosition(nodeId, props.containerRef)
     if (dotPos) return { x: dotPos.x, y: dotPos.y }
@@ -173,12 +141,11 @@ const calculatePoint = (nodeId, effectIndex, isSource, connection = null) => {
   const x = timePoint * store.timeBlockWidth
   let y = getTrackCenterY(info.trackIndex)
 
-  // Spread logic
   const tw = info.action.triggerWindow;
   if (!isSource && realEffectIndex == null && (tw === undefined || tw <= 0)) {
     const incoming = store.getIncomingConnections(nodeId)
     const generalIncoming = incoming.filter(c => c.toEffectIndex == null)
-    generalIncoming.sort((a, b) => { /* ...排序逻辑不变... */
+    generalIncoming.sort((a, b) => {
       const infoA = store.getActionPositionInfo(a.from); const infoB = store.getActionPositionInfo(b.from);
       if (!infoA || !infoB) return 0;
       if (infoA.trackIndex !== infoB.trackIndex) return infoA.trackIndex - infoB.trackIndex;

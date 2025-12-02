@@ -68,7 +68,6 @@ export const useTimelineStore = defineStore('timeline', () => {
     const selectedActionId = ref(null)
     const selectedLibrarySkillId = ref(null)
 
-    // 这里定义为 ref，确保它是可读写的
     const selectedAnomalyId = ref(null)
 
     const multiSelectedIds = ref(new Set())
@@ -323,6 +322,10 @@ export const useTimelineStore = defineStore('timeline', () => {
 
         multiSelectedIds.value.clear()
         if (selectedActionId.value) { multiSelectedIds.value.add(selectedActionId.value) }
+    }
+
+    function setSelectedAnomalyId(id) {
+        selectedAnomalyId.value = id
     }
 
     // 选中图标 (记录 ID)
@@ -774,7 +777,7 @@ export const useTimelineStore = defineStore('timeline', () => {
     return {
         systemConstants, isLoading, characterRoster, iconDatabase, tracks, connections, activeTrackId, timelineScrollLeft, globalDragOffset, draggingSkillData,
         selectedActionId, selectedLibrarySkillId, multiSelectedIds, clipboard, isLinking, linkingSourceId, linkingEffectIndex, linkingSourceEffectId, showCursorGuide, isBoxSelectMode, cursorCurrentTime, snapStep,
-        selectedAnomalyId,
+        selectedAnomalyId, setSelectedAnomalyId,
         teamTracksInfo, activeSkillLibrary, timeBlockWidth, ELEMENT_COLORS, getActionPositionInfo, getIncomingConnections, getCharacterElementColor, isActionSelected,
         fetchGameData, exportProject, importProject, TOTAL_DURATION, selectTrack, changeTrackOperator, clearTrack, selectLibrarySkill, updateLibrarySkill, selectAction, updateAction, removeAction,
         addSkillToTrack, setDraggingSkill, setDragOffset, setScrollLeft, calculateGlobalSpData, calculateGaugeData, calculateGlobalStaggerData, updateTrackInitialGauge, updateTrackMaxGauge,

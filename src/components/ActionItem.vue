@@ -177,13 +177,13 @@ const renderableAnomalies = computed(() => {
         const targetAction = targetTrack?.actions.find(a => a.instanceId === conn.to)
 
         if (targetAction) {
-          const myAbsStartTime = props.action.startTime + currentDurationOffset
+          const visualAbsStartTime = props.action.startTime + (currentLeft / widthUnit)
 
           const offset = conn.consumptionOffset || 0
-
           const consumptionTime = targetAction.startTime - offset
 
-          const cutDuration = consumptionTime - myAbsStartTime
+          const cutDuration = consumptionTime - visualAbsStartTime
+
           const snappedCutDuration = Math.round(cutDuration * 10) / 10
 
           if (snappedCutDuration >= 0) {
@@ -352,7 +352,7 @@ function onIconClick(evt, item, flatIndex) {
   height: 16px; border: none; border-radius: 2px; position: relative;
   display: flex; align-items: center; overflow: visible;
   box-sizing: border-box; box-shadow: 0 1px 2px rgba(0, 0, 0, 0.5);
-  z-index: 1; margin-left: 2px; transition: width 0.1s linear;
+  z-index: 1; margin-left: 2px;
 }
 .is-consumed-bar { opacity: 0.95; border-right: none; }
 .striped-bg {
@@ -376,8 +376,16 @@ function onIconClick(evt, item, flatIndex) {
   position: relative; z-index: 2;
 }
 .transfer-line {
-  position: absolute; width: 2px; height: 14px; background-color: #fff;
-  border-radius: 1px; box-shadow: 0 0 2px rgba(0,0,0,0.5); z-index: 1;
+  position: absolute;
+  width: 2px;
+  height: 14px;
+  background-color: #fff;
+  border-radius: 1px;
+  box-shadow: 0 0 2px rgba(0,0,0,0.5);
+  z-index: 1;
+  left: 50%;
+  top: 50%;
+  transform: translate(-50%, -50%);
 }
 
 /* === 其他样式 === */

@@ -117,7 +117,6 @@ function handleBlur(event) {
     updateValue(value)
 }
 
-
 function decrement() {
   if (isMinDisabled.value) {
     stopChange();

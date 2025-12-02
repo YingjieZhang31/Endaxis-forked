@@ -332,7 +332,7 @@ function onActionMouseDown(evt, track, action) {
   if (evt.button !== 0) return
 
   wasSelectedOnPress.value = store.multiSelectedIds.has(action.instanceId)
-  hadAnomalySelection.value = (store.selectedAnomalyIndex !== null)
+  hadAnomalySelection.value = (store.selectedAnomalyId !== null)
 
   if (!store.multiSelectedIds.has(action.instanceId) || hadAnomalySelection.value) {
     store.selectAction(action.instanceId)
@@ -526,7 +526,7 @@ function handleKeyDown(event) {
 }
 
 watch(() => store.timeBlockWidth, () => { nextTick(() => { forceSvgUpdate(); updateScrollbarHeight() }) })
-watch(() => [store.tracks, store.connections], () => { setTimeout(() => { forceSvgUpdate() }, 50) }, {deep: true})
+watch(() => [store.tracks, store.connections], () => { nextTick(() => { forceSvgUpdate() }) }, { deep: true })
 
 onMounted(() => {
   if (tracksContentRef.value) {
