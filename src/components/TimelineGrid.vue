@@ -280,7 +280,7 @@ function onGridMouseMove(evt) {
   if (!tracksContentRef.value) return
   const rect = tracksContentRef.value.getBoundingClientRect()
   const scrollLeft = tracksContentRef.value.scrollLeft
-  cursorX.value = (evt.clientX - rect.left) + scrollLeft
+  cursorX.value = Math.round((evt.clientX - rect.left) + scrollLeft)
   isCursorVisible.value = true
   const exactTime = cursorX.value / TIME_BLOCK_WIDTH.value
   store.setCursorTime(Math.round(exactTime * 10) / 10)

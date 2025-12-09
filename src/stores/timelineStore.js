@@ -9,7 +9,7 @@ export const useTimelineStore = defineStore('timeline', () => {
     // 系统配置与常量
     // ===================================================================================
 
-    const systemConstants = ref({
+    const DEFAULT_SYSTEM_CONSTANTS = {
         maxSp: 300,
         initialSp: 200,
         spRegenRate: 8,
@@ -18,7 +18,9 @@ export const useTimelineStore = defineStore('timeline', () => {
         staggerNodeCount: 0,
         staggerNodeDuration: 2,
         staggerBreakDuration: 10
-    })
+    }
+
+    const systemConstants = ref({ ...DEFAULT_SYSTEM_CONSTANTS })
 
     const BASE_BLOCK_WIDTH = 50
     const TOTAL_DURATION = 120
@@ -195,15 +197,7 @@ export const useTimelineStore = defineStore('timeline', () => {
             tracks: [{ id: null, actions: [] }, { id: null, actions: [] }, { id: null, actions: [] }, { id: null, actions: [] }],
             connections: [],
             characterOverrides: {},
-            systemConstants: {
-                maxSp: 300,
-                initialSp: 200,
-                spRegenRate: 8,
-                skillSpCostDefault: 100,
-                staggerNodeCount: 0,
-                staggerNodeDuration: 2,
-                staggerBreakDuration: 10
-            }
+            systemConstants: { ...DEFAULT_SYSTEM_CONSTANTS }
         }
 
         scenarioList.value.push({ id: newId, name: newName, data: emptySnapshot })
@@ -338,7 +332,7 @@ export const useTimelineStore = defineStore('timeline', () => {
                 ? JSON.parse(JSON.stringify(activeChar[`${suffix}_damage_ticks`]))
                 : []
 
-            let defaults = { spCost: 0, gaugeCost: 0, gaugeGain: 0, teamGaugeGain: 0, enhancementTime: 0 }
+            let defaults = { spCost: 0, gaugeCost: 0, gaugeGain: 0, teamGaugeGain: 0, enhancementTime: 0, animationTime: 0 }
 
             if (suffix === 'skill') {
                 defaults.spCost = activeChar.skill_spCost || systemConstants.value.skillSpCostDefault;
@@ -350,6 +344,7 @@ export const useTimelineStore = defineStore('timeline', () => {
                 defaults.gaugeCost = activeChar.ultimate_gaugeMax || 100
                 defaults.gaugeGain = activeChar.ultimate_gaugeReply || 0
                 defaults.enhancementTime = activeChar.ultimate_enhancementTime || 0
+                defaults.animationTime = activeChar.ultimate_animationTime || 0.5
             } else if (suffix === 'attack') {
                 defaults.gaugeGain = activeChar.attack_gaugeGain || 0
             }
@@ -942,57 +937,141 @@ export const useTimelineStore = defineStore('timeline', () => {
 
     function calculateGlobalSpData() {
         const { maxSp, spRegenRate, initialSp } = systemConstants.value;
-        const events = []
+
+        const instantEvents = []
+        const pauseWindows = []
+
         tracks.value.forEach(track => {
             if (!track.actions) return
             track.actions.forEach(action => {
                 if (action.isDisabled) return
-                if (action.spCost > 0) events.push({ time: action.startTime, valChange: -action.spCost, type: 'cost' })
-                if (['skill'].includes(action.type)) {
-                    const lockTime = 0.5;
-                    events.push({ time: action.startTime, lockChange: 1, type: 'lock_start' });
-                    events.push({ time: action.startTime + lockTime, lockChange: -1, type: 'lock_end' })
+
+                if (action.spCost > 0) {
+                    instantEvents.push({ time: action.startTime, change: -action.spCost, type: 'cost' })
                 }
-                if (action.spGain > 0) events.push({ time: action.startTime + action.duration, valChange: action.spGain, type: 'gain' })
+
+                if (['skill', 'link'].includes(action.type)) {
+                    pauseWindows.push({ start: action.startTime, end: action.startTime + 0.5 })
+                }
+
+                if (action.spGain > 0) {
+                    instantEvents.push({ time: action.startTime + action.duration, change: action.spGain, type: 'gain' })
+                }
+
                 if (action.damageTicks) {
                     action.damageTicks.forEach(tick => {
                         const spVal = Number(tick.sp) || 0
                         if (spVal > 0) {
                             const tickTime = action.startTime + (Number(tick.offset) || 0)
-                            events.push({ time: tickTime, valChange: spVal, type: 'gain' })
+                            instantEvents.push({ time: tickTime, change: spVal, type: 'gain' })
                         }
                     })
                 }
-                if (action.physicalAnomaly) {
-                    action.physicalAnomaly.forEach((row, rowIndex) => {
-                        row.forEach(effect => {
-                            const triggerTime = action.startTime + (Number(effect.offset) || 0);
-                            if (effect.stagger > 0) {
-                                events.push({ time: triggerTime, change: effect.stagger, type: 'gain' });
-                            }
-                        });
-                    });
+            })
+        })
+
+        const criticalTimes = new Set([0, TOTAL_DURATION])
+        instantEvents.forEach(e => criticalTimes.add(e.time))
+        pauseWindows.forEach(w => { criticalTimes.add(w.start); criticalTimes.add(w.end) })
+
+        const sortedTimes = Array.from(criticalTimes).sort((a, b) => a - b)
+
+        const isPausedInterval = (t1, t2) => {
+            const mid = (t1 + t2) / 2
+            return pauseWindows.some(w => mid >= w.start && mid < w.end)
+        }
+
+        const points = []
+        let currentSp = Number(initialSp) || 200
+        let prevTime = 0
+
+        for (let i = 0; i < sortedTimes.length; i++) {
+            const now = sortedTimes[i]
+
+            const dt = now - prevTime
+            if (dt > 0) {
+                if (!isPausedInterval(prevTime, now)) {
+                    if (currentSp < maxSp) {
+                        const needed = maxSp - currentSp
+                        const potentialGain = dt * spRegenRate
+
+                        if (potentialGain > needed) {
+                            const timeToCap = needed / spRegenRate
+                            const capTime = prevTime + timeToCap
+
+                            points.push({ time: capTime, sp: maxSp })
+
+                            currentSp = maxSp
+                        } else {
+                            currentSp += potentialGain
+                        }
+                    }
+                }
+            }
+
+            points.push({ time: now, sp: currentSp })
+
+            const eventsNow = instantEvents.filter(e => Math.abs(e.time - now) < 0.0001)
+            if (eventsNow.length > 0) {
+                let netChange = 0
+                eventsNow.forEach(e => netChange += e.change)
+
+                currentSp += netChange
+                points.push({ time: now, sp: currentSp })
+            }
+
+            prevTime = now
+        }
+
+        return points
+    }
+
+    function calculateCdReduction(myStartTime, myRawCooldown, myInstanceId) {
+        if (myRawCooldown <= 0) return 0
+
+        let freezeEvents = []
+        tracks.value.forEach(track => {
+            track.actions.forEach(other => {
+                if (other.isDisabled) return
+
+                const isSelf = other.instanceId === myInstanceId
+
+                if (isSelf && other.type !== 'link') return
+
+                let duration = 0
+                if (other.type === 'link') {
+                    duration = 0.5
+                } else if (other.type === 'ultimate') {
+                    duration = other.animationTime || 0.5
+                }
+                if (duration > 0) {
+                    if (other.startTime + duration <= myStartTime) return
+
+                    freezeEvents.push({ start: other.startTime, duration: duration })
                 }
             })
         })
-        events.sort((a, b) => a.time - b.time)
-        const points = []; let currentSp = Number(initialSp) || 200; let currentTime = 0; let regenLockCount = 0; points.push({ time: 0, sp: currentSp });
-        const advanceTime = (targetTime) => {
-            const timeDiff = targetTime - currentTime; if (timeDiff <= 0) return;
-            const effectiveRegenRate = regenLockCount > 0 ? 0 : spRegenRate;
-            if (currentSp >= maxSp && effectiveRegenRate > 0) { currentTime = targetTime; points.push({ time: currentTime, sp: maxSp }); return; }
-            const potentialGain = timeDiff * effectiveRegenRate; const projectedSp = currentSp + potentialGain;
-            if (projectedSp >= maxSp) { const timeToMax = (maxSp - currentSp) / effectiveRegenRate; points.push({ time: currentTime + timeToMax, sp: maxSp }); currentSp = maxSp; currentTime = targetTime; points.push({ time: currentTime, sp: maxSp }); }
-            else { currentSp = projectedSp; currentTime = targetTime; points.push({ time: currentTime, sp: currentSp }); }
+
+        freezeEvents.sort((a, b) => a.start - b.start)
+
+        let currentCdEndTime = myStartTime + myRawCooldown
+        let totalReduction = 0
+
+        for (const freeze of freezeEvents) {
+            if (currentCdEndTime <= freeze.start) {
+                break
+            }
+
+            const effectiveFreezeStart = Math.max(myStartTime, freeze.start)
+            const effectiveFreezeEnd = Math.min(currentCdEndTime, freeze.start + freeze.duration)
+
+            const validReduction = Math.max(0, effectiveFreezeEnd - effectiveFreezeStart)
+
+            totalReduction += validReduction
+            currentCdEndTime -= validReduction
         }
-        events.forEach(ev => {
-            advanceTime(ev.time);
-            if (ev.valChange) { currentSp += ev.valChange; if (currentSp > maxSp) currentSp = maxSp; }
-            if (ev.lockChange) regenLockCount += ev.lockChange;
-            points.push({ time: currentTime, sp: currentSp, type: ev.type })
-        });
-        if (currentTime < TOTAL_DURATION) advanceTime(TOTAL_DURATION);
-        return points
+
+        return totalReduction
     }
 
     function calculateGaugeData(trackId) {
@@ -1118,6 +1197,8 @@ export const useTimelineStore = defineStore('timeline', () => {
         connections.value = [];
         characterOverrides.value = {};
 
+        systemConstants.value = { ...DEFAULT_SYSTEM_CONSTANTS };
+
         // 重置方案
         scenarioList.value = [{ id: 'default_sc', name: '方案 1', data: null }];
         activeScenarioId.value = 'default_sc';
@@ -1204,7 +1285,7 @@ export const useTimelineStore = defineStore('timeline', () => {
         selectedAnomalyId, setSelectedAnomalyId,
         teamTracksInfo, activeSkillLibrary, timeBlockWidth, ELEMENT_COLORS, getActionPositionInfo, getIncomingConnections, getCharacterElementColor, isActionSelected, hoveredActionId, setHoveredAction,
         fetchGameData, exportProject, importProject, TOTAL_DURATION, selectTrack, changeTrackOperator, clearTrack, selectLibrarySkill, updateLibrarySkill, selectAction, updateAction, removeAction,
-        addSkillToTrack, setDraggingSkill, setDragOffset, setScrollLeft, calculateGlobalSpData, calculateGaugeData, calculateGlobalStaggerData, updateTrackInitialGauge, updateTrackMaxGauge,
+        addSkillToTrack, setDraggingSkill, setDragOffset, setScrollLeft, calculateGlobalSpData, calculateCdReduction, calculateGaugeData, calculateGlobalStaggerData, updateTrackInitialGauge, updateTrackMaxGauge,
         startLinking, confirmLinking, cancelLinking, removeConnection, updateConnection, getColor, toggleCursorGuide, toggleBoxSelectMode, setCursorTime, toggleSnapStep, nudgeSelection,
         setMultiSelection, clearSelection, copySelection, pasteSelection, removeCurrentSelection, undo, redo, commitState,
         removeAnomaly, initAutoSave, loadFromBrowser, resetProject, selectedConnectionId, selectConnection, selectAnomaly, getAnomalyIndexById,

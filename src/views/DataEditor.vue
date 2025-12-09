@@ -91,7 +91,7 @@ function addNewCharacter() {
     attack_duration: 2.5, attack_gaugeGain: 0, attack_allowed_types: allGlobalEffects, attack_anomalies: [], attack_damage_ticks: [],
     skill_duration: 2, skill_spCost: 100, skill_gaugeGain: 0, skill_teamGaugeGain: 0, skill_allowed_types: [], skill_anomalies: [], skill_damage_ticks: [],
     link_duration: 1.5, link_cooldown: 15, link_gaugeGain: 0, link_allowed_types: [], link_anomalies: [], link_damage_ticks: [],
-    ultimate_duration: 3, ultimate_gaugeMax: 100, ultimate_gaugeReply: 0, ultimate_allowed_types: [], ultimate_anomalies: [], ultimate_damage_ticks: [],
+    ultimate_duration: 3, ultimate_gaugeMax: 100, ultimate_gaugeReply: 0, ultimate_enhancementTime: 0, ultimate_allowed_types: [], ultimate_anomalies: [], ultimate_damage_ticks: [], ultimate_animationTime: 0.5,
     execution_duration: 1.5, execution_allowed_types: allGlobalEffects, execution_anomalies: [], execution_damage_ticks: [],
 
     variants: []
@@ -161,6 +161,8 @@ function getSnapshotFromBase(char, type) {
   else if (type === 'ultimate') {
     snapshot.gaugeCost = char.ultimate_gaugeMax || 0
     snapshot.gaugeGain = char.ultimate_gaugeReply || 0
+    snapshot.enhancementTime = char.ultimate_enhancementTime || 0
+    snapshot.animationTime = char.ultimate_animationTime || 0
   }
   return snapshot
 }
@@ -561,6 +563,8 @@ function saveData() {
 
                 <div class="form-group" v-if="variant.type === 'ultimate'"><label>充能消耗</label><input type="number" v-model.number="variant.gaugeCost"></div>
                 <div class="form-group" v-if="variant.type === 'ultimate'"><label>充能返还</label><input type="number" v-model.number="variant.gaugeGain"></div>
+                <div class="form-group" v-if="variant.type === 'ultimate'"><label>强化时间 (s)</label><input type="number" step="0.5" v-model.number="variant.enhancementTime"></div>
+                <div class="form-group" v-if="variant.type === 'ultimate'"><label>动画时间 (s)</label><input type="number" step="0.1" v-model.number="variant.animationTime"></div>
               </div>
 
               <div class="ticks-editor-area" style="margin-top: 10px;">
@@ -666,6 +670,10 @@ function saveData() {
                 <div class="form-group" v-if="type === 'ultimate'"><label>充能消耗</label><input type="number" v-model.number="selectedChar[`${type}_gaugeMax`]"></div>
                 <div class="form-group" v-if="type === 'ultimate'"><label>自身充能</label><input type="number" v-model.number="selectedChar[`${type}_gaugeReply`]"></div>
                 <div class="form-group" v-if="type === 'ultimate'"><label>强化时间 (s)</label><input type="number" step="0.5" v-model.number="selectedChar[`${type}_enhancementTime`]"></div>
+                <div class="form-group" v-if="type === 'ultimate'">
+                  <label>动画时间 (s)</label>
+                  <input type="number" step="0.1" v-model.number="selectedChar[`${type}_animationTime`]">
+                </div>
               </div>
 
               <h3 class="section-title">伤害判定点</h3>

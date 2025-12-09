@@ -85,9 +85,12 @@ const style = computed(() => {
 // 冷却条样式
 const cdStyle = computed(() => {
   const widthUnit = store.timeBlockWidth
-  const cd = props.action.cooldown || 0
-  const width = cd > 0 ? cd * widthUnit : 0
-  return { width: `${width}px`, bottom: '-8px', left: '-2px', opacity: 0.6 }
+  const rawCd = props.action.cooldown || 0
+  if (rawCd <= 0) return { display: 'none' }
+  const reduction = store.calculateCdReduction(props.action.startTime, rawCd, props.action.instanceId)
+  const visualCd = Math.max(0, rawCd - reduction)
+  const width = visualCd * widthUnit
+  return { width: `${width}px`, bottom: '-8px', left: '-2px', opacity: 0.6, transition: 'all 0.3s cubic-bezier(0.25, 0.8, 0.5, 1)' }
 })
 
 // 强化时间样式
@@ -269,8 +272,21 @@ function onIconClick(evt, item, flatIndex) {
 
     <div v-if="!isGhostMode && action.cooldown > 0" class="cd-bar-container" :style="cdStyle">
       <div class="cd-line" :style="{ backgroundColor: themeColor }"></div>
-      <span class="cd-text" :style="{ color: themeColor }">{{ action.cooldown }}s</span>
-      <div class="cd-end-mark" :style="{ backgroundColor: themeColor }"></div>
+
+      <span class="cd-text" :style="{ color: themeColor }">
+      {{ action.cooldown }}s
+        <span v-if="store.calculateCdReduction(action.startTime, action.cooldown, action.instanceId) > 0"
+          style="font-size:9px; opacity: 0.8;">
+          (-{{ store.calculateCdReduction(action.startTime, action.cooldown, action.instanceId).toFixed(1) }})
+        </span>
+      </span>
+
+      <div class="cd-end-mark"
+           :style="{
+         backgroundColor: themeColor,
+         zIndex: 1
+       }">
+      </div>
     </div>
 
     <div v-if="!isGhostMode && action.type === 'ultimate' && (action.enhancementTime || 0) > 0"
@@ -517,7 +533,7 @@ function onIconClick(evt, item, flatIndex) {
   display: flex; align-items: center; pointer-events: auto; cursor: pointer; z-index: 5;
 }
 .trigger-window-bar::after { content: ''; position: absolute; top: -4px; bottom: -4px; left: 0; right: 0; background: transparent; }
-.trigger-window-bar::before { content: ''; position: absolute; left: 0; right: 0; top: 50%; transform: translateY(-50%); height: 3px; background-color: var(--tw-color); opacity: 1; border-radius: 2px 0 0 2px; }
+.trigger-window-bar::before { content: ''; position: absolute; left: 0; right: 0; top: 50%; transform: translateY(-50%); height: 2px; background-color: var(--tw-color); opacity: 1; border-radius: 2px 0 0 2px; }
 .tw-separator { position: absolute; right: 0; top: -2px; width: 1px; height: 8px; background-color: var(--tw-color); transform: translateX(50%); }
 .tw-dot { position: absolute; left: 0; top: 50%; width: 1px; height: 8px; background-color: var(--tw-color); border-radius: 0; z-index: 6; transform: translate(-50%, -50%); }
 
