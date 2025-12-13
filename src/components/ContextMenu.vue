@@ -50,7 +50,6 @@ function handlePaste() {
 }
 
 function handleDelete() {
-  console.log(store.selectedConnectionId)
   if (!store.selectedConnectionId && !store.isActionSelected(store.contextMenu.targetId)) {
     store.selectAction(store.contextMenu.targetId)
   }
