@@ -3564,5 +3564,35 @@
       "ultimate_animationTime": 0.5,
       "ultimate_enhancementTime": 0
     }
+  ],
+  "enemyDatabase": [
+    {
+      "id": "eny_0045_agtrinit",
+      "name": "三位一体",
+      "avatar": "/Endaxis/Icon_Enemy/eny_0045_agtrinit.png",
+      "maxStagger": 280,
+      "staggerNodeCount": 1,
+      "staggerNodeDuration": 2,
+      "staggerBreakDuration": 11,
+      "executionRecovery": 100,
+      "category": "天使",
+      "tier": "boss"
+    },
+    {
+      "id": "eny_0051_rodin",
+      "name": "“碾骨之拳”罗丹",
+      "avatar": "/Endaxis/Icon_Enemy/eny_0051_rodin.png",
+      "maxStagger": 280,
+      "staggerNodeCount": 1,
+      "staggerNodeDuration": 2,
+      "staggerBreakDuration": 10,
+      "executionRecovery": 100,
+      "category": "裂地者",
+      "tier": "boss"
+    }
+  ],
+  "enemyCategories": [
+    "天使",
+    "裂地者"
   ]
 }

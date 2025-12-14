@@ -19,10 +19,30 @@ export const useTimelineStore = defineStore('timeline', () => {
         maxStagger: 100,
         staggerNodeCount: 0,
         staggerNodeDuration: 2,
-        staggerBreakDuration: 10
+        staggerBreakDuration: 10,
+        executionRecovery: 100
     }
 
     const systemConstants = ref({ ...DEFAULT_SYSTEM_CONSTANTS })
+    const customEnemyParams = ref({
+        maxStagger: 100,
+        staggerNodeCount: 0,
+        staggerNodeDuration: 2,
+        staggerBreakDuration: 10,
+        executionRecovery: 100
+    })
+
+    watch(systemConstants, (newVal) => {
+        if (activeEnemyId.value === 'custom') {
+            customEnemyParams.value = {
+                maxStagger: newVal.maxStagger,
+                staggerNodeCount: newVal.staggerNodeCount,
+                staggerNodeDuration: newVal.staggerNodeDuration,
+                staggerBreakDuration: newVal.staggerBreakDuration,
+                executionRecovery: newVal.executionRecovery
+            }
+        }
+    }, { deep: true })
 
     const BASE_BLOCK_WIDTH = 50
     const TOTAL_DURATION = 120
@@ -38,8 +58,15 @@ export const useTimelineStore = defineStore('timeline', () => {
         'break': '#d9d9d9', 'armor_break': '#d9d9d9', 'stagger': '#d9d9d9',
         'knockdown': '#d9d9d9', 'knockup': '#d9d9d9',
     }
+
     const getColor = (key) => ELEMENT_COLORS[key] || ELEMENT_COLORS.default
 
+    const ENEMY_TIERS = [
+        { label: '普通 (Normal)', value: 'normal', color: '#a0a0a0' },
+        { label: '进阶 (Elite)', value: 'elite', color: '#52c41a' },
+        { label: '精英 (Champion)', value: 'champion', color: '#d8b4fe' },
+        { label: '领袖 (Boss)', value: 'boss', color: '#ff4d4f' }
+    ]
     // ===================================================================================
     // 核心数据状态
     // ===================================================================================
@@ -47,6 +74,9 @@ export const useTimelineStore = defineStore('timeline', () => {
     const isLoading = ref(true)
     const characterRoster = ref([])
     const iconDatabase = ref({})
+    const enemyDatabase = ref([])
+    const activeEnemyId = ref('custom')
+    const enemyCategories = ref([])
 
     const activeScenarioId = ref('default_sc')
     const scenarioList = ref([
@@ -148,7 +178,9 @@ export const useTimelineStore = defineStore('timeline', () => {
             tracks: tracks.value,
             connections: connections.value,
             characterOverrides: characterOverrides.value,
-            systemConstants: systemConstants.value
+            systemConstants: systemConstants.value,
+            activeEnemyId: activeEnemyId.value,
+            customEnemyParams: customEnemyParams.value
         }))
     }
 
@@ -159,6 +191,10 @@ export const useTimelineStore = defineStore('timeline', () => {
         characterOverrides.value = JSON.parse(JSON.stringify(data.characterOverrides || {}))
         if (data.systemConstants) {
             systemConstants.value = { ...systemConstants.value, ...data.systemConstants }
+        }
+        activeEnemyId.value = data.activeEnemyId || 'custom'
+        if (data.customEnemyParams) {
+            customEnemyParams.value = { ...customEnemyParams.value, ...data.customEnemyParams }
         }
         clearSelection()
     }
@@ -404,6 +440,27 @@ export const useTimelineStore = defineStore('timeline', () => {
         return [...standardSkills, ...variantSkills]
     })
 
+    function applyEnemyPreset(enemyId) {
+        if (enemyId === activeEnemyId.value) return
+
+        activeEnemyId.value = enemyId
+
+        if (enemyId === 'custom') {
+            // 切回自定义时，从备份恢复数值
+            Object.assign(systemConstants.value, customEnemyParams.value)
+        } else {
+            // 切换到预设敌人
+            const enemy = enemyDatabase.value.find(e => e.id === enemyId)
+            if (enemy) {
+                systemConstants.value.maxStagger = enemy.maxStagger
+                systemConstants.value.staggerNodeCount = enemy.staggerNodeCount
+                systemConstants.value.staggerNodeDuration = enemy.staggerNodeDuration
+                systemConstants.value.staggerBreakDuration = enemy.staggerBreakDuration
+                systemConstants.value.executionRecovery = enemy.executionRecovery
+            }
+        }
+    }
+
     // ===================================================================================
     // 实体操作 (CRUD)
     // ===================================================================================
@@ -491,21 +548,6 @@ export const useTimelineStore = defineStore('timeline', () => {
         track.actions.push(newAction);
         track.actions.sort((a, b) => a.startTime - b.startTime)
         commitState()
-    }
-
-    function removeAction(instanceId) {
-        if (!instanceId) return
-        let deleted = false
-        for (const track of tracks.value) {
-            const index = track.actions.findIndex(a => a.instanceId === instanceId);
-            if (index !== -1) { track.actions.splice(index, 1); deleted = true; break; }
-        }
-        if (deleted) {
-            connections.value = connections.value.filter(c => c.from !== instanceId && c.to !== instanceId)
-            if (selectedActionId.value === instanceId) selectedActionId.value = null
-            multiSelectedIds.value.delete(instanceId)
-            commitState()
-        }
     }
 
     function removeCurrentSelection() {
@@ -952,7 +994,7 @@ export const useTimelineStore = defineStore('timeline', () => {
     }
 
     function calculateGlobalSpData() {
-        const { maxSp, spRegenRate, initialSp } = systemConstants.value;
+        const { maxSp, spRegenRate, initialSp, executionRecovery } = systemConstants.value;
 
         const instantEvents = []
         const pauseWindows = []
@@ -972,6 +1014,13 @@ export const useTimelineStore = defineStore('timeline', () => {
 
                 if (action.spGain > 0) {
                     instantEvents.push({ time: action.startTime + action.duration, change: action.spGain, type: 'gain' })
+                }
+
+                if (action.type === 'execution') {
+                    const rec = Number(executionRecovery) || 0
+                    if (rec > 0) {
+                        instantEvents.push({ time: action.startTime + action.duration, change: rec, type: 'gain' })
+                    }
                 }
 
                 if (action.damageTicks) {
@@ -1179,17 +1228,22 @@ export const useTimelineStore = defineStore('timeline', () => {
     const STORAGE_KEY = 'endaxis_autosave'
 
     function initAutoSave() {
-        watch([tracks, connections, characterOverrides, systemConstants, scenarioList, activeScenarioId],
-            ([newTracks, newConns, newOverrides, newSys, newScList, newActiveId]) => {
+        watch([tracks, connections, characterOverrides, systemConstants, scenarioList, activeScenarioId, activeEnemyId, customEnemyParams],
+            ([newTracks, newConns, newOverrides, newSys, newScList, newActiveId, newEnemyId, newCustomParams]) => {
+
                 if (isLoading.value) return
 
                 const listToSave = JSON.parse(JSON.stringify(newScList))
                 const currentSc = listToSave.find(s => s.id === newActiveId)
+
                 if (currentSc) {
                     currentSc.data = {
                         tracks: newTracks,
                         connections: newConns,
-                        characterOverrides: newOverrides
+                        characterOverrides: newOverrides,
+                        systemConstants: newSys,
+                        activeEnemyId: newEnemyId,
+                        customEnemyParams: newCustomParams
                     }
                 }
 
@@ -1198,7 +1252,8 @@ export const useTimelineStore = defineStore('timeline', () => {
                     timestamp: Date.now(),
                     scenarioList: listToSave,
                     activeScenarioId: newActiveId,
-                    systemConstants: newSys
+                    systemConstants: newSys,
+                    activeEnemyId: newEnemyId
                 }
                 localStorage.setItem(STORAGE_KEY, JSON.stringify(snapshot))
             }, { deep: true })
@@ -1264,6 +1319,12 @@ export const useTimelineStore = defineStore('timeline', () => {
                 if (data.ICON_DATABASE) {
                     iconDatabase.value = data.ICON_DATABASE
                 }
+                if (data.enemyDatabase) {
+                    enemyDatabase.value = data.enemyDatabase
+                }
+                if (data.enemyCategories) {
+                    enemyCategories.value = data.enemyCategories
+                }
             }
 
             historyStack.value = []
@@ -1284,7 +1345,8 @@ export const useTimelineStore = defineStore('timeline', () => {
             currentSc.data = {
                 tracks: tracks.value,
                 connections: connections.value,
-                characterOverrides: characterOverrides.value
+                characterOverrides: characterOverrides.value,
+                activeEnemyId: activeEnemyId.value
             }
         }
 
@@ -1330,6 +1392,12 @@ export const useTimelineStore = defineStore('timeline', () => {
     function loadProjectData(data) {
         try {
             if (data.systemConstants) { systemConstants.value = { ...systemConstants.value, ...data.systemConstants }; }
+
+            if (data.activeEnemyId) { activeEnemyId.value = data.activeEnemyId }
+
+            if (data.customEnemyParams) {
+                customEnemyParams.value = { ...customEnemyParams.value, ...data.customEnemyParams }
+            }
 
             if (data.scenarioList) {
                 scenarioList.value = data.scenarioList
@@ -1378,7 +1446,7 @@ export const useTimelineStore = defineStore('timeline', () => {
         selectedActionId, selectedLibrarySkillId, multiSelectedIds, clipboard, isLinking, linkingSourceId, linkingEffectIndex, linkingSourceEffectId, showCursorGuide, isBoxSelectMode, cursorCurrentTime, snapStep,
         selectedAnomalyId, setSelectedAnomalyId,
         teamTracksInfo, activeSkillLibrary, timeBlockWidth, ELEMENT_COLORS, getActionPositionInfo, getIncomingConnections, getCharacterElementColor, isActionSelected, hoveredActionId, setHoveredAction,
-        fetchGameData, exportProject, importProject, exportShareString, importShareString, TOTAL_DURATION, selectTrack, changeTrackOperator, clearTrack, selectLibrarySkill, updateLibrarySkill, selectAction, updateAction, removeAction,
+        fetchGameData, exportProject, importProject, exportShareString, importShareString, TOTAL_DURATION, selectTrack, changeTrackOperator, clearTrack, selectLibrarySkill, updateLibrarySkill, selectAction, updateAction,
         addSkillToTrack, setDraggingSkill, setDragOffset, setScrollLeft, calculateGlobalSpData, calculateCdReduction, calculateGaugeData, calculateGlobalStaggerData, updateTrackInitialGauge, updateTrackMaxGauge,
         startLinking, confirmLinking, cancelLinking, removeConnection, updateConnection, updateConnectionPort, getColor, toggleCursorGuide, toggleBoxSelectMode, setCursorTime, toggleSnapStep, nudgeSelection,
         setMultiSelection, clearSelection, copySelection, pasteSelection, removeCurrentSelection, undo, redo, commitState,
@@ -1386,6 +1454,7 @@ export const useTimelineStore = defineStore('timeline', () => {
         findEffectIndexById, alignActionToTarget,
         contextMenu, openContextMenu, closeContextMenu,
         toggleActionLock, toggleActionDisable, setActionColor,
+        enemyDatabase, activeEnemyId, applyEnemyPreset, ENEMY_TIERS, enemyCategories,
         scenarioList, activeScenarioId, switchScenario, addScenario, duplicateScenario, deleteScenario,
     }
 })

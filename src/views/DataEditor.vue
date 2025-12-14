@@ -6,7 +6,7 @@ import { ElMessage, ElMessageBox } from 'element-plus'
 import { executeSave } from '@/api/saveStrategy.js'
 
 const store = useTimelineStore()
-const { characterRoster, iconDatabase } = storeToRefs(store)
+const { characterRoster, iconDatabase, enemyDatabase, enemyCategories } = storeToRefs(store)
 
 // === 常量定义 ===
 
@@ -34,14 +34,19 @@ const EFFECT_NAMES = {
   "default": "默认图标"
 }
 
+const ENEMY_TIERS = store.ENEMY_TIERS
+const TIER_WEIGHTS = { 'boss': 4, 'champion': 3, 'elite': 2, 'normal': 1 }
 const HIDDEN_CHECKBOX_KEYS = ['default']
 const effectKeys = Object.keys(EFFECT_NAMES).filter(key => !HIDDEN_CHECKBOX_KEYS.includes(key))
 
 // === 状态与计算属性 ===
 
+const editingMode = ref('character') // 'character' | 'enemy'
 const searchQuery = ref('')
 const selectedCharId = ref(null)
+const selectedEnemyId = ref(null)
 const activeTab = ref('basic')
+const newCategoryName = ref('')
 
 const filteredRoster = computed(() => {
   let list = characterRoster.value || []
@@ -52,8 +57,53 @@ const filteredRoster = computed(() => {
   return list.sort((a, b) => (b.rarity || 0) - (a.rarity || 0))
 })
 
+const groupedEnemies = computed(() => {
+  let list = enemyDatabase.value || []
+
+  if (searchQuery.value) {
+    const q = searchQuery.value.toLowerCase()
+    list = list.filter(e => e.name.toLowerCase().includes(q) || e.id.toLowerCase().includes(q))
+  }
+
+  const groups = {}
+
+  enemyCategories.value.forEach(cat => {
+    groups[cat] = []
+  })
+  groups['未分类'] = []
+
+  list.forEach(enemy => {
+    const cat = enemy.category
+    if (cat && groups[cat]) {
+      groups[cat].push(enemy)
+    } else {
+      groups['未分类'].push(enemy)
+    }
+  })
+
+  const result = []
+
+  enemyCategories.value.forEach(cat => {
+    if (groups[cat].length > 0) {
+      groups[cat].sort((a, b) => (TIER_WEIGHTS[b.tier] || 0) - (TIER_WEIGHTS[a.tier] || 0))
+      result.push({ name: cat, list: groups[cat] })
+    }
+  })
+
+  if (groups['未分类'].length > 0) {
+    groups['未分类'].sort((a, b) => (TIER_WEIGHTS[b.tier] || 0) - (TIER_WEIGHTS[a.tier] || 0))
+    result.push({ name: '未分类', list: groups['未分类'] })
+  }
+
+  return result
+})
+
 const selectedChar = computed(() => {
   return characterRoster.value.find(c => c.id === selectedCharId.value)
+})
+
+const selectedEnemy = computed(() => {
+  return enemyDatabase.value.find(e => e.id === selectedEnemyId.value)
 })
 
 // === 生命周期 ===
@@ -64,15 +114,50 @@ watch(characterRoster, (newList) => {
   }
 }, { immediate: true })
 
+watch(enemyDatabase, (newList) => {
+  if (newList && newList.length > 0 && !selectedEnemyId.value) {
+    selectedEnemyId.value = newList[0].id
+  }
+}, { immediate: true })
+
 // === 操作方法 ===
+
+function setMode(mode) {
+  editingMode.value = mode
+  searchQuery.value = ''
+  // 切换模式时自动选中第一个
+  if (mode === 'enemy' && enemyDatabase.value && enemyDatabase.value.length > 0 && !selectedEnemyId.value) {
+    selectedEnemyId.value = enemyDatabase.value[0].id
+  } else if (mode === 'character' && characterRoster.value && characterRoster.value.length > 0 && !selectedCharId.value) {
+    selectedCharId.value = characterRoster.value[0].id
+  }
+}
 
 function selectChar(id) {
   selectedCharId.value = id
   activeTab.value = 'basic'
 }
 
+function selectEnemy(id) {
+  selectedEnemyId.value = id
+}
+
+function updateEnemyId(event) {
+  const newId = event.target.value
+  if (!newId) {
+    event.target.value = selectedEnemy.value.id
+    return
+  }
+  if (selectedEnemy.value) selectedEnemy.value.id = newId
+  selectedEnemyId.value = newId
+}
+
 function updateCharId(event) {
   const newId = event.target.value
+  if (!newId) {
+    event.target.value = selectedChar.value.id
+    return
+  }
   if (selectedChar.value) selectedChar.value.id = newId
   selectedCharId.value = newId
 }
@@ -100,6 +185,41 @@ function addNewCharacter() {
   ElMessage.success('已添加新干员')
 }
 
+function addEnemyCategory() {
+  const val = newCategoryName.value.trim()
+  if (val && !enemyCategories.value.includes(val)) {
+    enemyCategories.value.push(val)
+    newCategoryName.value = ''
+    ElMessage.success(`已添加分类: ${val}`)
+  }
+}
+function removeEnemyCategory(cat) {
+  ElMessageBox.confirm(`确定删除分类 "${cat}" 吗？这不会删除该分类下的敌人。`, '提示').then(() => {
+    const idx = enemyCategories.value.indexOf(cat)
+    if (idx !== -1) enemyCategories.value.splice(idx, 1)
+  })
+}
+
+function addNewEnemy() {
+  const newId = `enemy_${Date.now()}`
+  const newEnemy = {
+    id: newId,
+    name: '新敌人',
+    avatar: '/Endaxis/Icon_Enemy/default_enemy.png',
+    maxStagger: 100,
+    staggerNodeCount: 0,
+    staggerNodeDuration: 2,
+    staggerBreakDuration: 10,
+    executionRecovery: 20,
+    category: enemyCategories.value[0] || '',
+    tier: 'normal'
+  }
+  if (!enemyDatabase.value) enemyDatabase.value = []
+  enemyDatabase.value.push(newEnemy)
+  selectedEnemyId.value = newId
+  ElMessage.success('已添加新敌人')
+}
+
 function deleteCurrentCharacter() {
   if (!selectedChar.value) return
   ElMessageBox.confirm(`确定要删除干员 "${selectedChar.value.name}" 吗？`, '警告', {
@@ -115,6 +235,40 @@ function deleteCurrentCharacter() {
   }).catch(() => {})
 }
 
+function deleteCurrentEnemy() {
+  if (!selectedEnemy.value) return
+  ElMessageBox.confirm(`确定要删除敌人 "${selectedEnemy.value.name}" 吗？`, '警告', {
+    confirmButtonText: '删除', cancelButtonText: '取消', type: 'warning'
+  }).then(() => {
+    const idx = enemyDatabase.value.findIndex(e => e.id === selectedEnemyId.value)
+    if (idx !== -1) {
+      enemyDatabase.value.splice(idx, 1)
+      selectedEnemyId.value = enemyDatabase.value.length > 0 ? enemyDatabase.value[0].id : null
+      ElMessage.success('删除成功')
+    }
+  }).catch(() => {})
+}
+
+function quickAddCategory() {
+  ElMessageBox.prompt('请输入新的分类名称', '新建分类', {
+    confirmButtonText: '添加',
+    cancelButtonText: '取消',
+    inputPattern: /\S+/,
+    inputErrorMessage: '分类名称不能为空'
+  }).then(({ value }) => {
+    const val = value.trim()
+    if (val && !enemyCategories.value.includes(val)) {
+      enemyCategories.value.push(val)
+      // 自动选中新添加的分类
+      if (selectedEnemy.value) {
+        selectedEnemy.value.category = val
+      }
+      ElMessage.success(`已添加并选中: ${val}`)
+    } else if (enemyCategories.value.includes(val)) {
+      ElMessage.warning('该分类已存在')
+    }
+  }).catch(() => {})
+}
 // === 判定点逻辑 (Damage Ticks) ===
 function getDamageTicks(char, type) {
   if (!char) return []
@@ -350,7 +504,9 @@ function saveData() {
 
   const dataToSave = {
     ICON_DATABASE: iconDatabase.value,
-    characterRoster: characterRoster.value
+    characterRoster: characterRoster.value,
+    enemyDatabase: enemyDatabase.value,
+    enemyCategories: enemyCategories.value
   }
   executeSave(dataToSave)
 }
@@ -359,14 +515,20 @@ function saveData() {
 <template>
   <div class="cms-layout">
     <aside class="cms-sidebar">
+      <div class="sidebar-tabs">
+        <button :class="{ active: editingMode === 'character' }" @click="setMode('character')">干员</button>
+        <button :class="{ active: editingMode === 'enemy' }" @click="setMode('enemy')">敌人</button>
+      </div>
+
       <div class="sidebar-header">
-        <h2>干员数据</h2>
-        <button class="btn-add" @click="addNewCharacter">＋</button>
+        <h2>{{ editingMode === 'character' ? '干员数据' : '敌人数据' }}</h2>
+        <button class="btn-add" @click="editingMode === 'character' ? addNewCharacter() : addNewEnemy()">＋</button>
       </div>
       <div class="search-box">
-        <input v-model="searchQuery" placeholder="搜索干员 ID 或名称..." />
+        <input v-model="searchQuery" placeholder="搜索 ID 或名称..." />
       </div>
-      <div class="char-list">
+
+      <div v-if="editingMode === 'character'" class="char-list">
         <div v-for="char in filteredRoster" :key="char.id"
              class="char-item" :class="{ active: char.id === selectedCharId }"
              @click="selectChar(char.id)">
@@ -378,11 +540,45 @@ function saveData() {
           <div class="char-info">
             <span class="char-name">{{ char.name }}</span>
             <span class="char-meta" :class="`rarity-${char.rarity}`">
-        {{ char.rarity }}★ {{ char.element }}
-      </span>
+              {{ char.rarity }}★ {{ char.element }}
+            </span>
           </div>
         </div>
       </div>
+
+      <div v-else class="char-list">
+
+        <div v-for="group in groupedEnemies" :key="group.name" class="enemy-group">
+          <div class="group-title">
+            {{ group.name }}
+            <span class="group-count">({{ group.list.length }})</span>
+          </div>
+
+          <div v-for="enemy in group.list" :key="enemy.id"
+               class="char-item"
+               :class="{ active: enemy.id === selectedEnemyId }"
+               :style="{ borderLeftColor: ENEMY_TIERS.find(t=>t.value===enemy.tier)?.color }"
+               @click="selectEnemy(enemy.id)">
+
+            <div class="avatar-wrapper-small" :style="{ borderColor: ENEMY_TIERS.find(t=>t.value===enemy.tier)?.color }">
+              <img :src="enemy.avatar" @error="e=>e.target.src='/Endaxis/avatars/default_enemy.png'" />
+            </div>
+
+            <div class="char-info">
+              <span class="char-name">{{ enemy.name }}</span>
+              <span class="char-meta" style="color:#aaa">
+                {{ enemy.maxStagger }} / {{ enemy.staggerNodeCount }}
+              </span>
+            </div>
+          </div>
+        </div>
+
+        <div v-if="groupedEnemies.length === 0" class="empty-hint">
+          暂无匹配的敌人
+        </div>
+
+      </div>
+
       <div class="sidebar-footer">
         <button class="btn-save" @click="saveData">
           💾 保存数据
@@ -392,7 +588,7 @@ function saveData() {
     </aside>
 
     <main class="cms-content">
-      <div v-if="selectedChar" class="editor-panel">
+      <div v-if="editingMode === 'character' && selectedChar" class="editor-panel">
         <header class="panel-header">
           <div class="header-left">
             <div class="avatar-wrapper-large" :class="`rarity-${selectedChar.rarity}-border`">
@@ -658,7 +854,7 @@ function saveData() {
                 <div class="form-group" v-if="type === 'skill'"><label>自身充能</label><input type="number" v-model.number="selectedChar[`${type}_gaugeGain`]" @input="onSkillGaugeInput"></div>
                 <div class="form-group" v-if="type === 'skill'"><label>队友充能</label><input type="number" v-model.number="selectedChar[`${type}_teamGaugeGain`]"></div>
 
-                <div class="form-group" v-if="type === 'link'"><label>CD (s)</label><input type="number" v-model.number="selectedChar[`${type}_cooldown`]"></div>
+                <div class="form-group" v-if="type === 'link'"><label>冷却时间 (s)</label><input type="number" v-model.number="selectedChar[`${type}_cooldown`]"></div>
                 <div class="form-group" v-if="type === 'link'"><label>自身充能</label><input type="number" v-model.number="selectedChar[`${type}_gaugeGain`]"></div>
 
                 <div class="form-group" v-if="type === 'ultimate'"><label>充能消耗</label><input type="number" v-model.number="selectedChar[`${type}_gaugeMax`]"></div>
@@ -715,21 +911,21 @@ function saveData() {
 
                       <div class="card-props-grid">
                         <div class="prop-item full-span">
-                          <label>层数 (Stacks)</label>
+                          <label>层数</label>
                           <div class="input-with-unit">
                             <input type="number" v-model.number="item.stacks" placeholder="1" class="mini-input">
                             <span class="unit">层</span>
                           </div>
                         </div>
                         <div class="prop-item">
-                          <label>触发 (Start)</label>
+                          <label>触发</label>
                           <div class="input-with-unit">
                             <input type="number" v-model.number="item.offset" placeholder="0" step="0.1" class="mini-input">
                             <span class="unit">s</span>
                           </div>
                         </div>
                         <div class="prop-item">
-                          <label>持续 (Dur)</label>
+                          <label>持续</label>
                           <div class="input-with-unit">
                             <input type="number" v-model.number="item.duration" placeholder="0" step="0.5" class="mini-input">
                             <span class="unit">s</span>
@@ -748,7 +944,63 @@ function saveData() {
 
         </div>
       </div>
-      <div v-else class="empty-state">请从左侧列表选择干员</div>
+
+      <div v-else-if="editingMode === 'enemy' && selectedEnemy" class="editor-panel">
+        <header class="panel-header">
+          <div class="header-left">
+            <div class="avatar-wrapper-large" style="border-color: #ff4d4f">
+              <img :src="selectedEnemy.avatar" @error="e=>e.target.src='/Endaxis/avatars/default_enemy.png'" />
+            </div>
+            <div class="header-titles">
+              <h1 class="edit-title">{{ selectedEnemy.name }}</h1>
+              <span class="id-tag">{{ selectedEnemy.id }}</span>
+            </div>
+          </div>
+          <button class="btn-danger" @click="deleteCurrentEnemy">删除此敌人</button>
+        </header>
+
+        <div class="form-section">
+          <h3 class="section-title">基本信息</h3>
+          <div class="form-grid">
+            <div class="form-group"><label>名称</label><input v-model="selectedEnemy.name" /></div>
+            <div class="form-group"><label>ID</label><input :value="selectedEnemy.id" @change="updateEnemyId" /></div>
+            <div class="form-group">
+              <label>等阶</label>
+              <select v-model="selectedEnemy.tier" :style="{ color: ENEMY_TIERS.find(t=>t.value===selectedEnemy.tier)?.color }">
+                <option v-for="t in ENEMY_TIERS" :key="t.value" :value="t.value">
+                  {{ t.label }}
+                </option>
+              </select>
+            </div>
+
+            <div class="form-group">
+              <label>分类</label>
+              <div style="display: flex; gap: 5px;">
+                <select v-model="selectedEnemy.category" style="flex-grow: 1;">
+                  <option v-for="cat in enemyCategories" :key="cat" :value="cat">{{ cat }}</option>
+                </select>
+                <button
+                    class="btn-icon-add"
+                    @click="quickAddCategory"
+                    title="新建分类"
+                >+</button>
+              </div>
+            </div>
+            <div class="form-group full-width"><label>头像路径</label><input v-model="selectedEnemy.avatar" /></div>
+          </div>
+
+          <h3 class="section-title">数值属性</h3>
+          <div class="form-grid three-col">
+            <div class="form-group"><label style="color:#ff7875">失衡上限</label><input type="number" v-model.number="selectedEnemy.maxStagger"></div>
+            <div class="form-group"><label style="color:#ff7875">失衡节点数</label><input type="number" v-model.number="selectedEnemy.staggerNodeCount"></div>
+            <div class="form-group"><label style="color:#ff7875">踉跄时长 (s)</label><input type="number" step="0.1" v-model.number="selectedEnemy.staggerNodeDuration"></div>
+            <div class="form-group"><label style="color:#ff7875">失衡时长 (s)</label><input type="number" step="0.5" v-model.number="selectedEnemy.staggerBreakDuration"></div>
+            <div class="form-group"><label style="color:#ffd700">处决回复技力</label><input type="number" v-model.number="selectedEnemy.executionRecovery"></div>
+          </div>
+        </div>
+      </div>
+
+      <div v-else class="empty-state">请从左侧列表选择条目</div>
     </main>
   </div>
 </template>
@@ -758,6 +1010,11 @@ function saveData() {
 
 /* Sidebar */
 .cms-sidebar { width: 300px; background-color: #252526; border-right: 1px solid #333; display: flex; flex-direction: column; flex-shrink: 0; }
+.sidebar-tabs { display: flex; background: #1e1e1e; border-bottom: 1px solid #333; }
+.sidebar-tabs button { flex: 1; background: transparent; border: none; color: #888; padding: 12px; cursor: pointer; font-weight: bold; border-bottom: 2px solid transparent; transition: all 0.2s; }
+.sidebar-tabs button:hover { color: #ccc; background: #252526; }
+.sidebar-tabs button.active { color: #ffd700; border-bottom-color: #ffd700; background: #2b2b2b; }
+
 .sidebar-header { padding: 15px; border-bottom: 1px solid #333; display: flex; justify-content: space-between; align-items: center; background: #2b2b2b; }
 .sidebar-header h2 { margin: 0; font-size: 16px; color: #ffd700; font-weight: 600; text-transform: uppercase; letter-spacing: 1px; }
 .btn-add { background: #3a3a3a; border: 1px solid #555; color: #fff; width: 28px; height: 28px; border-radius: 4px; cursor: pointer; display: flex; align-items: center; justify-content: center; font-size: 18px; transition: all 0.2s; }
@@ -765,12 +1022,17 @@ function saveData() {
 .search-box { padding: 10px; border-bottom: 1px solid #333; background: #252526; }
 .search-box input { width: 100%; padding: 8px 12px; box-sizing: border-box; background: #1e1e1e; border: 1px solid #444; color: #fff; border-radius: 4px; font-size: 13px; }
 .search-box input:focus { border-color: #666; outline: none; }
+.enemy-group { margin-bottom: 15px; }
+.group-title { font-size: 11px; color: #888; font-weight: bold; text-transform: uppercase; padding: 4px 8px; background: #2b2b2b; border-radius: 4px; margin-bottom: 6px; display: flex; justify-content: space-between; }
+.group-count { color: #555; }
+.add-cat-row input { flex: 1; background: #1a1a1a; border: 1px solid #444; color: #fff; padding: 8px; border-radius: 4px; }
 
 /* Character List */
 .char-list { flex-grow: 1; overflow-y: auto; padding: 10px; }
-.char-item { display: flex; align-items: center; padding: 8px 12px; border-radius: 6px; cursor: pointer; transition: all 0.2s; margin-bottom: 4px; border: 1px solid transparent; }
+.char-item { display: flex; align-items: center; padding: 8px 12px; border-radius: 6px; cursor: pointer; transition: all 0.2s; margin-bottom: 4px; border: 1px solid transparent; border-left: 3px solid transparent; padding-left: 8px; }
 .char-item:hover { background-color: #2d2d2d; border-color: #444; }
-.char-item.active { background-color: #37373d; border-color: #ffd700; box-shadow: 0 0 10px rgba(0,0,0,0.2); }
+.char-item.active { background-color: #37373d; box-shadow: 0 0 10px rgba(0,0,0,0.2); }
+.empty-hint { text-align: center; color: #666; font-size: 12px; margin-top: 20px; }
 
 .avatar-wrapper-small { width: 44px; height: 44px; border-radius: 6px; margin-right: 12px; background: #333; position: relative; overflow: hidden; border: 2px solid #444; flex-shrink: 0; box-sizing: border-box; }
 .avatar-wrapper-small img { width: 100%; height: 100%; object-fit: cover; display: block; }
@@ -848,6 +1110,24 @@ function saveData() {
 .cb-item:hover { background: #252526; }
 .cb-item input { accent-color: #ffd700; width: 16px; height: 16px; }
 .cb-item.exclusive { color: #ffd700; }
+
+.btn-icon-add {
+  width: 38px;
+  background: #333;
+  border: 1px solid #555;
+  color: #ffd700;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 18px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s;
+}
+.btn-icon-add:hover {
+  border-color: #ffd700;
+  background: rgba(255, 215, 0, 0.1);
+}
 
 /* Matrix Editor */
 .matrix-editor-area { margin-top: 25px; border-top: 1px dashed #444; padding-top: 20px; }

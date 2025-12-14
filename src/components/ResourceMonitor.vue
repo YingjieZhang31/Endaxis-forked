@@ -1,9 +1,15 @@
 <script setup>
 import { computed, watch, ref } from 'vue'
 import { useTimelineStore } from '../stores/timelineStore.js'
+import { storeToRefs } from 'pinia'
 import CustomNumberInput from './CustomNumberInput.vue'
+import { Search } from '@element-plus/icons-vue'
 
 const store = useTimelineStore()
+
+const { enemyDatabase, enemyCategories } = storeToRefs(store)
+const ENEMY_TIERS = store.ENEMY_TIERS
+const TIER_WEIGHTS = { 'boss': 4, 'champion': 3, 'elite': 2, 'normal': 1 }
 const scrollContainer = ref(null)
 
 // === 布局常量 ===
@@ -17,6 +23,73 @@ const COLOR_STAGGER = '#ff7875'
 const COLOR_LIMIT = '#d32f2f'
 const COLOR_SP_MAIN = '#ffd700'
 const COLOR_SP_WARN = '#ff4d4f'
+
+// === 敌人选择器逻辑 ===
+const isEnemySelectorVisible = ref(false)
+const enemySearchQuery = ref('')
+const activeCategoryTab = ref('ALL')
+
+const activeEnemyInfo = computed(() => {
+  if (store.activeEnemyId === 'custom') {
+    return { name: '自定义敌人', avatar: '', isCustom: true }
+  }
+  return store.enemyDatabase.find(e => e.id === store.activeEnemyId) || { name: '未知敌人', avatar: '' }
+})
+
+const groupedEnemyList = computed(() => {
+  let list = enemyDatabase.value || []
+
+  if (enemySearchQuery.value) {
+    const q = enemySearchQuery.value.toLowerCase()
+    list = list.filter(e => e.name.toLowerCase().includes(q))
+  }
+
+  const groups = {}
+
+  const targetCategories = (activeCategoryTab.value === 'ALL')
+      ? [...enemyCategories.value, '未分类']
+      : [activeCategoryTab.value]
+
+  targetCategories.forEach(cat => { groups[cat] = [] })
+
+  list.forEach(enemy => {
+    let cat = enemy.category
+    if (!cat || !enemyCategories.value.includes(cat)) {
+      cat = '未分类'
+    }
+
+    if (groups[cat]) {
+      groups[cat].push(enemy)
+    }
+  })
+
+  const result = []
+
+  targetCategories.forEach(cat => {
+    const enemyList = groups[cat]
+    if (enemyList && enemyList.length > 0) {
+      enemyList.sort((a, b) => (TIER_WEIGHTS[b.tier] || 0) - (TIER_WEIGHTS[a.tier] || 0))
+      result.push({ name: cat, list: enemyList })
+    }
+  })
+
+  return result
+})
+
+function getTierColor(tierValue) {
+  const tier = ENEMY_TIERS.find(t => t.value === tierValue)
+  return tier ? tier.color : '#a0a0a0'
+}
+
+function getTierLabel(tierValue) {
+  const tier = ENEMY_TIERS.find(t => t.value === tierValue)
+  return tier ? tier.label.split(' ')[0] : ''
+}
+
+function selectEnemy(id) {
+  store.applyEnemyPreset(id)
+  isEnemySelectorVisible.value = false
+}
 
 // === 数据计算 (失衡)===
 const staggerResult = computed(() => store.calculateGlobalStaggerData())
@@ -98,42 +171,66 @@ const spWarningZones = computed(() => spData.value.filter(p => p.sp < 0).map(p =
 watch(() => store.timelineScrollLeft, (newVal) => {
   if (scrollContainer.value) scrollContainer.value.scrollLeft = newVal
 }, { flush: 'sync' })
-
 </script>
 
 <template>
   <div class="resource-monitor-layout">
 
     <div class="monitor-sidebar">
-      <div class="control-row">
-        <label style="color: #ff7875;">失衡上限</label>
-        <CustomNumberInput v-model="store.systemConstants.maxStagger" :min="1" class="standard-input" />
+
+      <div class="enemy-select-area" @click="isEnemySelectorVisible = true" title="点击切换敌人预设">
+        <div class="enemy-avatar-box">
+          <img v-if="!activeEnemyInfo.isCustom" :src="activeEnemyInfo.avatar" @error="e=>e.target.src='/Endaxis/avatars/default_enemy.png'" />
+          <div v-else class="custom-avatar-placeholder">?</div>
+        </div>
+        <div class="enemy-info-col">
+          <div class="enemy-name">{{ activeEnemyInfo.name }}</div>
+          <div class="click-hint">点击更换</div>
+        </div>
       </div>
-      <div class="control-row">
-        <label>失衡节点</label>
-        <CustomNumberInput v-model="store.systemConstants.staggerNodeCount" :min="0" class="standard-input" />
+
+      <div class="settings-scroll-area">
+        <div class="settings-group">
+          <div class="group-header">敌人属性</div>
+          <div class="control-row">
+            <label style="color: #ff7875;">失衡上限</label>
+            <CustomNumberInput v-model="store.systemConstants.maxStagger" :min="1" class="standard-input" />
+          </div>
+          <div class="control-row">
+            <label>失衡节点</label>
+            <CustomNumberInput v-model="store.systemConstants.staggerNodeCount" :min="0" class="standard-input" />
+          </div>
+          <div class="control-row">
+            <label style="color: #ff7875;">踉跄时长</label>
+            <CustomNumberInput v-model="store.systemConstants.staggerNodeDuration" :step="0.1" class="standard-input" />
+          </div>
+          <div class="control-row">
+            <label style="color: #ff7875;">失衡时长</label>
+            <CustomNumberInput v-model="store.systemConstants.staggerBreakDuration" :step="0.5" class="standard-input" />
+          </div>
+          <div class="control-row">
+            <label style="color: #ffd700;">处决回复</label>
+            <CustomNumberInput v-model="store.systemConstants.executionRecovery" :min="0" class="standard-input" />
+          </div>
+        </div>
+
+        <div class="settings-group">
+          <div class="group-header">队伍属性</div>
+          <div class="control-row">
+            <label style="color: #ffd700;">初始技力</label>
+            <CustomNumberInput v-model="store.systemConstants.initialSp" :min="0" :max="300" class="standard-input" />
+          </div>
+          <div class="control-row">
+            <label style="color: #ffd700;">回复/秒</label>
+            <CustomNumberInput v-model="store.systemConstants.spRegenRate" :step="0.5" :min="0" class="standard-input" />
+          </div>
+        </div>
       </div>
-      <div class="control-row">
-        <label style="color: #ff7875;">踉跄时长</label>
-        <CustomNumberInput v-model="store.systemConstants.staggerNodeDuration" :step="0.1" class="standard-input" />
-      </div>
-      <div class="control-row">
-        <label style="color: #ff7875;">失衡时长</label>
-        <CustomNumberInput v-model="store.systemConstants.staggerBreakDuration" :step="0.5" class="standard-input" />
-      </div>
-      <div class="control-row">
-        <label style="color: #ffd700;">初始技力</label>
-        <CustomNumberInput v-model="store.systemConstants.initialSp" :min="0" :max="300" class="standard-input" />
-      </div>
-      <div class="control-row">
-        <label style="color: #ffd700;">回复/秒</label>
-        <CustomNumberInput v-model="store.systemConstants.spRegenRate" :step="0.5" :min="0" class="standard-input" />
-      </div>
+
     </div>
 
     <div class="chart-scroll-wrapper" ref="scrollContainer">
       <svg class="chart-svg" :height="TOTAL_HEIGHT" :width="store.TOTAL_DURATION * store.timeBlockWidth">
-
         <defs>
           <linearGradient id="stagger-grad" x1="0" y1="0" x2="0" y2="1">
             <stop offset="0%" :stop-color="COLOR_STAGGER" stop-opacity="0.5"/>
@@ -199,9 +296,7 @@ watch(() => store.timelineScrollLeft, (newVal) => {
 
           <circle v-for="(p, idx) in spData" :key="idx" :cx="p.time * store.timeBlockWidth" :cy="BASE_Y_SP - (p.sp * scaleY_SP)" r="2" :fill="p.sp < 0 ? COLOR_SP_WARN : COLOR_SP_MAIN" />
         </g>
-
       </svg>
-
       <div v-for="(w, idx) in spWarningZones" :key="idx" class="warning-tag"
            :style="{ left: w.left + 'px', top: (BASE_Y_SP + 5) + 'px', color: COLOR_SP_WARN }">
         <span class="warn-icon">
@@ -214,6 +309,81 @@ watch(() => store.timelineScrollLeft, (newVal) => {
         不足
       </div>
     </div>
+
+    <el-dialog v-model="isEnemySelectorVisible" title="选择敌人" width="600px" align-center class="char-selector-dialog" :append-to-body="true">
+      <div class="selector-header">
+        <el-input v-model="enemySearchQuery" placeholder="搜索敌人..." :prefix-icon="Search" clearable style="width: 100%" />
+      </div>
+
+      <div class="category-tabs">
+        <button
+            class="cat-tab"
+            :class="{ active: activeCategoryTab === 'ALL' }"
+            @click="activeCategoryTab = 'ALL'"
+        >全部</button>
+        <button
+            v-for="cat in enemyCategories"
+            :key="cat"
+            class="cat-tab"
+            :class="{ active: activeCategoryTab === cat }"
+            @click="activeCategoryTab = cat"
+        >
+          {{ cat }}
+        </button>
+      </div>
+
+      <div class="enemy-list-grid">
+
+        <div v-if="activeCategoryTab === 'ALL' && !enemySearchQuery" class="enemy-group-section">
+          <div class="group-header">特殊</div>
+          <div class="group-items">
+            <div class="enemy-card" :class="{ selected: store.activeEnemyId === 'custom' }" @click="selectEnemy('custom')">
+              <div class="enemy-avatar custom">?</div>
+              <div class="enemy-info">
+                <div class="name">自定义</div>
+                <div class="desc">手动修改数值</div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div v-for="group in groupedEnemyList" :key="group.name" class="enemy-group-section">
+          <div class="group-header">
+            {{ group.name }}
+            <span class="count">({{ group.list.length }})</span>
+          </div>
+
+          <div class="group-items">
+            <div v-for="enemy in group.list" :key="enemy.id"
+                 class="enemy-card"
+                 :class="{ selected: store.activeEnemyId === enemy.id }"
+                 :style="{ '--tier-color': getTierColor(enemy.tier) }"
+                 @click="selectEnemy(enemy.id)">
+
+              <div class="enemy-avatar-wrapper">
+                <img :src="enemy.avatar" class="enemy-avatar" @error="e=>e.target.src='/Endaxis/avatars/default_enemy.png'"/>
+                <div v-if="enemy.tier && enemy.tier !== 'normal'" class="tier-badge" :style="{ backgroundColor: getTierColor(enemy.tier) }">
+                  {{ getTierLabel(enemy.tier) }}
+                </div>
+              </div>
+
+              <div class="enemy-info">
+                <div class="name" :style="{ color: enemy.tier === 'boss' ? '#ff4d4f' : '#f0f0f0' }">
+                  {{ enemy.name }}
+                </div>
+                <div class="desc">上限:{{enemy.maxStagger}} | 节点:{{enemy.staggerNodeCount}}</div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div v-if="groupedEnemyList.length === 0 && !(activeCategoryTab === 'ALL' && !enemySearchQuery)" class="empty-state">
+          未找到相关敌人
+        </div>
+
+      </div>
+    </el-dialog>
+
   </div>
 </template>
 
@@ -232,11 +402,38 @@ watch(() => store.timelineScrollLeft, (newVal) => {
 .monitor-sidebar {
   background-color: #2a2a2a;
   border-right: 1px solid #444;
-  padding: 6px 14px;
   display: flex;
   flex-direction: column;
-  justify-content: space-evenly;
   overflow: hidden;
+  height: 100%;
+}
+
+.enemy-select-area {
+  flex-shrink: 0;
+  background: #333;
+  border-bottom: 1px solid #444;
+  padding: 10px 12px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+.enemy-select-area:hover { background: #3a3a3a; }
+.enemy-avatar-box { width: 36px; height: 36px; border-radius: 4px; overflow: hidden; background: #222; border: 1px solid #555; flex-shrink: 0; }
+.enemy-avatar-box img { width: 100%; height: 100%; object-fit: cover; }
+.custom-avatar-placeholder { width: 100%; height: 100%; display: flex; align-items: center; justify-content: center; font-weight: bold; color: #666; font-size: 16px; }
+.enemy-info-col { flex-grow: 1; overflow: hidden; display: flex; flex-direction: column; }
+.enemy-name { font-weight: bold; color: #f0f0f0; font-size: 13px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.click-hint { font-size: 10px; color: #666; margin-top: 2px; }
+
+.settings-scroll-area {
+  flex-grow: 1;
+  overflow-y: auto;
+  padding: 10px 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 15px;
 }
 
 .control-row {
@@ -253,14 +450,44 @@ watch(() => store.timelineScrollLeft, (newVal) => {
 }
 
 :deep(.standard-input) {
-  width: 80px !important;
-  height: 28px !important;
+  width: 70px !important;
+  height: 24px !important;
   font-size: 12px !important;
   flex-shrink: 0;
 }
 
-.chart-scroll-wrapper { overflow: hidden; position: relative; background: #252525; }
+.settings-group { display: flex; flex-direction: column; gap: 6px; }
+.group-header { font-size: 12px; color: #888; font-weight: bold; border-bottom: 1px solid #333; padding-bottom: 4px; margin-bottom: 8px; display: flex; align-items: center; gap: 6px; }
+.group-header .count { font-weight: normal; font-size: 11px; color: #555; }
+.group-items { display: grid; grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); /* 自适应列宽 */ gap: 8px; }
+.empty-state { text-align: center; padding: 40px; color: #666; font-style: italic; }
+.category-tabs { display: flex; gap: 8px; margin-bottom: 15px; padding-bottom: 5px; border-bottom: 1px solid #444; overflow-x: auto; }
+.cat-tab { background: transparent; border: none; color: #888; padding: 6px 12px; cursor: pointer; border-radius: 4px; font-weight: bold; font-size: 13px; transition: all 0.2s; white-space: nowrap; }
+.cat-tab:hover { color: #ccc; background: #333; }
+.cat-tab.active { color: #222; background: #ffd700; }
+
+/* Dialog Styles */
+.enemy-list-grid { display: block; max-height: 400px; overflow-y: auto; padding: 10px; }
+.enemy-group-section { margin-bottom: 20px; }
+.enemy-card { --tier-color: #555; display: flex; align-items: center; gap: 12px; padding: 8px; background: #252526; border: 1px solid #333; border-radius: 6px; cursor: pointer; transition: all 0.2s; border-left: 3px solid transparent; }
+.enemy-card:hover { border-color: var(--tier-color, #555) !important; }
+.enemy-card.selected { border-color: var(--tier-color, #ffd700) !important; border-left-width: 3px; }
+.enemy-avatar { width: 100%; height: 100%; border-radius: 4px; object-fit: cover; background: #333; border: 1px solid #444; }
+.enemy-avatar.custom { display: flex; align-items: center; justify-content: center; font-size: 20px; color: #666; font-weight: bold; }
+.enemy-info { display: flex; flex-direction: column; }
+.enemy-info .name { font-weight: bold; color: #f0f0f0; font-size: 14px; }
+.enemy-info .desc { font-size: 12px; color: #888; margin-top: 2px; }
+
+.enemy-avatar-wrapper { position: relative; width: 48px; height: 48px; flex-shrink: 0; }
 .warning-tag { position: absolute; font-size: 10px; background: rgba(0,0,0,0.8); padding: 2px 4px; border-radius: 4px; transform: translateX(-50%); pointer-events: none; z-index: 5; display: flex; align-items: center; gap: 2px; }
+
+.tier-badge {
+  position: absolute; bottom: -2px; right: -4px;
+  color: #000; font-size: 9px; font-weight: 800;
+  padding: 1px 3px; border-radius: 2px;
+  line-height: 1; text-transform: uppercase;
+  box-shadow: 0 1px 2px rgba(0,0,0,0.5);
+}
 
 .stun-bg-anim { animation: stun-flash 1.5s infinite alternate; }
 @keyframes stun-flash { 0% { fill-opacity: 0.6; } 100% { fill-opacity: 1; } }

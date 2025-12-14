@@ -38,7 +38,6 @@
 项目内置了一个隐藏的数据编辑器，用于生成 `gamedata.json` 文件。
 
 **访问地址：**
-* **在线版**：[http://lieyuan.top/Endaxis/editor](http://lieyuan.top/Endaxis/editor)
 * **本地开发**：`http://localhost:5173/Endaxis/editor`
 
 **使用说明：**
