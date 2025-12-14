@@ -408,6 +408,19 @@ watch(() => store.timelineScrollLeft, (newVal) => {
   height: 100%;
 }
 
+.chart-scroll-wrapper {
+  grid-column: 2 / 3;
+  width: 100%;
+  height: 100%;
+  overflow-x: hidden;
+  overflow-y: hidden;
+  position: relative;
+}
+
+.chart-svg {
+  display: block;
+}
+
 .enemy-select-area {
   flex-shrink: 0;
   background: #333;

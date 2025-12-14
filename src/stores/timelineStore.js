@@ -20,7 +20,7 @@ export const useTimelineStore = defineStore('timeline', () => {
         staggerNodeCount: 0,
         staggerNodeDuration: 2,
         staggerBreakDuration: 10,
-        executionRecovery: 100
+        executionRecovery: 25
     }
 
     const systemConstants = ref({ ...DEFAULT_SYSTEM_CONSTANTS })
@@ -29,7 +29,7 @@ export const useTimelineStore = defineStore('timeline', () => {
         staggerNodeCount: 0,
         staggerNodeDuration: 2,
         staggerBreakDuration: 10,
-        executionRecovery: 100
+        executionRecovery: 25
     })
 
     watch(systemConstants, (newVal) => {
