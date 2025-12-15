@@ -3,12 +3,15 @@ import { ref, provide, onMounted, onUnmounted, nextTick, computed, watch } from 
 import { useTimelineStore } from '../stores/timelineStore.js'
 import ActionItem from './ActionItem.vue'
 import ActionConnector from './ActionConnector.vue'
+import ConnectionPreview from './ConnectionPreview.vue'
 import GaugeOverlay from './GaugeOverlay.vue'
 import ContextMenu from './ContextMenu.vue'
 import { ElMessage } from 'element-plus'
 import { Search } from '@element-plus/icons-vue'
+import { useDragConnection } from '@/composables/useDragConnection.js'
 
 const store = useTimelineStore()
+const connectionHandler = useDragConnection()
 
 // ===================================================================================
 // 初始化与常量
@@ -278,6 +281,7 @@ const currentStaggerValue = computed(() => {
 
 function onGridMouseMove(evt) {
   if (!tracksContentRef.value) return
+  store.setCursorPosition(evt.clientX, evt.clientY)
   const rect = tracksContentRef.value.getBoundingClientRect()
   const scrollLeft = tracksContentRef.value.scrollLeft
   cursorX.value = Math.round((evt.clientX - rect.left) + scrollLeft)
@@ -500,7 +504,7 @@ function onActionMouseDown(evt, track, action) {
     return
   }
 
-  if (store.isLinking) return
+  if (connectionHandler.isDragging.value) return
   if (evt.button !== 0) return
 
   const clientX = evt.clientX
@@ -620,6 +624,12 @@ function onWindowMouseMove(evt) {
   }
 }
 
+function onGlobalWindowMouseUp(event) {
+  if (connectionHandler.isDragging.value && event && event.target.tagName !== 'BUTTON') {
+      connectionHandler.cancelDrag() 
+  }
+}
+
 function onWindowMouseUp(evt) {
   autoScrollSpeed.value = 0
   if (autoScrollRaf) { cancelAnimationFrame(autoScrollRaf); autoScrollRaf = null }
@@ -627,14 +637,10 @@ function onWindowMouseUp(evt) {
   const _wasDragging = isDragStarted.value
   try {
     if (!isDragStarted.value && movingActionId.value) {
-      if (store.isLinking) {
-        store.confirmLinking(movingActionId.value)
-      } else {
-        if (store.selectedAnomalyId) {
-          store.setSelectedAnomalyId(null)
-        } else if (wasSelectedOnPress.value) {
-          store.selectAction(movingActionId.value)
-        }
+      if (store.selectedAnomalyId) {
+        store.setSelectedAnomalyId(null)
+      } else if (wasSelectedOnPress.value) {
+        store.selectAction(movingActionId.value)
       }
     } else if (_wasDragging) { store.commitState() }
   } catch (error) { console.error("MouseUp Error:", error) } finally {
@@ -655,14 +661,10 @@ function onTrackDrop(track, evt) {
   nextTick(() => forceSvgUpdate())
 }
 function onTrackDragOver(evt) { evt.preventDefault(); evt.dataTransfer.dropEffect = 'copy' }
-function onActionClick(action) {
-  if (store.isLinking) {
-    store.confirmLinking(action.instanceId, null)
-  }
-}
+
 function onBackgroundClick(event) {
   if (!event || event.target === tracksContentRef.value || event.target.classList.contains('track-row') || event.target.classList.contains('time-block')) {
-    store.cancelLinking(); store.selectTrack(null)
+    store.selectTrack(null)
   }
 }
 
@@ -730,6 +732,7 @@ onMounted(() => {
   window.addEventListener('keydown', handleGlobalKeyDownWrapper)
   window.addEventListener('keyup', handleGlobalKeyUp)
   window.addEventListener('blur', resetModifierKeys)
+  window.addEventListener('mouseup', onGlobalWindowMouseUp)
 })
 onUnmounted(() => {
   if (tracksContentRef.value) {
@@ -742,6 +745,7 @@ onUnmounted(() => {
   window.removeEventListener('mousemove', onBoxMouseMove)
   window.removeEventListener('mouseup', onBoxMouseUp)
   window.removeEventListener('blur', resetModifierKeys)
+  window.removeEventListener('mouseup', onGlobalWindowMouseUp)
 })
 </script>
 
@@ -869,6 +873,7 @@ onUnmounted(() => {
         <svg class="connections-svg">
           <template v-if="tracksContentRef">
             <ActionConnector v-for="conn in store.connections" :key="conn.id" :connection="conn" :container-ref="tracksContentRef" :render-key="svgRenderKey"/>
+            <ConnectionPreview v-if="connectionHandler.isDragging" :container-ref="tracksContentRef" />
           </template>
         </svg>
 
@@ -882,7 +887,6 @@ onUnmounted(() => {
                 @mousedown="onActionMouseDown($event, track, action)"
                 @mousemove="updateAlignGuide($event, action, $el.querySelector(`#action-${action.instanceId}`))"
                 @mouseleave="hideAlignGuide"
-                @click.stop="onActionClick(action)"
                 @contextmenu.prevent.stop="onActionContextMenu($event, action)"
                 :class="{ 'is-moving': isDragStarted && store.isActionSelected(action.instanceId) }"
               />

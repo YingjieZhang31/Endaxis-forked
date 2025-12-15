@@ -4,9 +4,11 @@ import { useTimelineStore } from '../stores/timelineStore.js'
 import draggable from 'vuedraggable'
 import CustomNumberInput from './CustomNumberInput.vue'
 import { ArrowRight } from '@element-plus/icons-vue'
+import { useDragConnection } from '@/composables/useDragConnection.js'
+import { getRectPos } from '@/utils/getRectPos.js'
 
 const store = useTimelineStore()
-
+const connectionHandler = useDragConnection()
 // ===================================================================================
 // 1. 常量与配置
 // ===================================================================================
@@ -412,6 +414,22 @@ function updateConnPort(connId, type, event) {
   const val = event.target.value
   store.updateConnectionPort(connId, type, val)
 }
+
+function handleStartConnection(id) {
+  if (connectionHandler.isDragging.value) {
+    connectionHandler.cancelDrag()
+    return
+  }
+
+  const domNodeId = store.getDomNodeIdByNodeId(id)
+  const domNode = document.getElementById(domNodeId)
+
+  if (!domNode) {
+    return
+  }
+  
+  connectionHandler.newConnectionFrom(getRectPos(domNode.getBoundingClientRect(), 'right'), id, 'right')
+}
 </script>
 
 <template>
@@ -595,8 +613,8 @@ function updateConnPort(connId, type, event) {
         </div>
 
         <div class="editor-actions">
-          <button v-if="!isLibraryMode" class="action-btn link-style" @click.stop="store.startLinking(currentFlatIndex)"
-                  :class="{ 'is-linking': store.isLinking && store.linkingEffectIndex === currentFlatIndex }">
+          <button v-if="!isLibraryMode" class="action-btn link-style" @click.stop="handleStartConnection(activeAnomalyId)"
+                  :class="{ 'is-linking': connectionHandler.isDragging.value && connectionHandler.state.value.sourceId === activeAnomalyId }">
             连线
           </button>
           <button class="action-btn delete-style" @click="removeEffect(currentSelectedCoords.rowIndex, currentSelectedCoords.colIndex)">删除</button>
@@ -607,9 +625,9 @@ function updateConnPort(connId, type, event) {
     <div v-if="!isLibraryMode" class="section-container no-border" style="margin-top: 20px;">
       <div class="connection-header-group">
         <div class="section-label">动作连线关系</div>
-        <button class="main-link-btn" @click.stop="store.startLinking()"
-                :class="{ 'is-linking': store.isLinking && store.linkingEffectIndex === null }">
-          {{ (store.isLinking && store.linkingEffectIndex === null) ? '选择目标...' : '+ 新建连线' }}
+        <button class="main-link-btn" @click.stop="handleStartConnection(store.selectedActionId)"
+                :class="{ 'is-linking': connectionHandler.isDragging.value && connectionHandler.state.value.sourceId === store.selectedActionId }">
+          {{ (connectionHandler.isDragging.value && connectionHandler.state.value.sourceId === store.selectedActionId) ? '选择目标...' : '+ 新建连线' }}
         </button>
       </div>
 

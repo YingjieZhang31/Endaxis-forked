@@ -1,12 +1,17 @@
 <script setup>
-import { computed } from 'vue'
+import { computed, ref } from 'vue'
 import { useTimelineStore } from '../stores/timelineStore.js'
+import { useDragConnection } from '../composables/useDragConnection.js'
+import ActionLinkPorts from './ActionLinkPorts.vue'
+import { getRectPos } from '@/utils/getRectPos.js'
 
 const props = defineProps({
   action: { type: Object, required: true }
 })
 
 const store = useTimelineStore()
+const connectionHandler = useDragConnection()
+
 const isSelected = computed(() => store.isActionSelected(props.action.instanceId))
 
 // 幽灵模式：triggerWindow < 0 时仅显示逻辑点，不显示实体框
@@ -157,6 +162,17 @@ function hexToRgba(hex, alpha) {
   return 'rgba(' + [(c >> 16) & 255, (c >> 8) & 255, c & 255].join(',') + ',' + alpha + ')'
 }
 
+const connectionSourceActionId = computed(() => {
+  const node = store.resolveNode(connectionHandler.state.value.sourceId)
+  if (!node) {
+    return null
+  }
+  if (node.type === 'action') {
+    return node.id
+  }
+  return node.actionId
+})
+
 // 计算判定点的位置样式
 const renderableTicks = computed(() => {
   const ticks = props.action.damageTicks || []
@@ -261,16 +277,51 @@ const renderableAnomalies = computed(() => {
 
 function onIconClick(evt, item, flatIndex) {
   evt.stopPropagation()
-  if (store.isLinking) {
-    store.confirmLinking(props.action.instanceId, flatIndex)
-  } else {
-    store.selectAnomaly(props.action.instanceId, item.rowIndex, item.colIndex)
+  store.selectAnomaly(props.action.instanceId, item.rowIndex, item.colIndex)
+}
+
+function handleConnectionDrop(port) {
+  connectionHandler.endDrag(props.action.instanceId, port)
+}
+
+function handleConnectionSnap(port, snapPos) {
+  if (connectionSourceActionId.value !== props.action.instanceId) {
+    connectionHandler.snapTo(props.action.instanceId, port, snapPos)
   }
+}
+
+function handleActionDragStart(startPos, port) {
+  connectionHandler.newConnectionFrom(startPos, props.action.instanceId, port)
+}
+
+function handleEffectDragStart(event, effectId) {
+  if (connectionHandler.isDragging.value) {
+    return
+  }
+  const rect = event.target.getBoundingClientRect()
+  connectionHandler.newConnectionFrom(getRectPos(rect, 'right'), effectId, 'right')
+}
+
+function handleEffectSnap(event, effectId) {
+  if (connectionSourceActionId.value !== props.action.instanceId) {
+    const rect = event.target.getBoundingClientRect()
+    connectionHandler.snapTo(effectId, 'left', getRectPos(rect, 'left'))
+  }
+}
+
+function handleEffectDrop(effectId) {
+  connectionHandler.endDrag(effectId, 'left')
 }
 </script>
 
 <template>
-  <div :id="`action-${action.instanceId}`" class="action-item-wrapper" @mouseenter="store.setHoveredAction(action.instanceId)" @mouseleave="store.setHoveredAction(null)":style="style" @click.stop @dragstart.prevent>
+  <div :id="`action-${action.instanceId}`" ref="actionElRef" class="action-item-wrapper" 
+       @mouseenter="store.setHoveredAction(action.instanceId)" 
+       @mouseleave="store.setHoveredAction(null)" 
+       :style="style" 
+       @click.stop 
+       @dragstart.prevent>
+
 
     <div v-if="!isGhostMode && action.cooldown > 0" class="cd-bar-container" :style="cdStyle">
       <div class="cd-line" :style="{ backgroundColor: themeColor }"></div>
@@ -341,15 +392,26 @@ function onIconClick(evt, item, flatIndex) {
 
     <div v-if="!isGhostMode" class="action-item-content drag-handle">{{ action.name }}</div>
 
+    <ActionLinkPorts @drop="handleConnectionDrop" @snap="handleConnectionSnap"
+      @drag-start="handleActionDragStart" @clear-snap="connectionHandler.clearSnap"
+      :isDragging="connectionHandler.isDragging.value"
+      :disabled="connectionSourceActionId === props.action.instanceId"
+      v-if="!isGhostMode && !store.isDraggingLink"
+      :show="isSelected || store.hoveredActionId === action.instanceId || (connectionHandler.isDragging.value && connectionSourceActionId !== action.instanceId)" :color="themeColor" />
+
     <div v-if="!isGhostMode" class="anomalies-overlay">
       <div v-for="(item, index) in renderableAnomalies" :key="`${item.rowIndex}-${item.colIndex}`"
            class="anomaly-wrapper" :style="item.style">
 
         <div :id="`anomaly-${action.instanceId}-${index}`"
              class="anomaly-icon-box"
-             :class="{ 'is-link-target': store.isLinking && store.linkingSourceId !== action.instanceId }"
-             @mousedown.stop="onIconClick($event, item, index)"
-             @click.stop>
+             :class="{ 'is-link-target': connectionHandler.isDragging.value && connectionSourceActionId !== action.instanceId }"
+             @mousedown.stop="handleEffectDragStart($event, item.data._id)"
+             @mouseover.stop="handleEffectSnap($event, item.data._id)"
+             @mouseup.stop="handleEffectDrop(item.data._id)"
+             @mouseleave="connectionHandler.clearSnap()"
+             @click.stop="onIconClick($event, item, index)">
+
           <img :src="getIconPath(item.data.type)" class="anomaly-icon"/>
           <div v-if="item.data.stacks > 1" class="anomaly-stacks">{{ item.data.stacks }}</div>
         </div>

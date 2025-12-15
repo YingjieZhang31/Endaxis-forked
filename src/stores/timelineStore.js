@@ -92,6 +92,96 @@ export const useTimelineStore = defineStore('timeline', () => {
     const connections = ref([])
     const characterOverrides = ref({})
 
+    const connectionMap = computed(() => {
+        const map = new Map()
+        for (const conn of connections.value) {
+            map.set(conn.id, conn)
+        }
+        return map
+    })
+
+    const actionMap = computed(() => {
+        const map = new Map()
+        for (const track of tracks.value) {
+            for (const action of track.actions) {
+                map.set(action.instanceId, {
+                    trackId: track.id,
+                    node: action,
+                    type: 'action',
+                    id: action.instanceId,
+                })
+            }
+        }
+        return map
+    })
+
+    const effectsMap = computed(() => {
+        const map = new Map()
+        for (const track of tracks.value) {
+            for (const action of track.actions) {
+                if (!action.physicalAnomaly || !action.physicalAnomaly.length) {
+                    continue
+                }
+                let currentFlatIndex = 0
+                for (let i = 0; i < action.physicalAnomaly.length; i++) {
+                    const row = action.physicalAnomaly[i]
+                    for (let j = 0; j < row.length; j++) {
+                        const effect = row[j]
+                        map.set(effect._id, {
+                            id: effect._id,
+                            node: effect,
+                            actionId: action.instanceId,
+                            rowIndex: i,
+                            colIndex: j,
+                            flatIndex: currentFlatIndex++,
+                            type: 'effect'
+                        })
+                    }
+                }
+            }
+        }
+        return map
+    })
+
+    function getConnectionById(connectionId) {
+        return connectionMap.value.get(connectionId)
+    }
+
+    function getActionById(actionId) {
+        return actionMap.value.get(actionId)
+    }
+
+    function getEffectById(effectId) {
+        return effectsMap.value.get(effectId)
+    }
+
+    function resolveNode(nodeId) {
+        return getActionById(nodeId) || getEffectById(nodeId)
+    }
+
+    function getNodesOfConnection(connectionId) {
+        const conn = getConnectionById(connectionId)
+        if (!conn) {
+            return { fromNode: null, toNode: null }
+        }
+
+        let fromNode = null
+        let toNode = null
+
+        if (conn.fromEffectId) {
+            fromNode = getEffectById(conn.fromEffectId)
+        } else if (conn.from) {
+            fromNode = getActionById(conn.from)
+        }
+        if (conn.toEffectId) {
+            toNode = getEffectById(conn.toEffectId)
+        } else if (conn.to) {
+            toNode = getActionById(conn.to)
+        }
+
+        return { fromNode, toNode }
+    }
+
     // ===================================================================================
     // 交互状态
     // ===================================================================================
@@ -101,6 +191,7 @@ export const useTimelineStore = defineStore('timeline', () => {
 
     const showCursorGuide = ref(false)
     const cursorCurrentTime = ref(0)
+    const cursorPosition = ref({ x: 0, y: 0 })
     const snapStep = ref(0.5)
 
     const globalDragOffset = ref(0)
@@ -115,10 +206,6 @@ export const useTimelineStore = defineStore('timeline', () => {
     const isBoxSelectMode = ref(false)
     const clipboard = ref(null)
 
-    const isLinking = ref(false)
-    const linkingSourceId = ref(null)
-    const linkingEffectIndex = ref(null)
-    const linkingSourceEffectId = ref(null)
     const hoveredActionId = ref(null)
 
     const isActionSelected = (id) => selectedActionId.value === id || multiSelectedIds.value.has(id)
@@ -197,6 +284,80 @@ export const useTimelineStore = defineStore('timeline', () => {
             customEnemyParams.value = { ...customEnemyParams.value, ...data.customEnemyParams }
         }
         clearSelection()
+    }
+
+    // ===================================================================================
+    // 连线拖拽
+    // ===================================================================================
+    const connectionDragState = ref({
+        isDragging: false,
+        mode: 'create',
+        sourceId: null,
+        existingConnectionId: null,
+        startPoint: { x: 0, y: 0 },
+        sourcePort: 'right',
+    })
+
+    const connectionSnapState = ref({
+        isActive: false,
+        targetId: null,
+        targetPort: null,
+        snapPos: null, // {x, y}
+    })
+
+    function createConnection(fromNode, toNode, fromPortDir, targetPortDir, isConsumption = false) {
+        let from = null
+        let to = null
+        let fromEffectIndex = null
+        let toEffectIndex = null
+        let fromEffectId = null
+        let toEffectId = null
+
+        if (fromNode.type === 'action') {
+            from = fromNode.id
+        } else if (fromNode.type === 'effect') {
+            from = fromNode.actionId
+            fromEffectId = fromNode.id
+            fromEffectIndex = fromNode.flatIndex
+        }
+
+        if (toNode.type === 'action') {
+            to = toNode.id
+        } else if (toNode.type === 'effect') {
+            to = toNode.actionId
+            toEffectId = toNode.id
+            toEffectIndex = toNode.flatIndex
+        }
+
+        if (!from || !to) {
+            return
+        }
+
+        const exists = connections.value.some(c =>
+            c.from === fromNode.id && c.to === toNode.id &&
+            (c.fromEffectId ? c.fromEffectId === fromEffectId : c.fromEffectIndex === fromEffectIndex) &&
+            (c.toEffectId ? c.toEffectId === toEffectId : c.toEffectIndex === toEffectIndex)
+        )
+
+        if (exists) {
+            return
+        }
+
+        const newConn = {
+            id: `conn_${uid()}`,
+            from,
+            to,
+            fromEffectIndex,
+            toEffectIndex,
+            fromEffectId,
+            toEffectId,
+            isConsumption,
+            sourcePort: fromPortDir || 'right',
+            targetPort: targetPortDir || 'left'
+        }
+
+        connections.value.push(newConn)
+        commitState()
     }
 
     function switchScenario(targetId) {
@@ -287,6 +448,27 @@ export const useTimelineStore = defineStore('timeline', () => {
     // ===================================================================================
 
     const timeBlockWidth = computed(() => BASE_BLOCK_WIDTH)
+
+    function getDomNodeIdByNodeId(id, { isTransfer = false } = {}) {
+        const node = resolveNode(id)
+
+        let elementId = null
+        if (node.type === 'action') {
+            elementId = `action-${node.id}`
+        } else if (node.type === 'effect') {
+            if (isTransfer) {
+                elementId = `transfer-${node.actionId}-${node.flatIndex}`
+            } else {
+                elementId = `anomaly-${node.actionId}-${node.flatIndex}`
+            }
+        }
+
+        if (!elementId) {
+            return null
+        }
+
+        return elementId
+    }
 
     const getActionPositionInfo = (instanceId) => {
         for (let i = 0; i < tracks.value.length; i++) {
@@ -467,8 +649,9 @@ export const useTimelineStore = defineStore('timeline', () => {
 
     function setScrollLeft(val) { timelineScrollLeft.value = val }
     function setCursorTime(time) { cursorCurrentTime.value = Math.max(0, time) }
+    function setCursorPosition(x, y) { cursorPosition.value = { x, y } }
     function toggleCursorGuide() { showCursorGuide.value = !showCursorGuide.value }
-    function toggleBoxSelectMode() { if (!isBoxSelectMode.value) isLinking.value = false; isBoxSelectMode.value = !isBoxSelectMode.value }
+    function toggleBoxSelectMode() { if (!isBoxSelectMode.value) connectionDragState.value.isDragging = false; isBoxSelectMode.value = !isBoxSelectMode.value }
     function toggleSnapStep() { snapStep.value = snapStep.value === 0.5 ? 0.1 : 0.5 }
 
     function setDraggingSkill(skill) { draggingSkillData.value = skill }
@@ -478,7 +661,6 @@ export const useTimelineStore = defineStore('timeline', () => {
         activeTrackId.value = trackId
         selectedLibrarySkillId.value = null
         selectedConnectionId.value = null
-        cancelLinking()
         clearSelection()
     }
 
@@ -621,67 +803,6 @@ export const useTimelineStore = defineStore('timeline', () => {
         commitState()
     }
 
-    function startLinking(effectIndex = null) {
-        if (!selectedActionId.value) return;
-        if (isLinking.value && linkingSourceId.value === selectedActionId.value && linkingEffectIndex.value === effectIndex) { cancelLinking(); return; }
-
-        isLinking.value = true;
-        linkingSourceId.value = selectedActionId.value;
-        linkingEffectIndex.value = effectIndex;
-        linkingSourceEffectId.value = null
-        if (effectIndex !== null) {
-            const track = tracks.value.find(t => t.actions.some(a => a.instanceId === selectedActionId.value))
-            const action = track?.actions.find(a => a.instanceId === selectedActionId.value)
-            if (action) {
-                const eff = getEffectByIndex(action, effectIndex)
-                if (eff) linkingSourceEffectId.value = ensureEffectId(eff)
-            }
-        }
-    }
-
-    function confirmLinking(targetId, targetEffectIndex = null) {
-        if (!isLinking.value || !linkingSourceId.value) return cancelLinking();
-        if (linkingSourceId.value === targetId) {
-            const isSourceEffect = linkingEffectIndex.value !== null;
-            const isTargetEffect = targetEffectIndex !== null;
-            if (!isSourceEffect || !isTargetEffect) { cancelLinking(); return; }
-            if (linkingEffectIndex.value === targetEffectIndex) { cancelLinking(); return; }
-        }
-
-        let toEffectId = null
-        if (targetEffectIndex !== null) {
-            const targetTrack = tracks.value.find(t => t.actions.some(a => a.instanceId === targetId))
-            const targetAction = targetTrack?.actions.find(a => a.instanceId === targetId)
-            if (targetAction) {
-                const eff = getEffectByIndex(targetAction, targetEffectIndex)
-                if (eff) toEffectId = ensureEffectId(eff)
-            }
-        }
-
-        const exists = connections.value.some(c =>
-            c.from === linkingSourceId.value && c.to === targetId &&
-            (c.fromEffectId ? c.fromEffectId === linkingSourceEffectId.value : c.fromEffectIndex === linkingEffectIndex.value) &&
-            (c.toEffectId ? c.toEffectId === toEffectId : c.toEffectIndex === targetEffectIndex)
-        )
-
-        if (!exists) {
-            connections.value.push({
-                id: `conn_${uid()}`,
-                from: linkingSourceId.value,
-                to: targetId,
-                fromEffectIndex: linkingEffectIndex.value,
-                toEffectIndex: targetEffectIndex,
-                fromEffectId: linkingSourceEffectId.value,
-                toEffectId: toEffectId,
-                isConsumption: false,
-                sourcePort: 'right',
-                targetPort: 'left'
-            })
-            commitState()
-        }
-        cancelLinking()
-    }
-
     function updateConnectionPort(connectionId, portType, direction) {
         const conn = connections.value.find(c => c.id === connectionId)
         if (conn) {
@@ -692,13 +813,6 @@ export const useTimelineStore = defineStore('timeline', () => {
             }
             commitState()
         }
-    }
-
-    function cancelLinking() {
-        isLinking.value = false;
-        linkingSourceId.value = null;
-        linkingEffectIndex.value = null;
-        linkingSourceEffectId.value = null
     }
 
     function removeConnection(connId) {
@@ -1443,15 +1557,26 @@ export const useTimelineStore = defineStore('timeline', () => {
     return {
         MAX_SCENARIOS,
         systemConstants, isLoading, characterRoster, iconDatabase, tracks, connections, activeTrackId, timelineScrollLeft, globalDragOffset, draggingSkillData,
-        selectedActionId, selectedLibrarySkillId, multiSelectedIds, clipboard, isLinking, linkingSourceId, linkingEffectIndex, linkingSourceEffectId, showCursorGuide, isBoxSelectMode, cursorCurrentTime, snapStep,
+        selectedActionId, selectedLibrarySkillId, multiSelectedIds, clipboard, showCursorGuide, isBoxSelectMode, cursorCurrentTime, cursorPosition, snapStep,
         selectedAnomalyId, setSelectedAnomalyId,
         teamTracksInfo, activeSkillLibrary, timeBlockWidth, ELEMENT_COLORS, getActionPositionInfo, getIncomingConnections, getCharacterElementColor, isActionSelected, hoveredActionId, setHoveredAction,
         fetchGameData, exportProject, importProject, exportShareString, importShareString, TOTAL_DURATION, selectTrack, changeTrackOperator, clearTrack, selectLibrarySkill, updateLibrarySkill, selectAction, updateAction,
         addSkillToTrack, setDraggingSkill, setDragOffset, setScrollLeft, calculateGlobalSpData, calculateCdReduction, calculateGaugeData, calculateGlobalStaggerData, updateTrackInitialGauge, updateTrackMaxGauge,
-        startLinking, confirmLinking, cancelLinking, removeConnection, updateConnection, updateConnectionPort, getColor, toggleCursorGuide, toggleBoxSelectMode, setCursorTime, toggleSnapStep, nudgeSelection,
+        removeConnection, updateConnection, updateConnectionPort, getColor, toggleCursorGuide, toggleBoxSelectMode, setCursorTime, setCursorPosition, toggleSnapStep, nudgeSelection,
         setMultiSelection, clearSelection, copySelection, pasteSelection, removeCurrentSelection, undo, redo, commitState,
         removeAnomaly, initAutoSave, loadFromBrowser, resetProject, selectedConnectionId, selectConnection, selectAnomaly, getAnomalyIndexById,
-        findEffectIndexById, alignActionToTarget,
+        findEffectIndexById, alignActionToTarget, getDomNodeIdByNodeId,
+        connectionMap,
+        actionMap,
+        effectsMap,
+        getConnectionById,
+        getActionById,
+        getEffectById,
+        resolveNode,
+        getNodesOfConnection,
+        connectionDragState,
+        connectionSnapState,
+        createConnection,
         contextMenu, openContextMenu, closeContextMenu,
         toggleActionLock, toggleActionDisable, setActionColor,
         enemyDatabase, activeEnemyId, applyEnemyPreset, ENEMY_TIERS, enemyCategories,

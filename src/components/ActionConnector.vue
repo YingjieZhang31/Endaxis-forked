@@ -1,6 +1,9 @@
 <script setup>
 import { computed } from 'vue'
+import ConnectionPath from './ConnectionPath.vue'
 import { useTimelineStore } from '../stores/timelineStore.js'
+import { useDragConnection } from '../composables/useDragConnection.js'
+import { PORT_DIRECTIONS } from './PortDirections.js'
 
 const props = defineProps({
   connection: { type: Object, required: true },
@@ -9,7 +12,8 @@ const props = defineProps({
 })
 
 const store = useTimelineStore()
-const gradientId = computed(() => `grad-${props.connection.id}`)
+const connectionHandler = useDragConnection()
+
 const isSelected = computed(() => store.selectedConnectionId === props.connection.id)
 
 const isRelatedToHover = computed(() => {
@@ -19,13 +23,9 @@ const isRelatedToHover = computed(() => {
 })
 
 const isDimmed = computed(() => {
-  return store.hoveredActionId && !isRelatedToHover.value && !isSelected.value
+  return store.hoveredActionId && !isRelatedToHover.value && !isSelected.value && !connectionHandler.isDragging.value
 })
 
-function onSelectClick(evt) {
-  evt.stopPropagation()
-  store.selectConnection(props.connection.id)
-}
 const resolveRealIndex = (action, storedIndex, effectId) => {
   if (!action) return storedIndex
   if (effectId) {
@@ -40,6 +40,7 @@ const getTrackCenterY = (trackIndex) => {
   if (rowEl) return rowEl.offsetTop + (rowEl.offsetHeight / 2)
   return 20 + trackIndex * 80
 }
+
 const resolveColor = (info, effectIndex, effectId) => {
   if (!info || !info.action) return store.getColor('default')
   const { action, trackIndex } = info
@@ -82,17 +83,6 @@ function onContextMenu(evt) {
   store.openContextMenu(evt, props.connection.id)
 }
 
-const PORT_DIRECTIONS = {
-  'top':          { x: 0.5, y: 0,   cx: 0,  cy: -1 },
-  'bottom':       { x: 0.5, y: 1,   cx: 0,  cy: 1 },
-  'left':         { x: 0,   y: 0.5, cx: -1, cy: 0 },
-  'right':        { x: 1,   y: 0.5, cx: 1,  cy: 0 },
-  'top-left':     { x: 0,   y: 0,   cx: -1, cy: -1 },
-  'top-right':    { x: 1,   y: 0,   cx: 1,  cy: -1 },
-  'bottom-left':  { x: 0,   y: 1,   cx: -1, cy: 1 },
-  'bottom-right': { x: 1,   y: 1,   cx: 1,  cy: 1 },
-}
-
 const getElementRectRelative = (domId, containerEl) => {
   const el = document.getElementById(domId)
   if (!el || !containerEl) return null
@@ -101,12 +91,14 @@ const getElementRectRelative = (domId, containerEl) => {
   return {
     left: (rect.left - containerRect.left) + containerEl.scrollLeft,
     top: (rect.top - containerRect.top) + containerEl.scrollTop,
+    rawLeft: rect.left,
+    rawTop: rect.top,
     width: rect.width,
     height: rect.height
   }
 }
 
-const calculatePoint = (nodeId, effectIndex, isSource, connection = null) => {
+const calculatePoint = (nodeId, effectIndex, isSource, connection = null, effectId = null) => {
   const info = store.getActionPositionInfo(nodeId)
   if (!info) return null
 
@@ -130,14 +122,12 @@ const calculatePoint = (nodeId, effectIndex, isSource, connection = null) => {
 
   if (isSource && connection && connection.isConsumption && realEffectIndex != null) {
     targetDomId = `transfer-${nodeId}-${realEffectIndex}`
-  }
-  else if (realEffectIndex != null) {
+  } else if (realEffectIndex != null) {
     targetDomId = `anomaly-${nodeId}-${realEffectIndex}`
-  }
-  else {
+  } else {
     targetDomId = `action-${nodeId}`
   }
-
+  
   if (targetDomId) {
     const rect = getElementRectRelative(targetDomId, props.containerRef)
 
@@ -151,6 +141,8 @@ const calculatePoint = (nodeId, effectIndex, isSource, connection = null) => {
       return {
         x: rect.left + (rect.width * config.x),
         y: rect.top + (rect.height * config.y),
+        rawX: rect.rawLeft + (rect.width * config.x),
+        rawY: rect.rawTop + (rect.height * config.y),
         dir: config
       }
     }
@@ -164,88 +156,52 @@ const calculatePoint = (nodeId, effectIndex, isSource, connection = null) => {
   }
 }
 
-const pathInfo = computed(() => {
+const coordinateInfo = computed(() => {
   const _trigger = props.renderKey
   const conn = props.connection
 
-  const start = calculatePoint(conn.from, conn.fromEffectIndex, true, conn)
-  const end = calculatePoint(conn.to, conn.toEffectIndex, false, conn)
+  const start = calculatePoint(conn.from, conn.fromEffectIndex, true, conn, conn.fromEffectId)
+  const end = calculatePoint(conn.to, conn.toEffectIndex, false, conn, conn.toEffectId)
 
   if (!start || !end) return null
 
   const colorStart = resolveColor(store.getActionPositionInfo(conn.from), conn.fromEffectIndex, conn.fromEffectId)
   const colorEnd = resolveColor(store.getActionPositionInfo(conn.to), conn.toEffectIndex, conn.toEffectId)
 
-  const dx = Math.abs(end.x - start.x)
-  const dy = Math.abs(end.y - start.y)
-  const dist = Math.sqrt(dx*dx + dy*dy)
-
-  const tension = Math.min(150, Math.max(40, dist * 0.4))
-
-  const c1 = {
-    x: start.x + (start.dir.cx * tension),
-    y: start.y + (start.dir.cy * tension)
-  }
-
-  const c2 = {
-    x: end.x + (end.dir.cx * tension),
-    y: end.y + (end.dir.cy * tension)
-  }
-
-  const d = `M ${start.x} ${start.y} C ${c1.x} ${c1.y}, ${c2.x} ${c2.y}, ${end.x} ${end.y}`
-
   return {
-    d,
     startPoint: { x: start.x, y: start.y },
     endPoint: { x: end.x, y: end.y },
+    rawStartPoint: { x: start.rawX, y: start.rawY },
+    rawEndPoint: { x: end.rawX, y: end.rawY },
+    startDirection: start.dir, 
+    endDirection: end.dir,
     colors: { start: colorStart, end: colorEnd }
   }
 })
+
+function onSelectClick() {
+  store.selectConnection(props.connection.id)
+}
+
+const onDragTarget = (evt) => {
+  connectionHandler.moveConnectionEnd(props.connection.id, coordinateInfo.value.rawStartPoint)
+}
 </script>
 
 <template>
-  <g
-      v-if="pathInfo"
-      class="connector-group"
-      :class="{ 'is-selected': isSelected, 'is-dimmed': isDimmed, 'is-highlighted': isRelatedToHover }"
-      @click="onSelectClick"
-      @contextmenu.prevent.stop="onContextMenu"
-  >
-    <defs>
-      <linearGradient :id="gradientId" gradientUnits="userSpaceOnUse" :x1="pathInfo.startPoint.x" :y1="pathInfo.startPoint.y" :x2="pathInfo.endPoint.x" :y2="pathInfo.endPoint.y">
-        <stop offset="0%" :stop-color="pathInfo.colors.start" stop-opacity="0.8"/>
-        <stop offset="100%" :stop-color="pathInfo.colors.end" stop-opacity="1"/>
-      </linearGradient>
-    </defs>
-    <path :d="pathInfo.d" fill="none" :stroke="pathInfo.colors.end" stroke-width="12" class="hover-zone"><title>左键选中后按 Delete 删除</title></path>
-    <path :d="pathInfo.d" fill="none" :stroke="isSelected ? '#ffffff' : `url(#${gradientId})`" stroke-width="2" stroke-linecap="round" class="main-path"/>
-    <circle r="2">
-      <animateMotion :path="pathInfo.d" dur="1.5s" repeatCount="indefinite" calcMode="spline" keyTimes="0;1" keySplines="0.4 0 0.2 1"/>
-      <animate attributeName="fill" :values="`${pathInfo.colors.start};${pathInfo.colors.end}`" dur="1.5s" repeatCount="indefinite" calcMode="spline" keyTimes="0;1" keySplines="0.4 0 0.2 1"/>
-    </circle>
-  </g>
+  <ConnectionPath
+    v-if="coordinateInfo"
+    :id="connection.id"
+    :start-point="coordinateInfo.startPoint"
+    :end-point="coordinateInfo.endPoint"
+    :start-direction="coordinateInfo.startDirection"
+    :end-direction="coordinateInfo.endDirection"
+    :colors="coordinateInfo.colors"
+    :is-selected="isSelected"
+    :is-dimmed="isDimmed"
+    :is-highlighted="isRelatedToHover"
+    @click="onSelectClick"
+    @contextmenu="onContextMenu"
+    @drag-start-target="onDragTarget"
+  />
 </template>
-
-<style scoped>
-.connector-group {
-  cursor: pointer;
-  transition: opacity 0.2s, filter 0.2s;
-}
-.connector-group.is-dimmed {
-  opacity: 0.1;
-  filter: grayscale(0.8);
-}
-.connector-group.is-highlighted .main-path {
-  stroke-width: 3;
-  filter: drop-shadow(0 0 3px rgba(255, 255, 255, 0.4));
-}
-.connector-group.is-selected .main-path {
-  stroke-width: 3;
-  filter: drop-shadow(0 0 4px rgba(255, 255, 255, 0.9));
-  z-index: 999;
-}
-.hover-zone { pointer-events: stroke; transition: stroke-opacity 0.2s; stroke-opacity: 0; }
-.connector-group:hover .hover-zone { stroke-opacity: 0.4; }
-.main-path { pointer-events: none; filter: drop-shadow(0 0 2px rgba(0, 0, 0, 0.5)); stroke-dasharray: 10, 5; animation: dash-flow 30s linear infinite; transition: stroke 0.2s; }
-@keyframes dash-flow { to { stroke-dashoffset: -1000; } }
-</style>
