@@ -1,9 +1,9 @@
 <script setup>
 import { computed } from 'vue'
 import ConnectionPath from './ConnectionPath.vue'
-import { useTimelineStore } from '../../stores/timelineStore.js'
-import { useDragConnection } from '../../composables/useDragConnection.js'
-import { PORT_DIRECTIONS } from './PortDirections'
+import { useTimelineStore } from '../stores/timelineStore.js'
+import { useDragConnection } from '../composables/useDragConnection.js'
+import { PORT_DIRECTIONS } from './PortDirections.ts'
 
 const props = defineProps({
   connection: { type: Object, required: true },

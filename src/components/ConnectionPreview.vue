@@ -1,9 +1,9 @@
 <script setup>
 import { computed } from 'vue'
-import { useTimelineStore } from '../../stores/timelineStore.js'
+import { useTimelineStore } from '../stores/timelineStore.js'
 import ConnectionPath from './ConnectionPath.vue'
 import { useDragConnection } from '@/composables/useDragConnection.js'
-import { PORT_DIRECTIONS } from './PortDirections.js'
+import { PORT_DIRECTIONS } from './PortDirections.ts'
 
 const props = defineProps({ containerRef: { type: Object, required: false } })
 const store = useTimelineStore()

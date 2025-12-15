@@ -1,9 +1,9 @@
 <script setup>
 import { ref, provide, onMounted, onUnmounted, nextTick, computed, watch } from 'vue'
 import { useTimelineStore } from '../stores/timelineStore.js'
-import ActionItem from './connection/ActionItem.vue'
-import ActionConnector from './connection/ActionConnector.vue'
-import ConnectionPreview from './connection/ConnectionPreview.vue'
+import ActionItem from './ActionItem.vue'
+import ActionConnector from './ActionConnector.vue'
+import ConnectionPreview from './ConnectionPreview.vue'
 import GaugeOverlay from './GaugeOverlay.vue'
 import ContextMenu from './ContextMenu.vue'
 import { ElMessage } from 'element-plus'

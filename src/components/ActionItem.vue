@@ -1,7 +1,7 @@
 <script setup>
 import { computed, ref } from 'vue'
-import { useTimelineStore } from '../../stores/timelineStore.js'
-import { useDragConnection } from '../../composables/useDragConnection.js'
+import { useTimelineStore } from '../stores/timelineStore.js'
+import { useDragConnection } from '../composables/useDragConnection.js'
 import ActionLinkPorts from './ActionLinkPorts.vue'
 import { getRectPos } from '@/utils/getRectPos.js'
 
