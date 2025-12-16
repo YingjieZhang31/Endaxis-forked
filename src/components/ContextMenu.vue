@@ -153,8 +153,8 @@ function handleSetPort(type, direction) {
 
       <div class="menu-item" @click="handleLock">
         <span class="icon">
-          <svg v-if="targetAction.isLocked" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect><path d="M7 11V7a5 5 0 0 1 10 0v4"></path></svg>
-          <svg v-else viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect><path d="M7 11V7a5 5 0 0 1 9.9-1"></path></svg>
+          <svg v-if="targetAction.isLocked" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect><path d="M7 11V7a5 5 0 0 1 9.9-1"></path></svg>
+          <svg v-else viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect><path d="M7 11V7a5 5 0 0 1 10 0v4"></path></svg>
         </span>
         <span class="label">{{ targetAction.isLocked ? '解锁位置' : '锁定位置' }}</span>
       </div>
@@ -163,14 +163,14 @@ function handleSetPort(type, direction) {
         <span class="icon">
           <svg v-if="targetAction.isDisabled" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
             <circle cx="12" cy="12" r="10"></circle>
-            <line x1="4.93" y1="4.93" x2="19.07" y2="19.07"></line>
+            <path d="M9 12l2 2 4-4"></path>
           </svg>
-
           <svg v-else viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
             <circle cx="12" cy="12" r="10"></circle>
-            <path d="M9 12l2 2 4-4"></path> </svg>
+            <line x1="4.93" y1="4.93" x2="19.07" y2="19.07"></line>
+          </svg>
         </span>
-        <span class="label">{{ targetAction.isDisabled ? '启用计算' : '禁用 (不计算)' }}</span>
+        <span class="label">{{ targetAction.isDisabled ? '启用 (计算)' : '禁用 (不计算)' }}</span>
       </div>
 
       <div class="divider"></div>
@@ -191,7 +191,7 @@ function handleSetPort(type, direction) {
       </div>
     </template>
 
-    <template v-if="targetConnection">
+    <template v-else-if="targetConnection">
       <div class="menu-header">连线设置</div>
 
       <div class="menu-item has-submenu">
