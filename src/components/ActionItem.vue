@@ -3,7 +3,7 @@ import { computed, ref } from 'vue'
 import { useTimelineStore } from '../stores/timelineStore.js'
 import { useDragConnection } from '../composables/useDragConnection.js'
 import ActionLinkPorts from './ActionLinkPorts.vue'
-import { getRectPos } from '@/utils/getRectPos.js'
+import { getRectPos } from '@/utils/layoutUtils.js'
 
 const props = defineProps({
   action: { type: Object, required: true }

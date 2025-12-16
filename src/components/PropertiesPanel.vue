@@ -5,7 +5,7 @@ import draggable from 'vuedraggable'
 import CustomNumberInput from './CustomNumberInput.vue'
 import { ArrowRight } from '@element-plus/icons-vue'
 import { useDragConnection } from '@/composables/useDragConnection.js'
-import { getRectPos } from '@/utils/getRectPos.js'
+import { getRectPos } from '@/utils/layoutUtils.js'
 
 const store = useTimelineStore()
 const connectionHandler = useDragConnection()
