@@ -306,6 +306,10 @@ const showPorts = computed(() => {
   return false
 })
 
+const isActionValidConnectionTarget = computed(() => {
+  return connectionHandler.isNodeValid(props.action.instanceId)
+})
+
 function onIconClick(evt, item, flatIndex) {
   evt.stopPropagation()
   store.selectAnomaly(props.action.instanceId, item.rowIndex, item.colIndex)
@@ -335,6 +339,9 @@ function handleEffectDragStart(event, effectId) {
 
 function handleEffectSnap(event, effectId) {
   if (connectionSourceActionId.value !== props.action.instanceId) {
+    if (!connectionHandler.isNodeValid(effectId)) {
+      return
+    }
     const rect = event.target.getBoundingClientRect()
     connectionHandler.snapTo(effectId, 'left', getRectPos(rect, 'left'))
   }
@@ -347,6 +354,7 @@ function handleEffectDrop(effectId) {
 
 <template>
   <div :id="`action-${action.instanceId}`" ref="actionElRef" class="action-item-wrapper"
+       :class="{ 'is-link-target-invalid': !isActionValidConnectionTarget && connectionSourceActionId !== action.instanceId }"
        @mouseenter="store.setHoveredAction(action.instanceId)"
        @mouseleave="store.setHoveredAction(null)"
        :style="style"
@@ -428,7 +436,7 @@ function handleEffectDrop(effectId) {
     <ActionLinkPorts @drop="handleConnectionDrop" @snap="handleConnectionSnap"
       @drag-start="handleActionDragStart" @clear-snap="connectionHandler.clearSnap"
       :isDragging="connectionHandler.isDragging.value"
-      :disabled="connectionSourceActionId === props.action.instanceId"
+      :disabled="!isActionValidConnectionTarget"
       :canStart="connectionHandler.toolEnabled.value"
       v-if="showPorts"
       :color="themeColor" />
@@ -439,7 +447,7 @@ function handleEffectDrop(effectId) {
 
         <div :id="`anomaly-${action.instanceId}-${index}`"
              class="anomaly-icon-box"
-             :class="{ 'is-link-target': connectionHandler.isDragging.value && connectionSourceActionId !== action.instanceId }"
+             :class="{ 'is-link-target': connectionHandler.isNodeValid(item.data._id) }"
              @mousedown.stop="handleEffectDragStart($event, item.data._id)"
              @mouseover.stop="handleEffectSnap($event, item.data._id)"
              @mouseup.stop="handleEffectDrop(item.data._id)"

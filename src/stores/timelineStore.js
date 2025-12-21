@@ -310,6 +310,8 @@ export const useTimelineStore = defineStore('timeline', () => {
     // ===================================================================================
     const enableConnectionTool = ref(true)
 
+    const validConnectionTargetIds = ref(new Set())
+
     const connectionDragState = ref({
         isDragging: false,
         mode: 'create',
@@ -1773,7 +1775,7 @@ export const useTimelineStore = defineStore('timeline', () => {
         setMultiSelection, clearSelection, copySelection, pasteSelection, removeCurrentSelection, undo, redo, commitState,
         removeAnomaly, initAutoSave, loadFromBrowser, resetProject, selectedConnectionId, selectConnection, selectAnomaly, getAnomalyIndexById,
         findEffectIndexById, alignActionToTarget, getDomNodeIdByNodeId, moveTrack,
-        connectionMap, actionMap, effectsMap, getConnectionById, resolveNode, getNodesOfConnection, enableConnectionTool, connectionDragState, connectionSnapState, createConnection,
+        connectionMap, actionMap, effectsMap, getConnectionById, resolveNode, getNodesOfConnection, enableConnectionTool, connectionDragState, connectionSnapState, validConnectionTargetIds, createConnection,
         cycleBoundaries, selectedCycleBoundaryId, addCycleBoundary, updateCycleBoundary, selectCycleBoundary,
         contextMenu, openContextMenu, closeContextMenu,
         switchEvents, selectedSwitchEventId, addSwitchEvent, updateSwitchEvent, selectSwitchEvent,
