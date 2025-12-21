@@ -308,6 +308,8 @@ export const useTimelineStore = defineStore('timeline', () => {
     // ===================================================================================
     // 连线拖拽
     // ===================================================================================
+    const enableConnectionTool = ref(true)
+
     const connectionDragState = ref({
         isDragging: false,
         mode: 'create',
@@ -324,55 +326,13 @@ export const useTimelineStore = defineStore('timeline', () => {
         snapPos: null, // {x, y}
     })
 
-    function createConnection(fromNode, toNode, fromPortDir, targetPortDir, isConsumption = false) {
-        let from = null
-        let to = null
-        let fromEffectIndex = null
-        let toEffectIndex = null
-        let fromEffectId = null
-        let toEffectId = null
-
-        if (fromNode.type === 'action') {
-            from = fromNode.id
-        } else if (fromNode.type === 'effect') {
-            from = fromNode.actionId
-            fromEffectId = fromNode.id
-            fromEffectIndex = fromNode.flatIndex
-        }
-
-        if (toNode.type === 'action') {
-            to = toNode.id
-        } else if (toNode.type === 'effect') {
-            to = toNode.actionId
-            toEffectId = toNode.id
-            toEffectIndex = toNode.flatIndex
-        }
-
-        if (!from || !to) {
-            return
-        }
-
-        const exists = connections.value.some(c =>
-            c.from === fromNode.id && c.to === toNode.id &&
-            (c.fromEffectId ? c.fromEffectId === fromEffectId : c.fromEffectIndex === fromEffectIndex) &&
-            (c.toEffectId ? c.toEffectId === toEffectId : c.toEffectIndex === toEffectIndex)
-        )
-
-        if (exists) {
-            return
-        }
-
+    function createConnection(fromPortDir, targetPortDir, isConsumption = false, connectionData) {
         const newConn = {
             id: `conn_${uid()}`,
-            from,
-            to,
-            fromEffectIndex,
-            toEffectIndex,
-            fromEffectId,
-            toEffectId,
             isConsumption,
             sourcePort: fromPortDir || 'right',
-            targetPort: targetPortDir || 'left'
+            targetPort: targetPortDir || 'left',
+            ...connectionData
         }
 
         connections.value.push(newConn)
@@ -1813,7 +1773,7 @@ export const useTimelineStore = defineStore('timeline', () => {
         setMultiSelection, clearSelection, copySelection, pasteSelection, removeCurrentSelection, undo, redo, commitState,
         removeAnomaly, initAutoSave, loadFromBrowser, resetProject, selectedConnectionId, selectConnection, selectAnomaly, getAnomalyIndexById,
         findEffectIndexById, alignActionToTarget, getDomNodeIdByNodeId, moveTrack,
-        connectionMap, actionMap, effectsMap, getConnectionById, resolveNode, getNodesOfConnection, connectionDragState, connectionSnapState, createConnection,
+        connectionMap, actionMap, effectsMap, getConnectionById, resolveNode, getNodesOfConnection, enableConnectionTool, connectionDragState, connectionSnapState, createConnection,
         cycleBoundaries, selectedCycleBoundaryId, addCycleBoundary, updateCycleBoundary, selectCycleBoundary,
         contextMenu, openContextMenu, closeContextMenu,
         switchEvents, selectedSwitchEventId, addSwitchEvent, updateSwitchEvent, selectSwitchEvent,

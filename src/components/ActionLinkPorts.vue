@@ -5,7 +5,8 @@ const props = defineProps({
     show: { type: Boolean, default: true },
     color: { type: String, default: '#fff' },
     isDragging: { type: Boolean, default: false },
-    disabled: { type: Boolean, default: false }
+    disabled: { type: Boolean, default: false },
+    canStart: { type: Boolean, default: false }
 })
 
 const emit = defineEmits(['drag-start', 'drop', 'snap', 'clear-snap'])
@@ -98,6 +99,9 @@ function onPortMouseLeave() {
 }
 
 function onPortMouseDown(evt) {
+    if (!props.canStart) {
+        return
+    }
     emit('drag-start', { x: evt.clientX, y: evt.clientY }, activePort.value)
 }
 

@@ -291,6 +291,21 @@ const renderableAnomalies = computed(() => {
   return resultRows
 })
 
+const showPorts = computed(() => {
+  if (isGhostMode.value) {
+    return false
+  }
+  if (connectionHandler.isDragging.value) {
+    if (store.hoveredActionId === props.action.instanceId && props.action.instanceId !== connectionHandler.state.value.sourceId) {
+      return true
+    }
+    return false
+  } else if (store.hoveredActionId === props.action.instanceId && connectionHandler.toolEnabled.value) {
+    return true
+  }
+  return false
+})
+
 function onIconClick(evt, item, flatIndex) {
   evt.stopPropagation()
   store.selectAnomaly(props.action.instanceId, item.rowIndex, item.colIndex)
@@ -311,7 +326,7 @@ function handleActionDragStart(startPos, port) {
 }
 
 function handleEffectDragStart(event, effectId) {
-  if (connectionHandler.isDragging.value) {
+  if (!connectionHandler.toolEnabled.value || connectionHandler.isDragging.value) {
     return
   }
   const rect = event.target.getBoundingClientRect()
@@ -414,7 +429,8 @@ function handleEffectDrop(effectId) {
       @drag-start="handleActionDragStart" @clear-snap="connectionHandler.clearSnap"
       :isDragging="connectionHandler.isDragging.value"
       :disabled="connectionSourceActionId === props.action.instanceId"
-      v-if="!isGhostMode && store.hoveredActionId === action.instanceId || connectionHandler.isDragging.value || (connectionHandler.isDragging.value && connectionSourceActionId !== action.instanceId)"
+      :canStart="connectionHandler.toolEnabled.value"
+      v-if="showPorts"
       :color="themeColor" />
 
     <div v-if="!isGhostMode" class="anomalies-overlay">

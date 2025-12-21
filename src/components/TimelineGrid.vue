@@ -970,6 +970,17 @@ onUnmounted(() => {
               style="margin-left: 4px; font-size: 10px; font-weight: bold; width: 28px; padding: 0;">
         {{ store.snapStep }}s
       </button>
+      <button class="guide-toggle-btn"
+              :class="{ 'is-active': connectionHandler.toolEnabled.value }"
+              @click="connectionHandler.toggleTool"
+              title="切换连接工具 (Alt+L)"
+              style="margin-left: 4px; width: 28px; padding: 0;">
+        <svg viewBox="0 0 24 24" width="18" height="18" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M5 4h14c3 0 3 8 0 8h-14c-3 0-3 8 0 8h14" />
+          <circle cx="5" cy="4" r="3" fill="currentColor" stroke="none" />
+          <circle cx="19" cy="20" r="3" fill="currentColor" stroke="none" />
+        </svg>
+      </button>
     </div>
 
     <div class="time-ruler-wrapper" ref="timeRulerWrapperRef" @click="store.selectTrack(null)">
