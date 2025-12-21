@@ -267,7 +267,66 @@ const operationMarkers = computed(() => {
 // 辅助计算属性 & 事件处理
 // ===================================================================================
 
-const timeBlocks = computed(() => Array.from({length: store.TOTAL_DURATION}, (_, i) => i + 1))
+const timeBlocks = computed(() => { return Array.from({ length: store.TOTAL_DURATION }, (_, i) => i) })
+
+const dynamicTicks = computed(() => {
+  const width = TIME_BLOCK_WIDTH.value;
+  const totalSeconds = store.TOTAL_DURATION;
+  const ticks = [];
+
+  let subDivision = 1;
+  if (width >= 800) subDivision = 60;
+  else if (width >= 200) subDivision = 10;
+  else if (width >= 100) subDivision = 2;
+  else subDivision = 1;
+
+  const totalSteps = totalSeconds * subDivision;
+
+  for (let i = 0; i <= totalSteps; i++) {
+    const t = i / subDivision;
+    let type = '';
+    let label = '';
+    const isIntegerSecond = (i % subDivision === 0);
+
+    if (isIntegerSecond) {
+      const secondValue = Math.round(t);
+      const isFiveSec = secondValue % 5 === 0;
+      const showAllLabels = width >= 100;
+
+      if (showAllLabels || isFiveSec) {
+        type = 'major';
+        label = `${secondValue}s`;
+      } else {
+        type = 'major-dim';
+      }
+
+    } else {
+      if (subDivision === 2) {
+        type = 'tenth';
+      } else if (subDivision === 10) {
+        type = 'tenth';
+        if (width >= 500) label = `.${Math.round((t % 1) * 10)}`;
+      } else if (subDivision === 60) {
+        const frameIdx = i % 60;
+
+        if (frameIdx % 10 === 0 && frameIdx !== 0) {
+          type = 'tenth';
+          if (width >= 600) label = `${frameIdx}f`;
+        } else if (frameIdx % 2 === 0) {
+          type = 'frame';
+        } else {
+          if (width < 1000) continue;
+          type = 'frame';
+        }
+      } else {
+        continue;
+      }
+    }
+
+    ticks.push({ time: t, type, label, x: t * width });
+  }
+  return ticks;
+});
 
 function forceSvgUpdate() { svgRenderKey.value++ }
 
@@ -364,7 +423,7 @@ function onGridMouseMove(evt) {
   cursorX.value = Math.round((evt.clientX - rect.left) + scrollLeft)
   isCursorVisible.value = true
   const exactTime = cursorX.value / TIME_BLOCK_WIDTH.value
-  store.setCursorTime(Math.round(exactTime * 10) / 10)
+  store.setCursorTime(Math.round(exactTime * 1000) / 1000)
 }
 function onGridMouseLeave() { isCursorVisible.value = false }
 
@@ -453,6 +512,60 @@ function onBoxMouseUp() {
 }
 
 // ===================================================================================
+// 缩放逻辑
+// ===================================================================================
+
+const zoomValue = computed({
+  get: () => store.timeBlockWidth,
+  set: (val) => store.setBaseBlockWidth(val)
+})
+
+function adjustZoom(delta, anchorTime = null) {
+  const scroller = tracksContentRef.value
+  if (!scroller) return
+
+  const oldWidth = store.timeBlockWidth
+
+  if (anchorTime === null) {
+    const viewportCenterX = scroller.scrollLeft + scroller.clientWidth / 2
+    anchorTime = viewportCenterX / oldWidth
+  }
+
+  const anchorOffsetInViewport = (anchorTime * oldWidth) - scroller.scrollLeft
+
+  const newVal = oldWidth + delta
+  store.setBaseBlockWidth(newVal)
+
+  const newWidth = store.timeBlockWidth
+
+  const newScrollLeft = (anchorTime * newWidth) - anchorOffsetInViewport
+
+  nextTick(() => {
+    scroller.scrollLeft = newScrollLeft
+    syncRulerScroll()
+    forceSvgUpdate()
+  })
+}
+function handleWheel(e) {
+  if (e.ctrlKey) {
+    e.preventDefault()
+
+    if (!tracksContentRef.value) return
+
+    const rect = tracksContentRef.value.getBoundingClientRect()
+    const mouseXInViewport = e.clientX - rect.left
+
+    const timeAtMouse = (mouseXInViewport + tracksContentRef.value.scrollLeft) / store.timeBlockWidth
+
+    const zoomSpeed = 0.15
+    const direction = e.deltaY < 0 ? 1 : -1
+    const delta = Math.round(store.timeBlockWidth * zoomSpeed * direction)
+
+    adjustZoom(delta, timeAtMouse)
+  }
+}
+
+// ===================================================================================
 // 对齐辅助线逻辑
 // ===================================================================================
 
@@ -493,7 +606,7 @@ function updateAlignGuide(evt, action, element) {
   if (!isShift) {
     // 磁吸模式 (Snap)
     type = 'snap'
-    color = '#00e5ff' // 蓝
+    color = '#00e5ff'
     if (isClickLeft) {
       guideX = relLeft
       label = '接前方'
@@ -506,7 +619,7 @@ function updateAlignGuide(evt, action, element) {
   } else {
     // 对齐模式 (Align)
     type = 'align'
-    color = '#ff00ff' // 紫
+    color = '#ff00ff'
     if (isClickLeft) {
       guideX = relLeft
       label = '左对齐'
@@ -555,7 +668,9 @@ function onBackgroundContextMenu(evt) {
   const mouseXInTrack = mouseX - trackRect.left + scrollLeft
   const rawTime = mouseXInTrack / TIME_BLOCK_WIDTH.value
 
-  let clickTime = Math.round(rawTime * 10) / 10
+  const snap = store.snapStep
+  let clickTime = Math.round(rawTime / snap) * snap
+  store.openContextMenu(evt, null, Math.round(clickTime * 1000) / 1000)
   if (clickTime < 0) clickTime = 0
 
   store.openContextMenu(evt, null, clickTime)
@@ -662,7 +777,7 @@ function updateDragPosition(clientX) {
 
         let snappedTime = Math.round(targetTime / snap) * snap;
 
-        a.logicalStartTime = Math.max(0, Math.round(snappedTime * 10) / 10);
+        a.logicalStartTime = Math.max(0, Math.round(snappedTime * 1000) / 1000);
       }
     });
   });
@@ -715,7 +830,7 @@ function onWindowMouseMove(evt) {
       const dist = Math.sqrt(Math.pow(evt.clientX - initialMouseX.value, 2) + Math.pow(evt.clientY - initialMouseY.value, 2))
       if (dist > dragThreshold) isDragStarted.value = true; else return
     }
-    let newTime = calculateTimeFromEvent(evt, 0.1)
+    let newTime = calculateTimeFromEvent(evt, store.snapStep)
     if (newTime > store.TOTAL_DURATION) newTime = store.TOTAL_DURATION
     store.updateSwitchEvent(draggingSwitchEventId.value, newTime)
     return
@@ -729,7 +844,7 @@ function onWindowMouseMove(evt) {
         return
       }
     }
-    let newTime = calculateTimeFromEvent(evt, 0.1)
+    let newTime = calculateTimeFromEvent(evt, store.snapStep)
     if (newTime > store.TOTAL_DURATION) newTime = store.TOTAL_DURATION
     store.updateCycleBoundary(draggingCycleBoundaryId.value, newTime)
     return
@@ -868,8 +983,8 @@ function handleKeyDown(event) {
     }
   }
   if (store.selectedActionId || store.multiSelectedIds.size > 0) {
-    if (event.key === 'a' || event.key === 'A' || event.key === 'ArrowLeft') { event.preventDefault(); store.nudgeSelection(-0.1) }
-    if (event.key === 'd' || event.key === 'D' || event.key === 'ArrowRight') { event.preventDefault(); store.nudgeSelection(0.1) }
+    if (event.key === 'a' || event.key === 'A' || event.key === 'ArrowLeft') { event.preventDefault(); store.nudgeSelection(-1) }
+    if (event.key === 'd' || event.key === 'D' || event.key === 'ArrowRight') { event.preventDefault(); store.nudgeSelection(1) }
   }
 }
 
@@ -919,6 +1034,7 @@ onMounted(() => {
   if (tracksContentRef.value) {
     tracksContentRef.value.addEventListener('scroll', syncRulerScroll)
     tracksContentRef.value.addEventListener('scroll', syncVerticalScroll)
+    tracksContentRef.value.addEventListener('wheel', handleWheel, { passive: false })
     resizeObserver = new ResizeObserver(() => { forceSvgUpdate(); updateScrollbarHeight() })
     resizeObserver.observe(tracksContentRef.value)
     updateScrollbarHeight()
@@ -931,6 +1047,7 @@ onMounted(() => {
 onUnmounted(() => {
   if (tracksContentRef.value) {
     tracksContentRef.value.removeEventListener('scroll', syncRulerScroll); tracksContentRef.value.removeEventListener('scroll', syncVerticalScroll); if (resizeObserver) resizeObserver.disconnect()
+    tracksContentRef.value.removeEventListener('wheel', handleWheel)
   }
   window.removeEventListener('keydown', handleGlobalKeyDownWrapper)
   window.removeEventListener('keyup', handleGlobalKeyUp)
@@ -946,47 +1063,51 @@ onUnmounted(() => {
 <template>
   <div class="timeline-grid-layout">
     <div class="corner-placeholder">
-      <button class="guide-toggle-btn" :class="{ 'is-active': store.showCursorGuide }" @click="store.toggleCursorGuide" title="辅助线 (Ctrl+G)">
-        <svg viewBox="0 0 24 24" width="14" height="14" stroke="currentColor" stroke-width="2" fill="none">
-          <circle cx="12" cy="12" r="10"></circle>
-          <line x1="12" y1="6" x2="12" y2="18"></line>
-          <line x1="6" y1="12" x2="18" y2="12"></line>
-        </svg>
-      </button>
-      <button class="guide-toggle-btn" :class="{ 'is-active': store.isBoxSelectMode }"
-              @click="store.toggleBoxSelectMode" title="框选 (Ctrl+B)" style="margin-left: 4px;">
-        <svg viewBox="0 0 24 24" width="14" height="14" stroke="currentColor" stroke-width="2" fill="none">
-          <rect x="3" y="3" width="18" height="18" rx="2" stroke-dasharray="4 4"/>
-          <path d="M8 12h8" stroke-width="1.5"/>
-          <path d="M12 8v8" stroke-width="1.5"/>
-        </svg>
-      </button>
-      <button class="guide-toggle-btn"
-              :class="{ 'is-active': store.snapStep === 0.1 }"
-              @click="store.toggleSnapStep"
-              title="切换吸附精度 (Alt+S)"
-              style="margin-left: 4px; font-size: 10px; font-weight: bold; width: 28px; padding: 0;">
-        {{ store.snapStep }}s
-      </button>
-      <button class="guide-toggle-btn"
-              :class="{ 'is-active': connectionHandler.toolEnabled.value }"
-              @click="store.toggleConnectionTool"
-              title="切换连接工具 (Alt+L)"
-              style="margin-left: 4px; width: 28px; padding: 0;">
-        <svg viewBox="0 0 24 24" width="18" height="18" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round">
-          <path d="M5 4h14c3 0 3 8 0 8h-14c-3 0-3 8 0 8h14" />
-          <circle cx="5" cy="4" r="3" fill="currentColor" stroke="none" />
-          <circle cx="19" cy="20" r="3" fill="currentColor" stroke="none" />
-        </svg>
-      </button>
+      <div class="corner-button-row">
+        <button class="mini-tool-btn" :class="{ 'is-active': store.showCursorGuide }" @click="store.toggleCursorGuide" title="辅助线 (Ctrl+G)">
+          <svg viewBox="0 0 24 24" width="12" height="12" stroke="currentColor" stroke-width="2.5" fill="none"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="6" x2="12" y2="18"></line><line x1="6" y1="12" x2="18" y2="12"></line></svg>
+        </button>
+
+        <button class="mini-tool-btn" :class="{ 'is-active': store.isBoxSelectMode }" @click="store.toggleBoxSelectMode" title="框选 (Ctrl+B)">
+          <svg viewBox="0 0 24 24" width="12" height="12" stroke="currentColor" stroke-width="2.5" fill="none"><rect x="3" y="3" width="18" height="18" rx="2" stroke-dasharray="4 4"/><path d="M8 12h8" stroke-width="1.5"/><path d="M12 8v8" stroke-width="1.5"/></svg>
+        </button>
+
+        <button class="mini-tool-btn" :class="{ 'is-active': store.snapStep < 0.1 }" @click="store.toggleSnapStep" title="吸附精度 (Alt+S)">
+          <span class="btn-text">{{ store.snapStep < 0.05 ? '1f' : '0.1s' }}</span>
+        </button>
+
+        <button class="mini-tool-btn" :class="{ 'is-active': connectionHandler.toolEnabled.value }" @click="store.toggleConnectionTool" title="连接工具 (Alt+L)">
+          <svg viewBox="0 0 24 24" width="14" height="14" stroke="currentColor" stroke-width="2" fill="none"><path d="M5 4h14c3 0 3 8 0 8h-14c-3 0-3 8 0 8h14" /><circle cx="5" cy="4" r="2" fill="currentColor"/><circle cx="19" cy="20" r="2" fill="currentColor"/></svg>
+        </button>
+      </div>
+
+      <div class="corner-zoom-row">
+        <div class="zoom-info-line">
+          <span class="zoom-label">SCALE</span>
+          <span class="zoom-value">{{ Math.round((store.timeBlockWidth / 50) * 100) }}%</span>
+        </div>
+        <div class="zoom-slider-container"><span class="zoom-icon" @click="adjustZoom(-40, null)"><svg viewBox="0 0 24 24" width="10" height="10" fill="currentColor"><path d="M19 13H5v-2h14v2z"/></svg></span>
+          <input
+              type="range"
+              class="davinci-range"
+              :min="store.ZOOM_LIMITS.MIN"
+              :max="store.ZOOM_LIMITS.MAX"
+              step="1"
+              v-model.number="zoomValue"
+          />
+          <span class="zoom-icon" @click="adjustZoom(40, null)"><svg viewBox="0 0 24 24" width="10" height="10" fill="currentColor"><path d="M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6v2z"/></svg></span>
+        </div>
+      </div>
     </div>
 
     <div class="time-ruler-wrapper" ref="timeRulerWrapperRef" @click="store.selectTrack(null)">
-      <div class="time-ruler-track">
-        <div v-for="block in timeBlocks" :key="block" class="ruler-tick"
-             :style="{ width: `${TIME_BLOCK_WIDTH}px` }"
-             :class="{ 'major-tick': (block - 1) % 5 === 0 }">
-          <span v-if="(block - 1) % 5 === 0" class="tick-label">{{ block - 1 }}s</span>
+      <div class="time-ruler-track" :style="{ width: `${store.TOTAL_DURATION * TIME_BLOCK_WIDTH}px` }">
+        <div v-for="tick in dynamicTicks"
+             :key="tick.time"
+             class="tick-line"
+             :class="tick.type"
+             :style="{ left: `${Math.round(tick.x)}px` }">
+          <span v-if="tick.label" class="tick-label">{{ tick.label }}</span>
         </div>
       </div>
       <div class="operation-layer">
@@ -1049,8 +1170,14 @@ onUnmounted(() => {
     <div class="tracks-content-scroller" ref="tracksContentRef" @mousedown="onContentMouseDown"
          @mousemove="onGridMouseMove" @mouseleave="onGridMouseLeave" @contextmenu="onBackgroundContextMenu">
 
-      <div class="cursor-guide" :style="{ left: `${cursorX}px` }" v-show="isCursorVisible && store.showCursorGuide && !store.isBoxSelectMode">
-        <div class="guide-time-label">{{ (cursorX / TIME_BLOCK_WIDTH).toFixed(1) }}s</div>
+      <div class="cursor-guide"
+           :style="{ left: `${cursorX}px` }"
+           v-show="isCursorVisible && store.showCursorGuide && !store.isBoxSelectMode">
+
+        <div class="guide-time-label">
+          {{ store.formatTimeLabel(store.cursorCurrentTime) }}
+        </div>
+
         <div class="guide-sp-label">技力: {{ currentSpValue }}</div>
         <div class="guide-stagger-label">失衡: {{ currentStaggerValue }}</div>
       </div>
@@ -1154,7 +1281,7 @@ onUnmounted(() => {
                left: `${ext.time * TIME_BLOCK_WIDTH}px`,
                width: `${ext.amount * TIME_BLOCK_WIDTH}px`}">
             <div class="freeze-duration-label">
-              {{ ext.amount.toFixed(1) }}s
+              {{ store.formatTimeLabel(ext.amount) }}
             </div>
           </div>
         </div>
@@ -1225,36 +1352,137 @@ onUnmounted(() => {
   border-bottom: 1px solid #444;
   border-right: 1px solid #444;
   display: flex;
-  align-items: center;
+  flex-direction: column;
   justify-content: center;
+  align-items: center;
+  padding: 0 8px;
   gap: 4px;
   box-sizing: border-box;
 }
 
-.guide-toggle-btn {
+.corner-button-row {
+  display: flex;
+  justify-content: space-between;
+  width: 100%;
+  gap: 4px;
+}
+
+.mini-tool-btn {
+  flex: 1;
+  height: 20px;
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 26px;
-  height: 26px;
-  padding: 4px;
-  background: none;
+  background: #2b2b2b;
   border: 1px solid #555;
-  border-radius: 4px;
-  color: #777;
+  border-radius: 3px;
+  color: #888;
   cursor: pointer;
+  padding: 0;
   transition: all 0.2s;
 }
 
-.guide-toggle-btn:hover {
-  border-color: #888;
+.mini-tool-btn:hover {
+  background: #444;
   color: #ccc;
+  border-color: #777;
 }
 
-.guide-toggle-btn.is-active {
-  border-color: #ffd700;
+.mini-tool-btn.is-active {
   color: #ffd700;
+  border-color: #ffd700;
   background: rgba(255, 215, 0, 0.1);
+}
+
+.btn-text {
+  font-size: 9px;
+  font-weight: bold;
+  transform: scale(0.9);
+}
+
+.corner-zoom-row {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+}
+
+.zoom-info-line {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  padding: 0 2px;
+  width: 100%;
+}
+
+.zoom-label {
+  font-size: 8px;
+  color: #555;
+  letter-spacing: 0.5px;
+  font-weight: bold;
+}
+
+.zoom-value {
+  font-family: 'Roboto Mono', 'Consolas', monospace;
+  font-size: 9px;
+  color: #ffd700;
+  font-weight: bold;
+  opacity: 0.9;
+}
+
+.zoom-slider-container {
+  display: flex;
+  align-items: center;
+  width: 100%;
+  gap: 4px;
+}
+
+.zoom-icon {
+  display: flex;
+  align-items: center;
+  cursor: pointer;
+  transition: color 0.2s;
+}
+
+.zoom-icon:hover {
+  color: #ffd700;
+}
+
+.davinci-range {
+  flex: 1;
+  -webkit-appearance: none;
+  appearance: none;
+  height: 2px;
+  background: #555;
+  outline: none;
+  border-radius: 1px;
+}
+
+.davinci-range::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 8px;
+  height: 8px;
+  background: #ffd700;
+  border-radius: 50%;
+  cursor: pointer;
+  border: 1px solid #333;
+  box-shadow: 0 0 2px rgba(0,0,0,0.5);
+  transition: transform 0.1s;
+}
+
+.davinci-range::-webkit-slider-thumb:hover {
+  transform: scale(1.3);
+  background: #fff;
+}
+
+.davinci-range::-moz-range-thumb {
+  width: 8px;
+  height: 8px;
+  background: #ffd700;
+  border-radius: 50%;
+  cursor: pointer;
+  border: none;
 }
 
 /* ==========================================================================
@@ -1272,40 +1500,73 @@ onUnmounted(() => {
 }
 
 .time-ruler-track {
-  display: flex;
-  flex-direction: row;
-  width: fit-content;
-  height: 100%;
-  align-items: flex-end;
-}
-
-.ruler-tick {
-  height: 12px;
-  box-sizing: border-box;
-  flex-shrink: 0;
   position: relative;
-  border-left: 1px solid #444;
+  height: 100%;
+  width: 100%;
 }
 
-.ruler-tick.major-tick {
-  border-left: 1px solid #888;
-  height: 18px;
+.tick-line {
+  position: absolute;
+  bottom: 0;
+  width: 1px;
+  pointer-events: none;
+  background: rgba(255, 255, 255, 0.3);
+  transform: translateX(-0.5px);
+  image-rendering: pixelated;
 }
 
 .tick-label {
   position: absolute;
-  left: 4px;
-  bottom: 2px;
+  left: 3px;
+  bottom: 1px;
+  white-space: nowrap;
+  font-family: 'Roboto Mono', 'Consolas', monospace;
   font-size: 10px;
-  color: #777;
-  font-family: 'Roboto Mono', monospace;
+  color: #888;
+  user-select: none;
   pointer-events: none;
+  line-height: 1;
 }
 
-.ruler-tick.major-tick .tick-label {
+.tick-line.major {
+  height: 17px;
+  background: rgba(255, 255, 255, 0.7);
+  z-index: 2;
+}
+
+.tick-line.major-dim {
+  height: 17px;
+  background: rgba(255, 255, 255, 0.15);
+  z-index: 1;
+}
+
+.tick-line.major-dim .tick-label {
+  display: none;
+}
+
+.tick-line.major .tick-label {
   color: #e0e0e0;
   font-weight: bold;
   font-size: 11px;
+  bottom: 1px;
+}
+
+.tick-line.tenth {
+  height: 10px;
+  background: rgba(255, 255, 255, 0.4);
+  z-index: 1;
+}
+
+.tick-line.frame {
+  height: 5px;
+  background: rgba(255, 255, 255, 0.2);
+}
+
+.tick-line.frame .tick-label,
+.tick-line.tenth .tick-label {
+  font-size: 8px;
+  color: #666;
+  font-style: italic;
 }
 
 /* ==========================================================================

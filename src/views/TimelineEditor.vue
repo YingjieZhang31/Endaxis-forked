@@ -292,7 +292,7 @@ function handleGlobalKeydown(e) {
   if (e.ctrlKey && (e.key === 'v' || e.key === 'V')) { e.preventDefault(); store.pasteSelection(); ElMessage.success({message: '已粘贴', duration: 800}); return }
   if (e.ctrlKey && (e.key === 'g' || e.key === 'G')) { e.preventDefault(); store.toggleCursorGuide(); ElMessage.info({ message: store.showCursorGuide ? '辅助线：开启' : '辅助线：隐藏', duration: 1500 }); return }
   if (e.ctrlKey && (e.key === 'b' || e.key === 'B')) { e.preventDefault(); store.toggleBoxSelectMode(); ElMessage.info({ message: store.isBoxSelectMode ? '框选模式：开启' : '框选模式：关闭', duration: 1500 }); return }
-  if (e.altKey && (e.key === 's' || e.key === 'S')) { e.preventDefault(); store.toggleSnapStep(); ElMessage.info({ message: `吸附精度：${store.snapStep}s`,  duration: 1000 }); return }
+  if (e.altKey && (e.key === 's' || e.key === 'S')) { e.preventDefault(); store.toggleSnapStep(); const mode = store.snapStep < 0.05 ? '1帧 (1/60s)' : '0.1s';ElMessage.info({message: `吸附精度：${mode}`, duration: 1000}); return }
   if (e.altKey && (e.key === 'l' || e.key === 'L')) { e.preventDefault(); store.toggleConnectionTool(); ElMessage.info({ message: `连接工具：${store.enableConnectionTool ? '开启' : '关闭'}`,  duration: 1000 }); return }
 }
 

@@ -44,7 +44,11 @@ export const useTimelineStore = defineStore('timeline', () => {
         }
     }, { deep: true })
 
-    const BASE_BLOCK_WIDTH = 50
+    const BASE_BLOCK_WIDTH = ref(50)
+    const ZOOM_LIMITS = {
+        MIN: 10,
+        MAX: 1200
+    }
     const TOTAL_DURATION = 120
     const MAX_SCENARIOS = 14
 
@@ -144,6 +148,11 @@ export const useTimelineStore = defineStore('timeline', () => {
         return map
     })
 
+    function setBaseBlockWidth(val) {
+        const sanitizedVal = Math.min(ZOOM_LIMITS.MAX, Math.max(ZOOM_LIMITS.MIN, val))
+        BASE_BLOCK_WIDTH.value = sanitizedVal
+    }
+
     function getConnectionById(connectionId) {
         return connectionMap.value.get(connectionId)
     }
@@ -201,7 +210,7 @@ export const useTimelineStore = defineStore('timeline', () => {
     const showCursorGuide = ref(false)
     const cursorCurrentTime = ref(0)
     const cursorPosition = ref({ x: 0, y: 0 })
-    const snapStep = ref(0.5)
+    const snapStep = ref(0.1)
 
     const globalDragOffset = ref(0)
     const draggingSkillData = ref(null)
@@ -239,7 +248,8 @@ export const useTimelineStore = defineStore('timeline', () => {
             tracks: tracks.value,
             connections: connections.value,
             characterOverrides: characterOverrides.value,
-            cycleBoundaries: cycleBoundaries.value
+            cycleBoundaries: cycleBoundaries.value,
+            switchEvents: switchEvents.value
         })
         historyStack.value.push(snapshot)
         if (historyStack.value.length > MAX_HISTORY) {
@@ -268,6 +278,7 @@ export const useTimelineStore = defineStore('timeline', () => {
         connections.value = snapshot.connections
         characterOverrides.value = snapshot.characterOverrides
         cycleBoundaries.value = snapshot.cycleBoundaries || []
+        switchEvents.value = snapshot.switchEvents || []
         clearSelection()
     }
 
@@ -432,7 +443,7 @@ export const useTimelineStore = defineStore('timeline', () => {
     // 辅助计算 (Getters & Helpers)
     // ===================================================================================
 
-    const timeBlockWidth = computed(() => BASE_BLOCK_WIDTH)
+    const timeBlockWidth = computed(() => BASE_BLOCK_WIDTH.value)
 
     function getDomNodeIdByNodeId(id, { isTransfer = false } = {}) {
         const node = resolveNode(id)
@@ -507,6 +518,15 @@ export const useTimelineStore = defineStore('timeline', () => {
         const charInfo = characterRoster.value.find(c => c.id === track.id)
         return { ...track, ...(charInfo || { name: '请选择干员', avatar: '', rarity: 0 }) }
     }))
+
+    const formatTimeLabel = (time) => {
+        if (time === undefined || time === null) return '';
+        const totalFrames = Math.round(time * 60);
+        const s = Math.floor(totalFrames / 60);
+        const f = totalFrames % 60;
+        if (f === 0) return `${s}s`;
+        return `${s}s ${f.toString().padStart(2, '0')}f`;
+    };
 
     const activeSkillLibrary = computed(() => {
         const activeChar = characterRoster.value.find(c => c.id === activeTrackId.value)
@@ -625,7 +645,13 @@ export const useTimelineStore = defineStore('timeline', () => {
     function setCursorPosition(x, y) { cursorPosition.value = { x, y } }
     function toggleCursorGuide() { showCursorGuide.value = !showCursorGuide.value }
     function toggleBoxSelectMode() { if (!isBoxSelectMode.value) connectionDragState.value.isDragging = false; isBoxSelectMode.value = !isBoxSelectMode.value }
-    function toggleSnapStep() { snapStep.value = snapStep.value === 0.5 ? 0.1 : 0.5 }
+    function toggleSnapStep() {
+        if (snapStep.value > 0.02) {
+            snapStep.value = 1 / 60;
+        } else {
+            snapStep.value = 0.1;
+        }
+    }
 
     function setDraggingSkill(skill) { draggingSkillData.value = skill }
     function setDragOffset(offset) { globalDragOffset.value = offset }
@@ -989,20 +1015,20 @@ export const useTimelineStore = defineStore('timeline', () => {
         commitState();
     }
 
-    function nudgeSelection(delta) {
+    function nudgeSelection(direction) {
         const targets = new Set(multiSelectedIds.value)
         if (selectedActionId.value) targets.add(selectedActionId.value)
         if (targets.size === 0) return
 
+        const delta = direction * snapStep.value
         let hasChanged = false
+
         tracks.value.forEach(track => {
             track.actions.forEach(action => {
-                if (targets.has(action.instanceId)) {
-                    if (action.isLocked) return
-
+                if (targets.has(action.instanceId) && !action.isLocked) {
                     if (action.logicalStartTime === undefined) action.logicalStartTime = action.startTime
 
-                    let newLogicalTime = Math.round((action.logicalStartTime + delta) * 10) / 10
+                    let newLogicalTime = Math.round((action.logicalStartTime + delta) * 1000) / 1000
                     if (newLogicalTime < 0) newLogicalTime = 0
 
                     if (action.logicalStartTime !== newLogicalTime) {
@@ -1066,7 +1092,7 @@ export const useTimelineStore = defineStore('timeline', () => {
             case 'RR': newStartTime = tEnd - sDur; break // [右对齐]
         }
 
-        newStartTime = Math.round(newStartTime * 10) / 10
+        newStartTime = Math.round(newStartTime * 1000) / 1000
 
         if (sourceAction.startTime !== newStartTime) {
             sourceAction.startTime = newStartTime
@@ -1167,7 +1193,7 @@ export const useTimelineStore = defineStore('timeline', () => {
             } else {
                 if (next) {
                     const gap = next.logicalTime - current.logicalTime;
-                    amount = Math.min(0.5, Math.max(0.1, Math.round(gap * 10) / 10));
+                    amount = Math.min(0.5, Math.max(0.1, Math.round(gap * 1000) / 1000));
                 } else {
                     amount = 0.5;
                 }
@@ -1202,7 +1228,7 @@ export const useTimelineStore = defineStore('timeline', () => {
             } else {
                 if (nextSource) {
                     const gap = nextSource.logicalStartTime - source.logicalStartTime;
-                    amount = Math.min(0.5, Math.max(0.1, Math.round(gap * 10) / 10));
+                    amount = Math.min(0.5, Math.max(0.1, Math.round(gap * 1000) / 1000));
                     interrupterId = nextSource.instanceId;
                 } else {
                     amount = 0.5;
@@ -1215,7 +1241,7 @@ export const useTimelineStore = defineStore('timeline', () => {
                 const shouldBePushedBySource = !interrupterId || target.logicalStartTime < nextSource.logicalStartTime;
 
                 if (isAfterSource && shouldBePushedBySource && !excludeSet.has(target.instanceId)) {
-                    target.startTime = Math.round((target.startTime + amount) * 10) / 10;
+                    target.startTime = Math.round((target.startTime + amount) * 1000) / 1000;
                 }
             });
         });
@@ -1757,7 +1783,7 @@ export const useTimelineStore = defineStore('timeline', () => {
         systemConstants, isLoading, characterRoster, iconDatabase, tracks, connections, activeTrackId, timelineScrollLeft, globalDragOffset, draggingSkillData,
         selectedActionId, selectedLibrarySkillId, multiSelectedIds, clipboard, showCursorGuide, isBoxSelectMode, cursorCurrentTime, cursorPosition, snapStep,
         selectedAnomalyId, setSelectedAnomalyId, updateTrackGaugeEfficiency,
-        teamTracksInfo, activeSkillLibrary, timeBlockWidth, ELEMENT_COLORS, getActionPositionInfo, getIncomingConnections, getCharacterElementColor, isActionSelected, hoveredActionId, setHoveredAction,
+        teamTracksInfo, activeSkillLibrary, BASE_BLOCK_WIDTH, setBaseBlockWidth, formatTimeLabel, ZOOM_LIMITS, timeBlockWidth, ELEMENT_COLORS, getActionPositionInfo, getIncomingConnections, getCharacterElementColor, isActionSelected, hoveredActionId, setHoveredAction,
         fetchGameData, exportProject, importProject, exportShareString, importShareString, TOTAL_DURATION, selectTrack, changeTrackOperator, clearTrack, selectLibrarySkill, updateLibrarySkill, selectAction, updateAction,
         addSkillToTrack, setDraggingSkill, setDragOffset, setScrollLeft, calculateGlobalSpData, calculateGaugeData, calculateGlobalStaggerData, updateTrackInitialGauge, updateTrackMaxGauge,
         removeConnection, updateConnection, updateConnectionPort, getColor, toggleCursorGuide, toggleBoxSelectMode, setCursorTime, setCursorPosition, toggleSnapStep, nudgeSelection,

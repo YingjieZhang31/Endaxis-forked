@@ -269,7 +269,7 @@ const renderableAnomalies = computed(() => {
         if (targetAction) {
           const consumptionTime = targetAction.startTime - (conn.consumptionOffset || 0)
           const cutDuration = consumptionTime - shiftedStartTimestamp
-          const snappedCutDuration = Math.round(cutDuration * 10) / 10
+          const snappedCutDuration = Math.round(cutDuration * 1000) / 1000
           if (snappedCutDuration >= 0) {
             finalDuration = Math.min(finalDuration, snappedCutDuration)
             isConsumed = true
@@ -284,7 +284,7 @@ const renderableAnomalies = computed(() => {
         data: effect, rowIndex, colIndex, flatIndex: myEffectIndex,
         style: { left: `${currentLeft}px`, bottom: `${100 + (rowIndex * 50)}%`, position: 'absolute', zIndex: 15 + rowIndex },
         barWidth: finalBarWidth, isConsumed, displayDuration: finalDuration,
-        extensionAmount: Math.round((finalDuration - effect.duration) * 10) / 10
+        extensionAmount: Math.round((finalDuration - effect.duration) * 1000) / 1000
       })
     })
   })
@@ -365,9 +365,7 @@ function handleEffectDrop(effectId) {
     <div v-if="!isGhostMode && action.cooldown > 0" class="cd-bar-container" :style="cdStyle">
       <div class="cd-line" :style="{ backgroundColor: themeColor }"></div>
 
-      <span class="cd-text" :style="{ color: themeColor }">
-      {{ action.cooldown }}s
-      </span>
+      <span class="cd-text" :style="{ color: themeColor }">{{ store.formatTimeLabel(action.cooldown) }}</span>
 
       <div class="cd-end-mark"
            :style="{
@@ -382,7 +380,7 @@ function handleEffectDrop(effectId) {
          :style="enhancementStyle">
 
       <div class="cd-line" style="background-color: #b37feb;"></div>
-      <span class="cd-text" style="color: #b37feb;">{{ action.enhancementTime }}s</span>
+      <span class="cd-text" style="color: #b37feb;">{{ store.formatTimeLabel(action.enhancementTime) }}</span>
       <div class="cd-end-mark" style="background-color: #b37feb;"></div>
 
     </div>
@@ -393,7 +391,7 @@ function handleEffectDrop(effectId) {
         <div class="cb-line"></div>
         <div class="cb-end-mark"></div>
         <span v-if="barItem.text" class="cb-label">{{ barItem.text }}</span>
-        <span class="cb-duration">{{ barItem.duration }}s</span>
+        <span class="cb-duration">{{ store.formatTimeLabel(barItem.duration) }}</span>
       </div>
     </template>
 
@@ -401,7 +399,7 @@ function handleEffectDrop(effectId) {
       <div v-for="(tick, idx) in renderableTicks" :key="idx"
            class="damage-tick-wrapper"
            :style="tick.style"
-           :title="`时间: ${tick.data.offset}s\n失衡值: ${tick.data.stagger || 0}\n技力回复: ${tick.data.sp || 0}`">
+           :title="`时间: ${store.formatTimeLabel(tick.data.offset)}\n失衡值: ${tick.data.stagger || 0}\n技力回复: ${tick.data.sp || 0}`">
         <div class="tick-marker"></div>
       </div>
     </div>
@@ -465,9 +463,9 @@ function handleEffectDrop(effectId) {
 
           <div class="striped-bg"></div>
           <span class="duration-text">
-            {{ item.isConsumed ? item.displayDuration.toFixed(1) + 's' : item.data.duration + 's' }}
+            {{ store.formatTimeLabel(item.isConsumed ? item.displayDuration : item.data.duration) }}
             <span v-if="!item.isConsumed && item.extensionAmount > 0" class="extension-label">
-              (+{{ item.extensionAmount }}s)
+              (+{{ store.formatTimeLabel(item.extensionAmount) }})
             </span>
           </span>
 
