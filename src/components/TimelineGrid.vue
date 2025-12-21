@@ -561,11 +561,8 @@ function onBackgroundContextMenu(evt) {
   store.openContextMenu(evt, null, clickTime)
 }
 
-const dragCleanStartTimes = new Map();
-
 function onActionMouseDown(evt, track, action) {
   evt.stopPropagation()
-
   if (action.isLocked) {
     if (evt.button === 0) {
       store.selectAction(action.instanceId)
@@ -607,7 +604,6 @@ function onActionMouseDown(evt, track, action) {
   if (evt.button !== 0) return
 
   const clientX = evt.clientX
-  const clientY = evt.clientY
   const rect = evt.currentTarget.getBoundingClientRect()
   const offset = clientX - rect.left
 
@@ -623,18 +619,19 @@ function onActionMouseDown(evt, track, action) {
     isDragStarted.value = false
     movingActionId.value = action.instanceId
     movingTrackId.value = track.id
-    initialMouseX.value = clientX
-    initialMouseY.value = clientY
+    initialMouseY.value = evt.clientY
 
     dragStartTimes.clear()
-    dragCleanStartTimes.clear()
-
     store.tracks.forEach(t => {
       t.actions.forEach(a => {
-        dragStartTimes.set(a.instanceId, a.startTime);
-        dragCleanStartTimes.set(a.instanceId, store.getCleanStartTime(a.startTime));
-      });
-    });
+        if (a.logicalStartTime === undefined) a.logicalStartTime = a.startTime
+        dragStartTimes.set(a.instanceId, a.logicalStartTime)
+      })
+    })
+
+    const trackRect = tracksContentRef.value.getBoundingClientRect()
+    const scrollLeft = tracksContentRef.value.scrollLeft
+    initialMouseX.value = (clientX - trackRect.left + scrollLeft) / TIME_BLOCK_WIDTH.value
 
     store.setDragOffset(offset)
 
@@ -647,31 +644,32 @@ function onActionMouseDown(evt, track, action) {
 function updateDragPosition(clientX) {
   if (!isDragStarted.value || !movingActionId.value) return;
 
-  const currentMouseTime = calculateTimeFromEvent({ clientX });
-  const leaderCleanOrg = dragCleanStartTimes.get(movingActionId.value);
-  if (leaderCleanOrg === undefined) return;
-  const timeDelta = currentMouseTime - leaderCleanOrg;
+  const rect = tracksContentRef.value.getBoundingClientRect();
+  const scrollLeft = tracksContentRef.value.scrollLeft;
+
+  const currentMouseLogicTime = (clientX - rect.left + scrollLeft) / TIME_BLOCK_WIDTH.value;
+
+  const delta = currentMouseLogicTime - initialMouseX.value;
 
   const selectedIds = store.multiSelectedIds;
-  const actuallyMovingIds = [];
+  const snap = store.snapStep;
 
   store.tracks.forEach(t => {
     t.actions.forEach(a => {
-      const cleanOrg = dragCleanStartTimes.get(a.instanceId);
-      if (cleanOrg === undefined) return;
-
       if (selectedIds.has(a.instanceId) && !a.isLocked) {
-        a.startTime = Math.max(0, Math.round((cleanOrg + timeDelta) * 10) / 10);
-        actuallyMovingIds.push(a.instanceId);
-      } else {
-        a.startTime = cleanOrg;
+        const orgLogical = dragStartTimes.get(a.instanceId);
+        const targetTime = orgLogical + delta;
+
+        let snappedTime = Math.round(targetTime / snap) * snap;
+
+        a.logicalStartTime = Math.max(0, Math.round(snappedTime * 10) / 10);
       }
     });
   });
 
-  store.refreshAllActionShifts(actuallyMovingIds);
+  store.refreshAllActionShifts();
 
-  nextTick(() => forceSvgUpdate());
+  nextTick(() => svgRenderKey.value++);
 }
 
 function performAutoScroll() {

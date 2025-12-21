@@ -782,7 +782,7 @@ export const useTimelineStore = defineStore('timeline', () => {
         const track = tracks.value.find(t => t.id === trackId); if (!track) return
         const clonedAnomalies = skill.physicalAnomaly ? JSON.parse(JSON.stringify(skill.physicalAnomaly)) : [];
         clonedAnomalies.forEach(row => { row.forEach(effect => ensureEffectId(effect)) })
-        const newAction = { ...skill, instanceId: `inst_${uid()}`, physicalAnomaly: clonedAnomalies, startTime }
+        const newAction = { ...skill, instanceId: `inst_${uid()}`, physicalAnomaly: clonedAnomalies, logicalStartTime: startTime, startTime: startTime }
         track.actions.push(newAction);
         track.actions.sort((a, b) => a.startTime - b.startTime)
         if (skill.type === 'link' || skill.type === 'ultimate') {
@@ -945,20 +945,11 @@ export const useTimelineStore = defineStore('timeline', () => {
         });
 
         if (found) {
-            const isTimeStopAction = (found.type === 'link' || found.type === 'ultimate');
-            const oldStartTime = found.startTime;
-            const amount = found.type === 'link' ? 0.5 : (Number(found.animationTime) || 1.5);
-            if (isTimeStopAction && patch.startTime !== undefined && patch.startTime !== oldStartTime) {
-                pullSubsequentActions(oldStartTime, amount);
-                Object.assign(found, patch);
-                pushSubsequentActions(found.startTime, amount, actionId);
-            } else {
-                Object.assign(found, patch);
-            }
+            Object.assign(found, patch);
             if (patch.startTime !== undefined) {
-                trackRef.actions.sort((a, b) => a.startTime - b.startTime);
+                found.logicalStartTime = patch.startTime;
+                refreshAllActionShifts();
             }
-
             commitState();
         }
     }
@@ -1036,20 +1027,30 @@ export const useTimelineStore = defineStore('timeline', () => {
         const targets = new Set(multiSelectedIds.value)
         if (selectedActionId.value) targets.add(selectedActionId.value)
         if (targets.size === 0) return
+
         let hasChanged = false
         tracks.value.forEach(track => {
-            let trackChanged = false
             track.actions.forEach(action => {
                 if (targets.has(action.instanceId)) {
                     if (action.isLocked) return
-                    let newTime = Math.round((action.startTime + delta) * 10) / 10
-                    if (newTime < 0) newTime = 0
-                    if (action.startTime !== newTime) { action.startTime = newTime; trackChanged = true; hasChanged = true }
+
+                    if (action.logicalStartTime === undefined) action.logicalStartTime = action.startTime
+
+                    let newLogicalTime = Math.round((action.logicalStartTime + delta) * 10) / 10
+                    if (newLogicalTime < 0) newLogicalTime = 0
+
+                    if (action.logicalStartTime !== newLogicalTime) {
+                        action.logicalStartTime = newLogicalTime
+                        hasChanged = true
+                    }
                 }
             })
-            if (trackChanged) track.actions.sort((a, b) => a.startTime - b.startTime)
         })
-        if (hasChanged) commitState()
+
+        if (hasChanged) {
+            refreshAllActionShifts()
+            commitState()
+        }
     }
 
     function copySelection() {
@@ -1183,9 +1184,9 @@ export const useTimelineStore = defineStore('timeline', () => {
         tracks.value.forEach(track => {
             track.actions.forEach(action => {
                 if (action.isDisabled) return;
-                // 收集所有冻屏源
                 if (action.type === 'link' || action.type === 'ultimate') {
                     sources.push({
+                        logicalTime: action.logicalStartTime ?? action.startTime,
                         startTime: action.startTime,
                         type: action.type,
                         instanceId: action.instanceId,
@@ -1194,8 +1195,7 @@ export const useTimelineStore = defineStore('timeline', () => {
                 }
             });
         });
-        // 必须按当前的物理开始时间排序
-        sources.sort((a, b) => a.startTime - b.startTime);
+        sources.sort((a, b) => a.logicalTime - b.logicalTime);
 
         const extensions = [];
         for (let i = 0; i < sources.length; i++) {
@@ -1204,13 +1204,10 @@ export const useTimelineStore = defineStore('timeline', () => {
             let amount = 0;
 
             if (current.type === 'ultimate') {
-                // 终结技：固定动画时长，不被打断
                 amount = current.animationTime;
             } else {
-                // 连携：计算到下一个源的间距
                 if (next) {
-                    const gap = next.startTime - current.startTime;
-                    // 最小留 0.1s，最大 0.5s
+                    const gap = next.logicalTime - current.logicalTime;
                     amount = Math.min(0.5, Math.max(0.1, Math.round(gap * 10) / 10));
                 } else {
                     amount = 0.5;
@@ -1221,48 +1218,44 @@ export const useTimelineStore = defineStore('timeline', () => {
         return extensions;
     });
 
-    function getCleanStartTime(shiftedTime, excludeActionId = null) {
-        let cleanTime = shiftedTime;
-        const extensions = [...globalExtensions.value]
-            .filter(ext => ext.sourceId !== excludeActionId)
-            .sort((a, b) => b.time - a.time);
-
-        extensions.forEach(ext => {
-            if (cleanTime > ext.time) {
-                cleanTime = Math.max(ext.time, cleanTime - ext.amount);
-            }
-        });
-        return Math.round(cleanTime * 10) / 10;
-    }
-
     function refreshAllActionShifts(excludeIds = []) {
         const excludeSet = new Set(Array.isArray(excludeIds) ? excludeIds : [excludeIds]);
 
-        const allActions = tracks.value.flatMap(t => t.actions).sort((a, b) => a.startTime - b.startTime);
-        // 找出所有生效的时停源
+        const allActions = tracks.value.flatMap(t => t.actions)
+            .sort((a, b) => (a.logicalStartTime ?? a.startTime) - (b.logicalStartTime ?? b.startTime));
+
+        allActions.forEach(a => {
+            if (a.logicalStartTime === undefined) a.logicalStartTime = a.startTime;
+            if (!excludeSet.has(a.instanceId)) {
+                a.startTime = a.logicalStartTime;
+            }
+        });
+
         const stopSources = allActions.filter(a => (a.type === 'link' || a.type === 'ultimate') && !a.isDisabled);
 
         stopSources.forEach((source, index) => {
             const nextSource = stopSources[index + 1];
             let amount = 0;
+            let interrupterId = null;
 
             if (source.type === 'ultimate') {
                 amount = Number(source.animationTime) || 1.5;
             } else {
-                // 连携逻辑：根据与下一个源的物理间距决定推多少
                 if (nextSource) {
-                    const gap = nextSource.startTime - source.startTime;
+                    const gap = nextSource.logicalStartTime - source.logicalStartTime;
                     amount = Math.min(0.5, Math.max(0.1, Math.round(gap * 10) / 10));
+                    interrupterId = nextSource.instanceId;
                 } else {
                     amount = 0.5;
                 }
             }
 
             allActions.forEach(target => {
-                // 如果 target 在 source 物理时间之后，则推后
-                if (target.startTime >= source.startTime &&
-                    target.instanceId !== source.instanceId &&
-                    !excludeSet.has(target.instanceId)) {
+                const isAfterSource = target.logicalStartTime > source.logicalStartTime;
+
+                const shouldBePushedBySource = !interrupterId || target.logicalStartTime < nextSource.logicalStartTime;
+
+                if (isAfterSource && shouldBePushedBySource && !excludeSet.has(target.instanceId)) {
                     target.startTime = Math.round((target.startTime + amount) * 10) / 10;
                 }
             });
@@ -1370,7 +1363,7 @@ export const useTimelineStore = defineStore('timeline', () => {
                 const prevVal = currentVal;
                 currentVal += ev.change;
 
-                // 触发击破 (Break)
+                // 触发击破
                 if (currentVal >= maxStagger) {
                     currentVal = 0;
                     // 击破时长受现实时间延长逻辑影响
@@ -1379,7 +1372,7 @@ export const useTimelineStore = defineStore('timeline', () => {
                     lockSegments.push({ start: currentTime, end: lockedUntil });
                     points.push({ time: currentTime, val: 0 });
                 }
-                // 触发节点锁定 (Node Lock)
+                // 触发节点锁定
                 else if (hasNodes) {
                     const prevNodeIdx = Math.floor(prevVal / nodeStep);
                     const currNodeIdx = Math.floor(currentVal / nodeStep);
@@ -1817,7 +1810,7 @@ export const useTimelineStore = defineStore('timeline', () => {
         contextMenu, openContextMenu, closeContextMenu,
         switchEvents, selectedSwitchEventId, addSwitchEvent, updateSwitchEvent, selectSwitchEvent,
         toggleActionLock, toggleActionDisable, setActionColor,
-        globalExtensions, getShiftedEndTime, getCleanStartTime, refreshAllActionShifts,
+        globalExtensions, getShiftedEndTime,  refreshAllActionShifts,
         enemyDatabase, activeEnemyId, applyEnemyPreset, ENEMY_TIERS, enemyCategories,
         scenarioList, activeScenarioId, switchScenario, addScenario, duplicateScenario, deleteScenario,
     }
