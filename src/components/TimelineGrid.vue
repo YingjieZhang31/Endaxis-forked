@@ -972,7 +972,7 @@ onUnmounted(() => {
       </button>
       <button class="guide-toggle-btn"
               :class="{ 'is-active': connectionHandler.toolEnabled.value }"
-              @click="connectionHandler.toggleTool"
+              @click="store.toggleConnectionTool"
               title="切换连接工具 (Alt+L)"
               style="margin-left: 4px; width: 28px; padding: 0;">
         <svg viewBox="0 0 24 24" width="18" height="18" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round">

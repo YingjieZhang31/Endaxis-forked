@@ -328,6 +328,10 @@ export const useTimelineStore = defineStore('timeline', () => {
         snapPos: null, // {x, y}
     })
 
+    function toggleConnectionTool() {
+        enableConnectionTool.value = !enableConnectionTool.value
+    }
+
     function createConnection(fromPortDir, targetPortDir, isConsumption = false, connectionData) {
         const newConn = {
             id: `conn_${uid()}`,
@@ -1775,7 +1779,7 @@ export const useTimelineStore = defineStore('timeline', () => {
         setMultiSelection, clearSelection, copySelection, pasteSelection, removeCurrentSelection, undo, redo, commitState,
         removeAnomaly, initAutoSave, loadFromBrowser, resetProject, selectedConnectionId, selectConnection, selectAnomaly, getAnomalyIndexById,
         findEffectIndexById, alignActionToTarget, getDomNodeIdByNodeId, moveTrack,
-        connectionMap, actionMap, effectsMap, getConnectionById, resolveNode, getNodesOfConnection, enableConnectionTool, connectionDragState, connectionSnapState, validConnectionTargetIds, createConnection,
+        connectionMap, actionMap, effectsMap, getConnectionById, resolveNode, getNodesOfConnection, enableConnectionTool, connectionDragState, connectionSnapState, validConnectionTargetIds, createConnection, toggleConnectionTool,
         cycleBoundaries, selectedCycleBoundaryId, addCycleBoundary, updateCycleBoundary, selectCycleBoundary,
         contextMenu, openContextMenu, closeContextMenu,
         switchEvents, selectedSwitchEventId, addSwitchEvent, updateSwitchEvent, selectSwitchEvent,
