@@ -46,7 +46,7 @@ export const useTimelineStore = defineStore('timeline', () => {
 
     const BASE_BLOCK_WIDTH = ref(50)
     const ZOOM_LIMITS = {
-        MIN: 10,
+        MIN: 15,
         MAX: 1200
     }
     const TOTAL_DURATION = 120
@@ -1486,22 +1486,34 @@ export const useTimelineStore = defineStore('timeline', () => {
             ? track.maxGaugeOverride
             : ((override && override.gaugeCost) ? override.gaugeCost : (charInfo.ultimate_gaugeMax || 100));
 
-        // 识别大招封禁区间（大招动画及强化期间通常不涨能）
+        // 识别大招封禁区间（大招动画及强化期间不涨能）
         const blockWindows = [];
         if (track.actions) {
             track.actions.forEach(action => {
                 if (action.type === 'ultimate') {
                     const start = action.startTime;
-                    // 结束时间需要经过时停偏移计算
-                    const end = getShiftedEndTime(start, Number(action.duration || 0) + Number(action.enhancementTime || 0));
-                    blockWindows.push({ start, end });
+
+                    const animT = Number(action.animationTime || 0);
+                    const enhT = Number(action.enhancementTime || 0);
+
+                    const end = getShiftedEndTime(
+                        start,
+                        animT + enhT,
+                        action.instanceId
+                    );
+
+                    blockWindows.push({ start, end, sourceId: action.instanceId });
                 }
             });
         }
 
-        const isBlocked = (time) => {
+        const isBlocked = (time, excludeId = null) => {
             const epsilon = 0.0001;
-            return blockWindows.some(w => time > w.start + epsilon && time < w.end - epsilon);
+            return blockWindows.some(w =>
+                w.sourceId !== excludeId &&
+                time > w.start + epsilon &&
+                time < w.end - epsilon
+            );
         };
 
         const events = [];
@@ -1512,22 +1524,20 @@ export const useTimelineStore = defineStore('timeline', () => {
 
                 // 自身动作产能
                 if (sourceTrack.id === trackId) {
-                    // 消耗能量（通常在动作开始瞬间）
                     if (action.gaugeCost > 0) {
                         events.push({ time: action.startTime, change: -action.gaugeCost });
                     }
-                    // 获得能量
                     if (action.gaugeGain > 0) {
-                        const triggerTime = getShiftedEndTime(action.startTime, action.duration);
-                        if (!isBlocked(triggerTime)) {
+                        const triggerTime = getShiftedEndTime(action.startTime, action.duration, action.instanceId);
+                        if (!isBlocked(triggerTime, action.instanceId)) {
                             events.push({ time: triggerTime, change: action.gaugeGain * efficiency });
                         }
                     }
                 }
                 // 队友动作产能（全队回能）
                 else if (action.teamGaugeGain > 0 && canAcceptTeamGauge) {
-                    const triggerTime = getShiftedEndTime(action.startTime, action.duration);
-                    if (!isBlocked(triggerTime)) {
+                    const triggerTime = getShiftedEndTime(action.startTime, action.duration, action.instanceId);
+                    if (!isBlocked(triggerTime, action.instanceId)) {
                         events.push({ time: triggerTime, change: action.teamGaugeGain * efficiency });
                     }
                 }
