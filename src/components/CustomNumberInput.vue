@@ -228,7 +228,7 @@ function increment() {
   border: none;
   color: #ccc;
   cursor: pointer;
-  width: 22px;
+  width: 18px;
   height: 50%;
   font-size: 12px;
   line-height: 1;
@@ -257,7 +257,7 @@ function increment() {
   border: none;
   color: var(--text-color);
   width: 100%;
-  padding: 0 8px;
+  padding: 0 4px;
   font-size: 13px;
   flex-grow: 1;
   height: 100%;

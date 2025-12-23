@@ -1326,28 +1326,33 @@ export const useTimelineStore = defineStore('timeline', () => {
             staggerBreakDuration
         } = systemConstants.value;
 
+        const snap = (t) => Math.round(t * 1000) / 1000;
+
         const events = [];
         tracks.value.forEach(track => {
             if (!track.actions) return;
             track.actions.forEach(action => {
                 if (action.isDisabled) return;
-                // 收集所有失衡值变动事件
+
+                // 收集所有失衡值变动事件，并进行时间对齐
                 if (action.stagger > 0) {
                     const actualEndTime = getShiftedEndTime(action.startTime, action.duration, action.instanceId);
-                    events.push({ time: actualEndTime, change: action.stagger });
+                    events.push({ time: snap(actualEndTime), change: Number(action.stagger) });
                 }
+
                 if (action.damageTicks) {
                     action.damageTicks.forEach(tick => {
                         const staggerVal = Number(tick.stagger) || 0;
                         if (staggerVal > 0) {
                             const actualTickTime = getShiftedEndTime(action.startTime, Number(tick.offset) || 0, action.instanceId);
-                            events.push({ time: actualTickTime, change: staggerVal });
+                            events.push({ time: snap(actualTickTime), change: staggerVal });
                         }
                     });
                 }
             });
         });
 
+        // 按物理时间排序
         events.sort((a, b) => a.time - b.time);
 
         const points = [{ time: 0, val: 0 }];
@@ -1360,39 +1365,48 @@ export const useTimelineStore = defineStore('timeline', () => {
         const hasNodes = staggerNodeCount > 0;
 
         const advanceTime = (targetTime) => {
-            if (targetTime > currentTime) {
-                points.push({ time: targetTime, val: currentVal });
-                currentTime = targetTime;
+            const t = snap(targetTime);
+            if (t > currentTime) {
+                points.push({ time: t, val: currentVal });
+                currentTime = t;
             }
         };
 
         events.forEach(ev => {
             advanceTime(ev.time);
 
-            // 只有在非击破状态下才处理失衡值增加
-            if (currentTime >= lockedUntil) {
+            if (currentTime >= lockedUntil - 0.0001) {
                 const prevVal = currentVal;
                 currentVal += ev.change;
 
-                // 触发击破
-                if (currentVal >= maxStagger) {
+                // 触发失衡
+                if (currentVal >= maxStagger - 0.0001) {
                     currentVal = 0;
-                    // 击破时长受现实时间延长逻辑影响
-                    lockedUntil = getShiftedEndTime(currentTime, staggerBreakDuration);
+                    // 击破时长受全局时间延长逻辑（时停）影响
+                    const breakEnd = getShiftedEndTime(currentTime, staggerBreakDuration);
+                    lockedUntil = snap(breakEnd);
 
                     lockSegments.push({ start: currentTime, end: lockedUntil });
                     points.push({ time: currentTime, val: 0 });
                 }
-                // 触发节点锁定
+                // 触发节点
                 else if (hasNodes) {
-                    const prevNodeIdx = Math.floor(prevVal / nodeStep);
-                    const currNodeIdx = Math.floor(currentVal / nodeStep);
+                    const prevNodeIdx = Math.floor(prevVal / nodeStep + 0.0001);
+                    const currNodeIdx = Math.floor(currentVal / nodeStep + 0.0001);
+
                     if (currNodeIdx > prevNodeIdx) {
                         // 节点锁定时间同样受延长逻辑影响
                         const nodeEnd = getShiftedEndTime(currentTime, staggerNodeDuration);
+                        const finalNodeEnd = snap(nodeEnd);
+
+                        // 只有当新的锁定时间比当前已有的锁定更远时才更新
+                        if (finalNodeEnd > lockedUntil) {
+                            lockedUntil = finalNodeEnd;
+                        }
+
                         nodeSegments.push({
                             start: currentTime,
-                            end: nodeEnd,
+                            end: finalNodeEnd,
                             thresholdVal: currNodeIdx * nodeStep
                         });
                     }
@@ -1402,54 +1416,76 @@ export const useTimelineStore = defineStore('timeline', () => {
         });
 
         if (currentTime < TOTAL_DURATION) advanceTime(TOTAL_DURATION);
+
         return { points, lockSegments, nodeSegments, nodeStep };
     }
 
     function calculateGlobalSpData() {
         const { maxSp, spRegenRate, initialSp, executionRecovery } = systemConstants.value;
 
+        const snap = (t) => Math.round(t * 1000) / 1000;
+
         const instantEvents = [];
         const pauseWindows = [];
 
-        // 收集暂停回能的区间
         tracks.value.forEach(track => {
             track.actions.forEach(action => {
                 if (action.isDisabled) return;
 
-                // 战技触发：停止 0.5s
                 if (action.type === 'skill') {
-                    pauseWindows.push({ start: action.startTime, end: action.startTime + 0.5 });
+                    pauseWindows.push({
+                        start: snap(action.startTime),
+                        end: snap(action.startTime + 0.5)
+                    });
                 }
 
-                // 收集即时回能/耗能事件（如处决回能、伤害点回能）
-                if (action.spCost > 0) instantEvents.push({ time: action.startTime, change: -action.spCost });
+                if (action.spCost > 0) {
+                    instantEvents.push({
+                        time: snap(action.startTime),
+                        change: -Number(action.spCost)
+                    });
+                }
+
                 if (action.spGain > 0) {
                     const actualEndTime = getShiftedEndTime(action.startTime, action.duration, action.instanceId);
-                    instantEvents.push({ time: actualEndTime, change: action.spGain });
+                    instantEvents.push({ time: snap(actualEndTime), change: Number(action.spGain) });
                 }
+
                 if (action.type === 'execution') {
                     const actualEndTime = getShiftedEndTime(action.startTime, action.duration, action.instanceId);
-                    instantEvents.push({ time: actualEndTime, change: Number(executionRecovery) || 0 });
+                    instantEvents.push({
+                        time: snap(actualEndTime),
+                        change: Number(executionRecovery) || 0
+                    });
                 }
+
                 if (action.damageTicks) {
                     action.damageTicks.forEach(tick => {
                         if (tick.sp > 0) {
                             const actualTickTime = getShiftedEndTime(action.startTime, tick.offset, action.instanceId);
-                            instantEvents.push({ time: actualTickTime, change: tick.sp });
+                            instantEvents.push({ time: snap(actualTickTime), change: Number(tick.sp) });
                         }
                     });
                 }
             });
         });
 
-        // 将所有时停延长点加入暂停回能区间
         globalExtensions.value.forEach(ext => {
-            pauseWindows.push({ start: ext.time, end: ext.time + ext.amount });
+            pauseWindows.push({
+                start: snap(ext.time),
+                end: snap(ext.time + ext.amount)
+            });
         });
 
-        const criticalTimes = new Set([0, TOTAL_DURATION]);
+        const criticalTimes = new Set();
+        criticalTimes.add(0);
+        criticalTimes.add(snap(TOTAL_DURATION));
+
         instantEvents.forEach(e => criticalTimes.add(e.time));
-        pauseWindows.forEach(w => { criticalTimes.add(w.start); criticalTimes.add(w.end) });
+        pauseWindows.forEach(w => {
+            criticalTimes.add(w.start);
+            criticalTimes.add(w.end);
+        });
 
         const sortedTimes = Array.from(criticalTimes).sort((a, b) => a - b);
 
@@ -1472,9 +1508,10 @@ export const useTimelineStore = defineStore('timeline', () => {
                     if (currentSp < maxSp) {
                         const needed = maxSp - currentSp;
                         const potentialGain = dt * spRegenRate;
+
                         if (potentialGain > needed) {
                             const timeToCap = needed / spRegenRate;
-                            points.push({ time: prevTime + timeToCap, sp: maxSp });
+                            points.push({ time: snap(prevTime + timeToCap), sp: maxSp });
                             currentSp = maxSp;
                         } else {
                             currentSp += potentialGain;
@@ -1485,10 +1522,11 @@ export const useTimelineStore = defineStore('timeline', () => {
 
             points.push({ time: now, sp: currentSp });
 
-            // 处理时刻上的即时事件
-            const eventsNow = instantEvents.filter(e => Math.abs(e.time - now) < 0.0001);
+            const eventsNow = instantEvents.filter(e => e.time === now);
             if (eventsNow.length > 0) {
-                eventsNow.forEach(e => currentSp += e.change);
+                eventsNow.forEach(e => {
+                    currentSp += e.change;
+                });
                 if (currentSp > maxSp) currentSp = maxSp;
                 points.push({ time: now, sp: currentSp });
             }
@@ -1501,6 +1539,10 @@ export const useTimelineStore = defineStore('timeline', () => {
     function calculateGaugeData(trackId) {
         const track = tracks.value.find(t => t.id === trackId);
         if (!track) return [];
+
+        // 统一精度对齐：1ms (0.001s)
+        const snap = (t) => Math.round(t * 1000) / 1000;
+
         const efficiency = ((track.gaugeEfficiency ?? 100)) / 100;
         const charInfo = characterRoster.value.find(c => c.id === trackId);
         if (!charInfo) return [];
@@ -1516,17 +1558,16 @@ export const useTimelineStore = defineStore('timeline', () => {
         const blockWindows = [];
         if (track.actions) {
             track.actions.forEach(action => {
-                if (action.type === 'ultimate') {
-                    const start = action.startTime;
-
+                if (action.type === 'ultimate' && !action.isDisabled) {
+                    const start = snap(action.startTime);
                     const animT = Number(action.animationTime || 0);
                     const enhT = Number(action.enhancementTime || 0);
 
-                    const end = getShiftedEndTime(
-                        start,
+                    const end = snap(getShiftedEndTime(
+                        action.startTime,
                         animT + enhT,
                         action.instanceId
-                    );
+                    ));
 
                     blockWindows.push({ start, end, sourceId: action.instanceId });
                 }
@@ -1534,11 +1575,12 @@ export const useTimelineStore = defineStore('timeline', () => {
         }
 
         const isBlocked = (time, excludeId = null) => {
+            const t = snap(time);
             const epsilon = 0.0001;
             return blockWindows.some(w =>
                 w.sourceId !== excludeId &&
-                time > w.start + epsilon &&
-                time < w.end - epsilon
+                t > w.start + epsilon &&
+                t < w.end - epsilon
             );
         };
 
@@ -1548,34 +1590,38 @@ export const useTimelineStore = defineStore('timeline', () => {
             sourceTrack.actions.forEach(action => {
                 if (action.isDisabled) return;
 
-                // 自身动作产能
+                // 自身动作能量变动
                 if (sourceTrack.id === trackId) {
+                    // 消耗：在开始时刻发生
                     if (action.gaugeCost > 0) {
-                        events.push({ time: action.startTime, change: -action.gaugeCost });
+                        events.push({ time: snap(action.startTime), change: -Number(action.gaugeCost) });
                     }
+                    // 自身回能：在结束时刻触发
                     if (action.gaugeGain > 0) {
                         const triggerTime = getShiftedEndTime(action.startTime, action.duration, action.instanceId);
                         if (!isBlocked(triggerTime, action.instanceId)) {
-                            events.push({ time: triggerTime, change: action.gaugeGain * efficiency });
+                            events.push({ time: snap(triggerTime), change: action.gaugeGain * efficiency });
                         }
                     }
                 }
-                // 队友动作产能（全队回能）
+                // 队友动作产生的全队回能
                 else if (action.teamGaugeGain > 0 && canAcceptTeamGauge) {
                     const triggerTime = getShiftedEndTime(action.startTime, action.duration, action.instanceId);
                     if (!isBlocked(triggerTime, action.instanceId)) {
-                        events.push({ time: triggerTime, change: action.teamGaugeGain * efficiency });
+                        events.push({ time: snap(triggerTime), change: action.teamGaugeGain * efficiency });
                     }
                 }
             });
         });
 
+        // 排序所有变动事件
         events.sort((a, b) => a.time - b.time);
 
-        const initialGauge = track.initialGauge || 0;
+        const initialGauge = Number(track.initialGauge) || 0;
         let currentGauge = initialGauge > GAUGE_MAX ? GAUGE_MAX : initialGauge;
         const points = [{ time: 0, val: currentGauge, ratio: currentGauge / GAUGE_MAX }];
 
+        // 模拟计算能量曲线
         events.forEach(ev => {
             points.push({ time: ev.time, val: currentGauge, ratio: currentGauge / GAUGE_MAX });
             currentGauge += ev.change;

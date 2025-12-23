@@ -452,12 +452,12 @@ function handleEffectDrop(effectId) {
     </div>
 
     <ActionLinkPorts @drop="handleConnectionDrop" @snap="handleConnectionSnap"
-      @drag-start="handleActionDragStart" @clear-snap="connectionHandler.clearSnap"
-      :isDragging="connectionHandler.isDragging.value"
-      :disabled="!isActionValidConnectionTarget"
-      :canStart="connectionHandler.toolEnabled.value"
-      v-if="showPorts"
-      :color="themeColor" />
+                     @drag-start="handleActionDragStart" @clear-snap="connectionHandler.clearSnap"
+                     :isDragging="connectionHandler.isDragging.value"
+                     :disabled="!isActionValidConnectionTarget"
+                     :canStart="connectionHandler.toolEnabled.value"
+                     v-if="showPorts"
+                     :color="themeColor" />
 
     <div v-if="!isGhostMode" class="anomalies-overlay">
       <div v-for="(item, index) in renderableAnomalies" :key="`${item.rowIndex}-${item.colIndex}`"

@@ -249,23 +249,46 @@ function onNativeDragEnd() {
 
 /* 参数面板 */
 .gauge-settings-panel {
-  background: rgba(255, 255, 255, 0.03);
-  border: 1px solid rgba(255, 255, 255, 0.08);
+  background: linear-gradient(135deg, rgba(255, 255, 255, 0.05) 0%, rgba(255, 255, 255, 0.02) 100%);
+  backdrop-filter: blur(10px);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-left: 3px solid rgba(255, 255, 255, 0.2);
   border-radius: 4px;
-  padding: 15px;
+  padding: 16px;
   position: relative;
   display: flex;
   flex-direction: column;
-  gap: 12px;
+  gap: 16px;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
 }
 .panel-tag {
-  position: absolute; right: 10px; top: -10px;
-  background: #222; border: 1px solid #444;
-  font-size: 9px; color: #888; padding: 2px 6px;
+  position: absolute;
+  right: 0;
+  top: -12px;
+  background: #1a1a1a;
+  border: 1px solid #444;
+  border-bottom: none;
+  font-size: 10px;
+  color: #aaa;
+  padding: 2px 10px;
+  font-family: 'Inter', sans-serif;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+  clip-path: polygon(10% 0, 100% 0, 100% 100%, 0% 100%);
 }
-.setting-group { display: flex; flex-direction: column; gap: 6px; }
+.gauge-settings-panel::before {
+  content: "";
+  position: absolute;
+  bottom: 4px;
+  right: 4px;
+  width: 10px;
+  height: 10px;
+  border-right: 1px solid rgba(255,255,255,0.3);
+  border-bottom: 1px solid rgba(255,255,255,0.3);
+}
+.setting-group { display: flex; flex-direction: column; gap: 8px; }
 .setting-info { display: flex; justify-content: space-between; align-items: baseline; }
-.label { font-size: 12px; color: #999; }
+.label { font-size: 11px;color: rgba(255, 255, 255, 0.5);text-transform: uppercase;letter-spacing: 0.5px; }
 .value { font-family: 'Roboto Mono', monospace; font-weight: bold; font-size: 15px; }
 .cyan { color: #00e5ff; }
 .gold { color: #ffd700; }
@@ -273,7 +296,7 @@ function onNativeDragEnd() {
 .setting-controls { display: flex; align-items: center; gap: 12px; }
 .tech-slider { flex-grow: 1; }
 .tech-input { width: 200px; }
-.group-divider { height: 1px; border-top: 1px dashed rgba(255,255,255,0.1); }
+.group-divider { height: 1px;background: linear-gradient(90deg, rgba(255,255,255,0.1) 0%, transparent 100%); }
 
 /* 技能卡片列表 */
 .skill-section { display: flex; flex-direction: column; gap: 15px; }
@@ -348,7 +371,7 @@ function onNativeDragEnd() {
 }
 
 /* Slider 自定义 */
-:deep(.el-slider__runway) { background-color: #333; height: 4px; }
+:deep(.el-slider__runway) { background-color: rgba(255,255,255,0.05) !important; height: 2px !important; }
 :deep(.el-slider__bar) { height: 4px; }
 :deep(.el-slider__button) { width: 10px; height: 10px; background: #1a1a1a; border-width: 2px; }
 

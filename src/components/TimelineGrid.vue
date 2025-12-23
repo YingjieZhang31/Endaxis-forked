@@ -267,7 +267,13 @@ const operationMarkers = computed(() => {
 // 辅助计算属性 & 事件处理
 // ===================================================================================
 
-const timeBlocks = computed(() => { return Array.from({ length: store.TOTAL_DURATION }, (_, i) => i) })
+const getTrackLaneStyle = computed(() => {
+  const w = TIME_BLOCK_WIDTH.value
+  return {
+    backgroundImage: `linear-gradient(to right, transparent calc(100% - 1px), rgba(255, 255, 255, 0.08) 100%)`,
+    backgroundSize: `${w}px 100%`
+  }
+})
 
 const dynamicTicks = computed(() => {
   const width = TIME_BLOCK_WIDTH.value;
@@ -1086,7 +1092,8 @@ onUnmounted(() => {
           <span class="zoom-label">SCALE</span>
           <span class="zoom-value">{{ Math.round((store.timeBlockWidth / 50) * 100) }}%</span>
         </div>
-        <div class="zoom-slider-container"><span class="zoom-icon" @click="adjustZoom(-40, null)"><svg viewBox="0 0 24 24" width="10" height="10" fill="currentColor"><path d="M19 13H5v-2h14v2z"/></svg></span>
+        <div class="zoom-slider-container">
+          <span class="zoom-icon" @click="adjustZoom(-Math.max(1, Math.round(store.timeBlockWidth * 0.1)), null)"><svg viewBox="0 0 24 24" width="10" height="10" fill="currentColor"><path d="M19 13H5v-2h14v2z"/></svg></span>
           <input
               type="range"
               class="davinci-range"
@@ -1095,7 +1102,7 @@ onUnmounted(() => {
               step="1"
               v-model.number="zoomValue"
           />
-          <span class="zoom-icon" @click="adjustZoom(40, null)"><svg viewBox="0 0 24 24" width="10" height="10" fill="currentColor"><path d="M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6v2z"/></svg></span>
+          <span class="zoom-icon" @click="adjustZoom(Math.max(1, Math.round(store.timeBlockWidth * 0.1)), null)"><svg viewBox="0 0 24 24" width="10" height="10" fill="currentColor"><path d="M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6v2z"/></svg></span>
         </div>
       </div>
     </div>
@@ -1244,8 +1251,7 @@ onUnmounted(() => {
 
         <div v-for="(track, index) in store.tracks" :key="index" class="track-row" :id="`track-row-${index}`"
              :class="{ 'is-active-drop': track.id === store.activeTrackId }" @dragover="onTrackDragOver" @drop="onTrackDrop(track, $event)">
-          <div class="track-lane">
-            <div v-for="block in timeBlocks" :key="block" class="time-block" :style="{ width: `${TIME_BLOCK_WIDTH}px` }"></div>
+          <div class="track-lane" :style="getTrackLaneStyle"> <GaugeOverlay v-if="track.id" :track-id="track.id"/>
             <GaugeOverlay v-if="track.id" :track-id="track.id"/>
             <div class="actions-container">
               <ActionItem v-for="action in track.actions" :key="action.instanceId" :action="action"
@@ -1840,13 +1846,6 @@ onUnmounted(() => {
   border-top: 2px dashed #c0c0c0;
   border-bottom: 2px dashed #c0c0c0;
   z-index: 20;
-}
-
-.time-block {
-  height: 100%;
-  border-right: 1px solid rgba(255, 255, 255, 0.05);
-  flex-shrink: 0;
-  box-sizing: border-box;
 }
 
 .actions-container {
