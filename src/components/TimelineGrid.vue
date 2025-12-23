@@ -1250,7 +1250,7 @@ onUnmounted(() => {
         </svg>
 
         <div v-for="(track, index) in store.tracks" :key="index" class="track-row" :id="`track-row-${index}`"
-             :class="{ 'is-active-drop': track.id === store.activeTrackId }" @dragover="onTrackDragOver" @drop="onTrackDrop(track, $event)">
+             :class="{ 'is-active-drop': track.id === store.activeTrackId,'is-last-track': index === store.tracks.length - 1 }" @dragover="onTrackDragOver" @drop="onTrackDrop(track, $event)">
           <div class="track-lane" :style="getTrackLaneStyle"> <GaugeOverlay v-if="track.id" :track-id="track.id"/>
             <GaugeOverlay v-if="track.id" :track-id="track.id"/>
             <div class="actions-container">
@@ -1828,7 +1828,7 @@ onUnmounted(() => {
   border-bottom: 1px solid rgba(255, 255, 255, 0.08);
 }
 
-.track-row:last-child {
+.track-row.is-last-track {
   border-bottom: none;
 }
 

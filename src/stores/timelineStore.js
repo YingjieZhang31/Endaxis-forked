@@ -1399,11 +1399,6 @@ export const useTimelineStore = defineStore('timeline', () => {
                         const nodeEnd = getShiftedEndTime(currentTime, staggerNodeDuration);
                         const finalNodeEnd = snap(nodeEnd);
 
-                        // 只有当新的锁定时间比当前已有的锁定更远时才更新
-                        if (finalNodeEnd > lockedUntil) {
-                            lockedUntil = finalNodeEnd;
-                        }
-
                         nodeSegments.push({
                             start: currentTime,
                             end: finalNodeEnd,
