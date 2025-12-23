@@ -1235,41 +1235,51 @@ export const useTimelineStore = defineStore('timeline', () => {
         const allActions = tracks.value.flatMap(t => t.actions)
             .sort((a, b) => (a.logicalStartTime ?? a.startTime) - (b.logicalStartTime ?? b.startTime));
 
-        allActions.forEach(a => {
-            if (a.logicalStartTime === undefined) a.logicalStartTime = a.startTime;
-            if (!excludeSet.has(a.instanceId)) {
-                a.startTime = a.logicalStartTime;
-            }
-        });
-
         const stopSources = allActions.filter(a => (a.type === 'link' || a.type === 'ultimate') && !a.isDisabled);
+
+        let lastPhysicalEnd = 0;
+        const sourceShiftMap = new Map();
 
         stopSources.forEach((source, index) => {
             const nextSource = stopSources[index + 1];
-            let amount = 0;
-            let interrupterId = null;
 
+            const physicalStart = Math.max(source.logicalStartTime, lastPhysicalEnd);
+
+            let amount = 0;
             if (source.type === 'ultimate') {
                 amount = Number(source.animationTime) || 1.5;
             } else {
                 if (nextSource) {
                     const gap = nextSource.logicalStartTime - source.logicalStartTime;
                     amount = Math.min(0.5, Math.max(0.1, Math.round(gap * 1000) / 1000));
-                    interrupterId = nextSource.instanceId;
                 } else {
                     amount = 0.5;
                 }
             }
 
-            allActions.forEach(target => {
-                const isAfterSource = target.logicalStartTime > source.logicalStartTime;
+            const shift = physicalStart - source.logicalStartTime;
+            sourceShiftMap.set(source.instanceId, { shift, amount, physicalStart, physicalEnd: physicalStart + amount });
 
-                const shouldBePushedBySource = !interrupterId || target.logicalStartTime < nextSource.logicalStartTime;
+            lastPhysicalEnd = physicalStart + amount;
+        });
 
-                if (isAfterSource && shouldBePushedBySource && !excludeSet.has(target.instanceId)) {
-                    target.startTime = Math.round((target.startTime + amount) * 1000) / 1000;
+        allActions.forEach(a => {
+            if (excludeSet.has(a.instanceId)) return;
+
+            const activeSource = [...stopSources].reverse().find(s => s.logicalStartTime <= a.logicalStartTime);
+
+            if (activeSource) {
+                const ctx = sourceShiftMap.get(activeSource.instanceId);
+
+                if (a.instanceId === activeSource.instanceId) {
+                    a.startTime = Math.round(ctx.physicalStart * 1000) / 1000;
+                } else {
+                    const normalShiftedTime = a.logicalStartTime + ctx.shift;
+                    a.startTime = Math.round(Math.max(normalShiftedTime, ctx.physicalEnd) * 1000) / 1000;
                 }
-            });
+            } else {
+                a.startTime = a.logicalStartTime;
+            }
         });
 
         tracks.value.forEach(t => t.actions.sort((a, b) => a.startTime - b.startTime));
