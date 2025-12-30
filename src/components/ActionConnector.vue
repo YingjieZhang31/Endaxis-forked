@@ -96,8 +96,6 @@ const getElementRectRelative = (domId, nodeId) => {
     return {
       left: tlPos.x,
       top: tlPos.y,
-      rawLeft: rect.left,
-      rawTop: rect.top,
       width: rect.width,
       height: rect.height
     }
@@ -110,8 +108,6 @@ const getElementRectRelative = (domId, nodeId) => {
     return {
       left: rect.left,
       top: rect.top,
-      rawLeft: 0,
-      rawTop: 0,
       width: rect.width,
       height: rect.height
     }
@@ -166,8 +162,6 @@ const calculatePoint = (nodeId, effectIndex, isSource, connection = null, effect
       return {
         x: rect.left + (rect.width * config.x),
         y: rect.top + (rect.height * config.y),
-        rawX: rect.rawLeft + (rect.width * config.x),
-        rawY: rect.rawTop + (rect.height * config.y),
         dir: config
       }
     }
@@ -196,8 +190,6 @@ const coordinateInfo = computed(() => {
   return {
     startPoint: { x: start.x, y: start.y },
     endPoint: { x: end.x, y: end.y },
-    rawStartPoint: { x: start.rawX, y: start.rawY },
-    rawEndPoint: { x: end.rawX, y: end.rawY },
     startDirection: start.dir, 
     endDirection: end.dir,
     colors: { start: colorStart, end: colorEnd }

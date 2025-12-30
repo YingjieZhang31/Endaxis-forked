@@ -430,9 +430,6 @@ function handleEffectDrop(effectId) {
 </script>
 
 <template>
-  <!-- <div :style="{ position: 'absolute', left: rect.left + 'px', top: rect.top + 'px', zIndex: 100, backgroundColor: 'red', width: rect.width + 'px', height: rect.height + 'px' }">
-    Test
-  </div> -->
   <div :id="`action-${action.instanceId}`" ref="actionElRef" class="action-item-wrapper"
        :class="{ 'is-link-target-invalid': !isActionValidConnectionTarget && connectionSourceActionId !== action.instanceId }"
        @mouseenter="store.setHoveredAction(action.instanceId)"
