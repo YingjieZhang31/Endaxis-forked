@@ -1148,9 +1148,11 @@ export const useTimelineStore = defineStore('timeline', () => {
 
     function updateActionRects() {
         actionMap.value.forEach(action => {
+            const end = getShiftedEndTime(action.node.startTime, action.node.duration, action.id)
+            const shiftedWidth = end - action.node.startTime
             const widthUnit = timeBlockWidth.value
             const left = (action.node.startTime || 0) * widthUnit
-            const width = action.node.duration * widthUnit
+            const width = shiftedWidth * widthUnit
             const finalWidth = width < 2 ? 2 : width
             const trackRect = trackLaneRects.value[action.trackIndex]
 
