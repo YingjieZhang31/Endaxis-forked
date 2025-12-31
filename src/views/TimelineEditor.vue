@@ -144,8 +144,7 @@ function triggerImport() {
   if (fileInputRef.value) fileInputRef.value.click()
 }
 
-async function onFileSelected(event) {
-  const file = event.target.files[0]
+async function processFile(file) {
   if (!file) return
 
   try {
@@ -157,19 +156,80 @@ async function onFileSelected(event) {
              const success = store.importShareString(metadata);
              if (success) {
                  ElMessage.success('从图片加载项目成功！');
-                 event.target.value = '';
-                 return;
+                 return true;
              }
         }
         ElMessage.warning('该图片未包含有效的 Endaxis 项目数据');
     } else {
         const success = await store.importProject(file)
-        if (success) ElMessage.success('项目加载成功！')
+        if (success) {
+          ElMessage.success('项目加载成功！')
+          return true
+        }
     }
   } catch (e) {
     ElMessage.error('加载失败：' + e.message)
-  } finally {
-    event.target.value = ''
+  }
+  return false
+}
+
+async function onFileSelected(event) {
+  const file = event.target.files[0]
+  await processFile(file)
+  event.target.value = ''
+}
+
+// === 拖拽导入逻辑 ===
+const isDragging = ref(false)
+const isInternalDrag = ref(false)
+let dragCounter = 0
+
+function hasFiles(e) {
+  if (isInternalDrag.value) return false
+  return e.dataTransfer && e.dataTransfer.types && Array.from(e.dataTransfer.types).includes('Files')
+}
+
+// 区分内部拖拽和外部拖拽
+function onGlobalDragStart(e) {
+  isInternalDrag.value = true
+}
+
+function onGlobalDragEnd(e) {
+  isInternalDrag.value = false
+}
+
+function handleWindowDragEnter(e) {
+  if (!hasFiles(e)) return
+  e.preventDefault()
+  dragCounter++
+  if (dragCounter === 1) {
+    isDragging.value = true
+  }
+}
+
+function handleWindowDragLeave(e) {
+  if (!hasFiles(e)) return
+  e.preventDefault()
+  dragCounter--
+  if (dragCounter === 0) {
+    isDragging.value = false
+  }
+}
+
+function handleWindowDragOver(e) {
+  if (!hasFiles(e)) return
+  e.preventDefault()
+}
+
+async function handleWindowDrop(e) {
+  if (!hasFiles(e)) return
+  e.preventDefault()
+  dragCounter = 0
+  isDragging.value = false
+  
+  const file = e.dataTransfer?.files[0]
+  if (file) {
+    await processFile(file)
   }
 }
 
@@ -364,9 +424,27 @@ function handleGlobalKeydown(e) {
 
 onMounted(() => {
   window.addEventListener('keydown', handleGlobalKeydown)
+  
+  window.addEventListener('dragstart', onGlobalDragStart, true)
+  window.addEventListener('dragend', onGlobalDragEnd, true)
+
+  window.addEventListener('dragenter', handleWindowDragEnter)
+  window.addEventListener('dragleave', handleWindowDragLeave)
+  window.addEventListener('dragover', handleWindowDragOver)
+  window.addEventListener('drop', handleWindowDrop)
 })
 
-onUnmounted(() => { window.removeEventListener('keydown', handleGlobalKeydown) })
+onUnmounted(() => { 
+  window.removeEventListener('keydown', handleGlobalKeydown)
+  
+  window.removeEventListener('dragstart', onGlobalDragStart, true)
+  window.removeEventListener('dragend', onGlobalDragEnd, true)
+
+  window.removeEventListener('dragenter', handleWindowDragEnter)
+  window.removeEventListener('dragleave', handleWindowDragLeave)
+  window.removeEventListener('dragover', handleWindowDragOver)
+  window.removeEventListener('drop', handleWindowDrop)
+})
 </script>
 
 <template>
@@ -478,7 +556,7 @@ onUnmounted(() => { window.removeEventListener('keydown', handleGlobalKeydown) }
 
           <div class="divider-vertical"></div>
 
-          <button class="control-btn load-btn" @click="triggerImport" title="导入 .json 项目文件">
+          <button class="control-btn load-btn" @click="triggerImport" title="导入 .json 项目文件或 .png 图片">
             <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
               <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
               <polyline points="7 10 12 15 17 10"></polyline>
@@ -640,6 +718,17 @@ onUnmounted(() => { window.removeEventListener('keydown', handleGlobalKeydown) }
       </template>
     </el-dialog>
 
+    <div v-show="isDragging" class="drop-overlay">
+      <div class="drop-content">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="64" height="64">
+          <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+          <polyline points="17 8 12 3 7 8"></polyline>
+          <line x1="12" y1="3" x2="12" y2="15"></line>
+        </svg>
+        <p>释放文件以导入</p>
+      </div>
+    </div>
+
   </div>
 </template>
 
@@ -777,4 +866,31 @@ onUnmounted(() => { window.removeEventListener('keydown', handleGlobalKeydown) }
 :deep(.el-button:hover) { background: #444; color: white; border-color: #777; }
 :deep(.el-button--primary) { background: #ffd700; border-color: #ffd700; color: #000; font-weight: bold; }
 :deep(.el-button--primary:hover) { background: #ffec3d; border-color: #ffec3d; color: #000; }
+
+.drop-overlay {
+  position: fixed;
+  inset: 0;
+  background-color: rgba(0, 0, 0, 0.85);
+  z-index: 10000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  pointer-events: none;
+  animation: fadeIn 0.2s ease-in-out;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+.drop-content {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  color: #ffd700;
+  gap: 20px;
+  font-size: 24px;
+  font-weight: bold;
+}
 </style>
