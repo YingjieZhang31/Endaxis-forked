@@ -1457,9 +1457,9 @@ onUnmounted(() => {
       </div>
       <div class="roster-scroll-container">
         <template v-for="group in rosterByRarity" :key="group.level">
-          <div class="rarity-header" :class="`header-rarity-${group.level}`">
-            <span class="rarity-label" :style="{ color: getRarityBaseColor(group.level) }">{{ group.level }} ★</span>
-            <div class="rarity-line" :style="{ backgroundColor: getRarityBaseColor(group.level) }"></div>
+          <div class="rarity-header" :class="`header-rarity-${group.level}`" :style="{ color: getRarityBaseColor(group.level) }">
+            <span class="rarity-label">{{ group.level }} ★</span>
+            <div class="rarity-line"></div>
           </div>
           <div class="roster-grid">
             <div v-for="char in group.list" :key="char.id" class="roster-card" :class="[{ 'is-selected': store.tracks.some(t => t.id === char.id) }, `rarity-${char.rarity}-style`]" @click="confirmCharacterSelection(char.id)">
@@ -2183,35 +2183,40 @@ body.capture-mode .davinci-range {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: 15px;
+  margin-bottom: 20px;
+  padding-bottom: 15px;
+  border-bottom: 1px solid rgba(255, 215, 0, 0.15);
   flex-wrap: wrap;
-  gap: 10px;
+  gap: 12px;
 }
 
 .header-left-group {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: 12px;
 }
 
+/* 卸下按钮 */
 .remove-btn {
   display: flex;
   align-items: center;
-  gap: 4px;
-  padding: 0 12px;
+  gap: 6px;
+  padding: 0 16px;
   height: 32px;
-  background: rgba(255, 77, 79, 0.1);
-  border: 1px solid rgba(255, 77, 79, 0.3);
+  background: rgba(255, 77, 79, 0.05);
+  border: 1px solid rgba(255, 77, 79, 0.4);
   color: #ff7875;
-  border-radius: 4px;
   cursor: pointer;
   font-size: 12px;
-  transition: all 0.2s;
+  font-weight: 800;
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  clip-path: polygon(10% 0, 100% 0, 90% 100%, 0% 100%);
 }
 
 .remove-btn:hover {
   background: rgba(255, 77, 79, 0.2);
   border-color: #ff7875;
+  color: #fff;
   transform: translateY(-1px);
 }
 
@@ -2221,51 +2226,62 @@ body.capture-mode .davinci-range {
 
 .element-filters {
   display: flex;
-  gap: 5px;
+  gap: 6px;
 }
 
+/* 筛选按钮 */
 .filter-btn {
   --btn-color: #888;
-  padding: 4px 12px;
-  background: #333;
-  border: 1px solid #555;
+  padding: 4px 14px;
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid rgba(255, 255, 255, 0.1);
   color: #aaa;
-  border-radius: 4px;
   cursor: pointer;
   font-size: 12px;
+  font-weight: bold;
   transition: all 0.2s;
+  clip-path: polygon(12% 0, 100% 0, 88% 100%, 0% 100%);
 }
 
 .filter-btn:hover {
   border-color: var(--btn-color);
   color: var(--btn-color);
+  background: rgba(255, 255, 255, 0.08);
 }
 
 .filter-btn.active {
   background: var(--btn-color);
   border-color: var(--btn-color);
   color: #000;
-  font-weight: bold;
+  font-weight: 900;
+  box-shadow: 0 0 12px var(--btn-color);
 }
 
 .roster-scroll-container {
   max-height: 400px;
   overflow-y: auto;
-  padding: 0 5px;
+  padding: 0 8px;
+  scrollbar-width: none;
 }
 
+.roster-scroll-container::-webkit-scrollbar {
+  display: none;
+}
+
+/* 分组标题 */
 .rarity-header {
   display: flex;
   align-items: center;
-  gap: 10px;
-  margin-top: 15px;
-  margin-bottom: 10px;
+  gap: 12px;
+  margin-top: 18px;
+  margin-bottom: 12px;
   position: sticky;
   top: 0;
   z-index: 10;
-  background: rgba(23, 23, 23, 0.55);
-  backdrop-filter: blur(8px);
-  padding: 5px 0;
+  background: rgba(30, 30, 30, 0.92);
+  backdrop-filter: blur(12px);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+  padding: 10px 0;
 }
 
 .rarity-header:first-child {
@@ -2273,15 +2289,19 @@ body.capture-mode .davinci-range {
 }
 
 .rarity-label {
-  font-size: 16px;
+  font-size: 15px;
   font-weight: 900;
   font-style: italic;
+  letter-spacing: 1px;
 }
 
 .rarity-line {
   flex: 1;
-  height: 1px;
-  opacity: 0.15;
+  height: 2px;
+  background: linear-gradient(90deg, currentColor 0%, transparent 100%);
+  opacity: 0.4;
+  margin-left: 8px;
+  clip-path: polygon(0 0, 100% 50%, 0 100%);
 }
 
 .header-rarity-6 .rarity-label {
@@ -2292,15 +2312,22 @@ body.capture-mode .davinci-range {
 }
 
 .header-rarity-6 .rarity-line {
-  background: linear-gradient(90deg, #FFD700, transparent) !important;
-  opacity: 0.4;
+  background: linear-gradient(90deg,
+  #FF4500 0%,
+  #FF8C00 30%,
+  #FFD700 60%,
+  transparent 100%
+  );
+  opacity: 0.7;
+  height: 2px;
+  clip-path: polygon(0 0, 100% 50%, 0 100%);
 }
 
 .roster-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(90px, 1fr));
-  gap: 15px;
-  margin-bottom: 15px;
+  grid-template-columns: repeat(auto-fill, minmax(88px, 1fr));
+  gap: 16px;
+  margin-bottom: 20px;
 }
 
 .roster-card {
@@ -2309,22 +2336,23 @@ body.capture-mode .davinci-range {
   flex-direction: column;
   align-items: center;
   cursor: pointer;
-  transition: transform 0.2s;
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 .roster-card:hover {
-  transform: translateY(-3px);
+  transform: translateY(-4px);
 }
 
+/* 头像框 */
 .card-avatar-wrapper {
   position: relative;
-  width: 70px;
-  height: 70px;
-  border-radius: 8px;
+  width: 72px;
+  height: 72px;
+  background: #111;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  padding: 2px;
+  box-sizing: border-box;
   overflow: hidden;
-  border: 2px solid #555;
-  background: #222;
-  transition: border-color 0.2s;
 }
 
 .card-avatar-wrapper img {
@@ -2337,75 +2365,88 @@ body.capture-mode .davinci-range {
   position: absolute;
   bottom: 0;
   right: 0;
-  width: 16px;
-  height: 16px;
+  width: 18px;
+  height: 18px;
   clip-path: polygon(100% 0, 0% 100%, 100% 100%);
+  z-index: 2;
 }
 
 .card-name {
-  margin-top: 6px;
-  font-size: 12px;
-  color: #e0e0e0;
+  margin-top: 8px;
+  font-size: 11px;
+  color: #aaa;
   text-align: center;
+  font-weight: bold;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
   width: 100%;
+  letter-spacing: 0.3px;
 }
 
+.roster-card:hover .card-name {
+  color: #fff;
+}
+
+/* 已上场状态 */
 .in-team-tag {
   position: absolute;
   top: 0;
   left: 0;
   right: 0;
   bottom: 0;
-  background: rgba(0,0,0,0.7);
+  background: rgba(0, 0, 0, 0.75);
   color: #ffd700;
   display: flex;
+  flex-direction: column;
   align-items: center;
   justify-content: center;
-  font-weight: bold;
-  font-size: 12px;
-  border-radius: 8px;
+  font-weight: 900;
+  font-size: 10px;
+  letter-spacing: 1px;
+  border: 1px solid rgba(255, 215, 0, 0.5);
+  z-index: 5;
   pointer-events: none;
+}
+
+.in-team-tag::before {
+  content: 'FIELDED';
+  margin-bottom: 2px;
 }
 
 .empty-roster {
   text-align: center;
-  color: #666;
-  padding: 20px;
+  color: #555;
+  padding: 30px;
+  font-style: italic;
+  font-size: 13px;
 }
 
 .rarity-6-style .card-avatar-wrapper {
-  border-width: 2px;
-  border-style: solid;
-  border-color: transparent;
-  background: linear-gradient(#222, #222) padding-box, linear-gradient(135deg, #FFD700, #FF8C00, #FF4500) border-box;
-  box-shadow: 0 0 8px rgba(255, 165, 0, 0.4);
+  border: 1px solid transparent;
+  background:
+      linear-gradient(#111, #111) padding-box,
+      linear-gradient(135deg, #FFD700, #FF8C00, #FF4500) border-box;
+  box-shadow: 0 4px 12px rgba(255, 140, 0, 0.2);
 }
 
 .rarity-6-style:hover .card-avatar-wrapper {
-  box-shadow: 0 0 12px rgba(255, 165, 0, 0.7);
+  box-shadow: 0 0 15px rgba(255, 165, 0, 0.5);
+  border-color: rgba(255, 215, 0, 0.8);
 }
 
 /* ==========================================================================
    9. Element Plus Overrides
    ========================================================================== */
-:deep(.char-selector-dialog) {
-  background: #f5f5f5;
-}
-:deep(.char-selector-dialog .el-dialog__title) {
-  color: #f0f0f0;
-}
 :deep(.char-selector-dialog .el-dialog__body) {
   padding-top: 10px;
 }
 :deep(.char-selector-dialog .el-input__wrapper) {
-  background-color: #333;
-  box-shadow: 0 0 0 1px #555 inset;
+  background-color: #2b2b2b;
+  box-shadow: 0 0 0 1px #444 inset;
 }
 :deep(.char-selector-dialog .el-input__inner) {
-  color: white;
+  color: #fff;
 }
 
 /* ==========================================================================

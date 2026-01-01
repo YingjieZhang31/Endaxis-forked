@@ -759,7 +759,8 @@ function handleStartConnection(id) {
 
 <style scoped>
 /* Base & Layout */
-.properties-panel { padding: 15px; background-color: #252525; display: flex; flex-direction: column; gap: 15px; height: 100%; box-sizing: border-box; overflow-y: auto; font-size: 13px; color: #e0e0e0; transition: background-color 0.3s ease; scrollbar-width: thin; scrollbar-color: #444 transparent; }
+.properties-panel { padding: 15px; background-color: #252525; display: flex; flex-direction: column; gap: 15px; height: 100%; box-sizing: border-box; overflow-y: auto; font-size: 13px; color: #e0e0e0; transition: background-color 0.3s ease; scrollbar-width: none; -ms-overflow-style: none; }
+.properties-panel::-webkit-scrollbar { display: none; }
 .panel-header { display: flex; flex-direction: column; gap: 6px; margin-bottom: 0; }
 .header-main-row { display: flex; justify-content: space-between; align-items: center; gap: 12px; overflow: hidden; }
 .left-group { display: flex; align-items: center; gap: 8px; flex: 1; min-width: 0; }

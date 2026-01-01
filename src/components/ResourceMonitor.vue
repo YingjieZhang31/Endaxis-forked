@@ -177,56 +177,60 @@ watch(() => store.timelineScrollLeft, (newVal) => {
   <div class="resource-monitor-layout">
 
     <div class="monitor-sidebar">
-
-      <div class="enemy-select-area" @click="isEnemySelectorVisible = true" title="点击切换敌人预设">
+      <div class="enemy-select-module" @click="isEnemySelectorVisible = true">
+        <div class="module-deco-line"></div>
         <div class="enemy-avatar-box">
           <img v-if="!activeEnemyInfo.isCustom" :src="activeEnemyInfo.avatar" @error="e=>e.target.src='/Endaxis/avatars/default_enemy.png'" />
           <div v-else class="custom-avatar-placeholder">?</div>
+          <div class="scan-line"></div>
         </div>
         <div class="enemy-info-col">
           <div class="enemy-name">{{ activeEnemyInfo.name }}</div>
-          <div class="click-hint">点击更换</div>
+          <div class="click-hint">点击更换敌人</div>
         </div>
       </div>
 
       <div class="settings-scroll-area">
-        <div class="settings-group">
-          <div class="group-header">敌人属性</div>
-          <div class="control-row">
-            <label style="color: #ff7875;">失衡上限</label>
-            <CustomNumberInput v-model="store.systemConstants.maxStagger" :min="1" class="standard-input" />
-          </div>
-          <div class="control-row">
-            <label>失衡节点</label>
-            <CustomNumberInput v-model="store.systemConstants.staggerNodeCount" :min="0" class="standard-input" />
-          </div>
-          <div class="control-row">
-            <label style="color: #ff7875;">踉跄时长</label>
-            <CustomNumberInput v-model="store.systemConstants.staggerNodeDuration" :step="0.1" class="standard-input" />
-          </div>
-          <div class="control-row">
-            <label style="color: #ff7875;">失衡时长</label>
-            <CustomNumberInput v-model="store.systemConstants.staggerBreakDuration" :step="0.5" class="standard-input" />
-          </div>
-          <div class="control-row">
-            <label style="color: #ffd700;">处决回复</label>
-            <CustomNumberInput v-model="store.systemConstants.executionRecovery" :min="0" class="standard-input" />
+        <div class="section-container tech-style border-red">
+          <div class="panel-tag-mini red">敌人属性</div>
+          <div class="attribute-grid-mini">
+            <div class="control-row-mini">
+              <label>失衡上限</label>
+              <CustomNumberInput v-model="store.systemConstants.maxStagger" :min="1" active-color="#ff7875" class="standard-input" />
+            </div>
+            <div class="control-row-mini">
+              <label>失衡节点</label>
+              <CustomNumberInput v-model="store.systemConstants.staggerNodeCount" :min="0" class="standard-input" />
+            </div>
+            <div class="control-row-mini">
+              <label>踉跄时长</label>
+              <CustomNumberInput v-model="store.systemConstants.staggerNodeDuration" :step="0.1" active-color="#ff7875" class="standard-input" />
+            </div>
+            <div class="control-row-mini">
+              <label>失衡时长</label>
+              <CustomNumberInput v-model="store.systemConstants.staggerBreakDuration" :step="0.5" active-color="#ff7875" class="standard-input" />
+            </div>
+            <div class="control-row-mini">
+              <label>处决回复</label>
+              <CustomNumberInput v-model="store.systemConstants.executionRecovery" :min="0" class="standard-input" />
+            </div>
           </div>
         </div>
 
-        <div class="settings-group">
-          <div class="group-header">队伍属性</div>
-          <div class="control-row">
-            <label style="color: #ffd700;">初始技力</label>
-            <CustomNumberInput v-model="store.systemConstants.initialSp" :min="0" :max="300" class="standard-input" />
-          </div>
-          <div class="control-row">
-            <label style="color: #ffd700;">回复/秒</label>
-            <CustomNumberInput v-model="store.systemConstants.spRegenRate" :step="0.5" :min="0" class="standard-input" />
+        <div class="section-container tech-style border-gold">
+          <div class="panel-tag-mini gold">队伍属性</div>
+          <div class="attribute-grid-mini">
+            <div class="control-row-mini">
+              <label>初始技力</label>
+              <CustomNumberInput v-model="store.systemConstants.initialSp" :min="0" :max="300" active-color="#ffd700" class="standard-input" />
+            </div>
+            <div class="control-row-mini">
+              <label>回复 / 秒</label>
+              <CustomNumberInput v-model="store.systemConstants.spRegenRate" :step="0.5" :min="0" active-color="#ffd700" class="standard-input" />
+            </div>
           </div>
         </div>
       </div>
-
     </div>
 
     <div class="chart-scroll-wrapper" ref="scrollContainer">
@@ -335,13 +339,21 @@ watch(() => store.timelineScrollLeft, (newVal) => {
       <div class="enemy-list-grid">
 
         <div v-if="activeCategoryTab === 'ALL' && !enemySearchQuery" class="enemy-group-section">
-          <div class="group-header">特殊</div>
+          <div class="group-header">
+            特殊 <span class="count">(1)</span>
+          </div>
           <div class="group-items">
-            <div class="enemy-card" :class="{ selected: store.activeEnemyId === 'custom' }" @click="selectEnemy('custom')">
+            <div class="enemy-card"
+                 :class="{ selected: store.activeEnemyId === 'custom' }"
+                 @click="selectEnemy('custom')"
+                 style="--tier-color: #ffd700;"> <div class="enemy-avatar-wrapper">
               <div class="enemy-avatar custom">?</div>
+              <div class="tier-badge" style="background-color: #ffd700; color: #000;">EDIT</div>
+            </div>
+
               <div class="enemy-info">
-                <div class="name">自定义</div>
-                <div class="desc">手动修改数值</div>
+                <div class="name">自定义敌人</div>
+                <div class="desc">手动调整属性数值</div>
               </div>
             </div>
           </div>
@@ -388,122 +400,407 @@ watch(() => store.timelineScrollLeft, (newVal) => {
 </template>
 
 <style scoped>
+/* 基础布局与侧边栏容器 */
 .resource-monitor-layout {
   display: grid;
   grid-template-columns: 180px 1fr;
   width: 100%;
   height: 100%;
-  background: #222;
-  border-top: 1px solid #444;
+  background: #1a1a1a;
+  border-top: 1px solid rgba(255, 255, 255, 0.1);
   box-sizing: border-box;
-  font-family: sans-serif;
+  font-family: 'Inter', -apple-system, sans-serif;
 }
 
 .monitor-sidebar {
-  background-color: #2a2a2a;
-  border-right: 1px solid #444;
+  background-color: #252525;
+  border-right: 1px solid #333;
   display: flex;
   flex-direction: column;
   overflow: hidden;
   height: 100%;
 }
 
+/* 敌人选择模块 */
+.enemy-select-module {
+  padding: 8px 10px;
+  background: linear-gradient(135deg, rgba(255, 255, 255, 0.05) 0%, transparent 100%);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  cursor: pointer;
+  position: relative;
+}
+
+.enemy-select-module:hover { background: rgba(255, 255, 255, 0.08); }
+
+.module-deco-line {
+  position: absolute;
+  left: 0;
+  top: 8px; bottom: 8px;
+  width: 2px;
+  background: #ffd700;
+  box-shadow: 0 0 6px rgba(255, 215, 0, 0.4);
+}
+
+.custom-avatar-placeholder {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(255, 215, 0, 0.05);
+  border: 1px rgba(255, 215, 0, 0.4);
+  box-sizing: border-box;
+  color: #ffd700;
+  font-size: 18px;
+  font-weight: 900;
+  font-family: 'Roboto Mono', monospace;
+  text-shadow: 0 0 6px rgba(255, 215, 0, 0.6);
+}
+
+.enemy-avatar-box {
+  width: 32px;
+  height: 32px;
+  border: 1px solid #444;
+  background: #111;
+  position: relative;
+  overflow: hidden;
+  flex-shrink: 0;
+}
+
+.enemy-avatar-box img { width: 100%; height: 100%; object-fit: cover; }
+
+.scan-line {
+  position: absolute; top: 0; left: 0; width: 100%; height: 1px;
+  background: rgba(255, 215, 0, 0.3);
+  box-shadow: 0 0 4px #ffd700;
+  animation: scan 3s infinite linear;
+}
+
+.enemy-info-col {
+  flex-grow: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+}
+
+.enemy-name {
+  font-weight: bold;
+  color: #eee;
+  font-size: 12px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  line-height: 1.2;
+}
+
+.click-hint {
+  font-size: 10px;
+  color: #ffd700;
+  opacity: 0.5;
+  margin-top: 1px;
+}
+
+/* 属性设置区 */
+.settings-scroll-area {
+  flex-grow: 1;
+  overflow-y: auto;
+  padding: 16px 8px 10px 8px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  scrollbar-width: none;
+}
+
+.settings-scroll-area::-webkit-scrollbar {
+  display: none;
+}
+
+.section-container.tech-style {
+  background: linear-gradient(135deg, rgba(255, 255, 255, 0.03) 0%, transparent 100%);
+  border: 1px solid rgba(255, 255, 255, 0.05);
+  border-left: 3px solid rgba(255, 255, 255, 0.2);
+  padding: 10px 8px 8px 8px;
+  position: relative;
+  flex-shrink: 0;
+}
+
+.section-container.border-red { border-left-color: #ff7875; }
+.section-container.border-gold { border-left-color: #ffd700; }
+
+.panel-tag-mini {
+  position: absolute;
+  right: 0; top: -11px;
+  background: #1a1a1a;
+  border: 1px solid #444;
+  border-bottom: none;
+  font-size: 9px;
+  color: #888;
+  padding: 1px 10px;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+  clip-path: polygon(10% 0, 100% 0, 100% 100%, 0% 100%);
+}
+
+.panel-tag-mini.red { color: #ff7875; border-color: rgba(255, 120, 117, 0.4); }
+.panel-tag-mini.gold { color: #ffd700; border-color: rgba(255, 215, 0, 0.4); }
+
+.attribute-grid-mini {
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+}
+
+.control-row-mini {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.control-row-mini label {
+  font-size: 11px;
+  color: rgba(255, 255, 255, 0.4);
+  white-space: nowrap;
+  letter-spacing: 0.3px;
+}
+
+:deep(.standard-input) {
+  width: 65px !important;
+  height: 22px !important;
+  font-size: 11px !important;
+}
+
+/* 图表展示区 */
 .chart-scroll-wrapper {
   grid-column: 2 / 3;
   width: 100%;
   height: 100%;
   overflow-x: hidden;
-  overflow-y: hidden;
   position: relative;
+  background: #18181c;
 }
 
-.chart-svg {
-  display: block;
+.chart-svg { display: block; }
+
+.warning-tag {
+  position: absolute;
+  font-size: 10px;
+  background: rgba(0, 0, 0, 0.8);
+  padding: 2px 6px;
+  border-radius: 4px;
+  transform: translateX(-50%);
+  pointer-events: none;
+  z-index: 5;
+  display: flex;
+  align-items: center;
+  gap: 3px;
+  border: 1px solid rgba(255, 77, 79, 0.3);
+  box-shadow: 0 2px 8px rgba(0,0,0,0.5);
 }
 
-.enemy-select-area {
-  flex-shrink: 0;
-  background: #333;
-  border-bottom: 1px solid #444;
-  padding: 10px 12px;
+/* 敌人选择弹窗容器 */
+.enemy-list-grid {
+  max-height: 450px;
+  overflow-y: auto;
+  padding: 10px;
+  scrollbar-width: none;
+}
+.enemy-list-grid::-webkit-scrollbar { display: none; }
+
+/* 分类页签 */
+.category-tabs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px 8px;
+  margin-bottom: 20px;
+  padding: 8px;
+  background: rgba(0, 0, 0, 0.2);
+  border-bottom: 1px solid rgba(255, 215, 0, 0.2);
+  overflow: visible;
+  white-space: normal;
+}
+
+.cat-tab {
+  flex: none;
+  background: transparent;
+  border: none;
+  color: #666;
+  padding: 6px 16px;
+  cursor: pointer;
+  font-size: 12px;
+  font-weight: bold;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  position: relative;
+  clip-path: polygon(10% 0, 100% 0, 90% 100%, 0% 100%);
+  margin-bottom: 2px;
+}
+
+.cat-tab:hover {
+  color: #aaa;
+  background: rgba(255, 255, 255, 0.05);
+}
+
+.cat-tab.active {
+  color: #000;
+  background: #ffd700;
+  box-shadow: 0 0 10px rgba(255, 215, 0, 0.3);
+}
+
+/* --- 分组标题样式 --- */
+.enemy-group-section {
+  margin-bottom: 24px;
+}
+
+.group-header {
+  font-size: 13px;
+  font-weight: 800;
+  color: #ececec;
+  margin-bottom: 12px;
+  padding-left: 10px;
+  border-left: 3px solid #ffd700;
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  letter-spacing: 1px;
+}
+
+.group-header .count {
+  font-size: 11px;
+  color: #666;
+  font-weight: normal;
+}
+
+/* --- 敌人卡片网格布局 (3列) --- */
+.group-items {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 10px;
+}
+
+.enemy-card {
+  --tier-color: #555;
   display: flex;
   align-items: center;
   gap: 10px;
+  padding: 8px;
+  background: linear-gradient(90deg, rgba(255, 255, 255, 0.03) 0%, transparent 100%);
+  border: 1px solid rgba(255, 255, 255, 0.05);
+  border-left: 3px solid #444;
   cursor: pointer;
-  transition: all 0.2s;
-}
-.enemy-select-area:hover { background: #3a3a3a; }
-.enemy-avatar-box { width: 36px; height: 36px; border-radius: 4px; overflow: hidden; background: #222; border: 1px solid #555; flex-shrink: 0; }
-.enemy-avatar-box img { width: 100%; height: 100%; object-fit: cover; }
-.custom-avatar-placeholder { width: 100%; height: 100%; display: flex; align-items: center; justify-content: center; font-weight: bold; color: #666; font-size: 16px; }
-.enemy-info-col { flex-grow: 1; overflow: hidden; display: flex; flex-direction: column; }
-.enemy-name { font-weight: bold; color: #f0f0f0; font-size: 13px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.click-hint { font-size: 10px; color: #666; margin-top: 2px; }
-
-.settings-scroll-area {
-  flex-grow: 1;
-  overflow-y: auto;
-  padding: 10px 12px;
-  display: flex;
-  flex-direction: column;
-  gap: 15px;
+  margin-bottom: 0;
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  position: relative;
+  min-width: 0;
+  height: 64px;
+  box-sizing: border-box;
 }
 
-.control-row {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  width: 100%;
+.enemy-card:hover {
+  background: rgba(255, 255, 255, 0.07);
+  border-color: rgba(255, 255, 255, 0.15);
+  border-left-color: var(--tier-color) !important;
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.5),
+  -2px 0 8px -2px var(--tier-color);
 }
 
-.control-row label {
-  font-size: 12px;
-  color: #ccc;
-  white-space: nowrap;
+.enemy-card.selected {
+  border-left-color: var(--tier-color) !important;
+  background: linear-gradient(90deg, rgba(255, 255, 255, 0.08) 0%, transparent 100%);
 }
 
-:deep(.standard-input) {
-  width: 70px !important;
-  height: 24px !important;
-  font-size: 12px !important;
+.enemy-avatar-wrapper {
+  position: relative;
+  width: 42px;
+  height: 42px;
   flex-shrink: 0;
 }
 
-.settings-group { display: flex; flex-direction: column; gap: 6px; }
-.group-header { font-size: 12px; color: #888; font-weight: bold; border-bottom: 1px solid #333; padding-bottom: 4px; margin-bottom: 8px; display: flex; align-items: center; gap: 6px; }
-.group-header .count { font-weight: normal; font-size: 11px; color: #555; }
-.group-items { display: grid; grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); /* 自适应列宽 */ gap: 8px; }
-.empty-state { text-align: center; padding: 40px; color: #666; font-style: italic; }
-.category-tabs { display: flex; gap: 8px; margin-bottom: 15px; padding-bottom: 5px; border-bottom: 1px solid #444; overflow-x: auto; }
-.cat-tab { background: transparent; border: none; color: #888; padding: 6px 12px; cursor: pointer; border-radius: 4px; font-weight: bold; font-size: 13px; transition: all 0.2s; white-space: nowrap; }
-.cat-tab:hover { color: #ccc; background: #333; }
-.cat-tab.active { color: #222; background: #ffd700; }
-
-/* Dialog Styles */
-.enemy-list-grid { display: block; max-height: 400px; overflow-y: auto; padding: 10px; }
-.enemy-group-section { margin-bottom: 20px; }
-.enemy-card { --tier-color: #555; display: flex; align-items: center; gap: 12px; padding: 8px; background: #252526; border: 1px solid #333; border-radius: 6px; cursor: pointer; transition: all 0.2s; border-left: 3px solid transparent; }
-.enemy-card:hover { border-color: var(--tier-color, #555) !important; }
-.enemy-card.selected { border-color: var(--tier-color, #ffd700) !important; border-left-width: 3px; }
-.enemy-avatar { width: 100%; height: 100%; border-radius: 4px; object-fit: cover; background: #333; border: 1px solid #444; }
-.enemy-avatar.custom { display: flex; align-items: center; justify-content: center; font-size: 20px; color: #666; font-weight: bold; }
-.enemy-info { display: flex; flex-direction: column; }
-.enemy-info .name { font-weight: bold; color: #f0f0f0; font-size: 14px; }
-.enemy-info .desc { font-size: 12px; color: #888; margin-top: 2px; }
-
-.enemy-avatar-wrapper { position: relative; width: 48px; height: 48px; flex-shrink: 0; }
-.warning-tag { position: absolute; font-size: 10px; background: rgba(0,0,0,0.8); padding: 2px 4px; border-radius: 4px; transform: translateX(-50%); pointer-events: none; z-index: 5; display: flex; align-items: center; gap: 2px; }
-
-.tier-badge {
-  position: absolute; bottom: -2px; right: -4px;
-  color: #000; font-size: 9px; font-weight: 800;
-  padding: 1px 3px; border-radius: 2px;
-  line-height: 1; text-transform: uppercase;
-  box-shadow: 0 1px 2px rgba(0,0,0,0.5);
+.enemy-avatar {
+  width: 100%;
+  height: 100%;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  object-fit: cover;
+  background: #111;
 }
 
-.stun-bg-anim { animation: stun-flash 1.5s infinite alternate; }
-@keyframes stun-flash { 0% { fill-opacity: 0.6; } 100% { fill-opacity: 1; } }
-.node-bar-anim { animation: node-pulse 1s infinite alternate; }
-@keyframes node-pulse { 0% { opacity: 0.6; } 100% { opacity: 1; } }
+.tier-badge {
+  position: absolute;
+  bottom: -2px;
+  right: -4px;
+  color: #000;
+  font-size: 8px;
+  font-weight: 900;
+  padding: 1px 5px;
+  border-radius: 2px;
+  text-transform: uppercase;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.5);
+  z-index: 2;
+}
+
+.enemy-info {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  overflow: hidden;
+}
+
+.enemy-info .name {
+  font-size: 12px;
+  font-weight: bold;
+  color: #f0f0f0;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  margin-bottom: 2px;
+}
+
+.enemy-info .desc {
+  font-size: 10px;
+  color: #888;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* 自定义敌人的特殊头像样式 */
+.enemy-avatar.custom {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(255, 215, 0, 0.05);
+  border: 1px rgba(255, 215, 0, 0.4);
+  color: #ffd700;
+  font-size: 22px;
+  font-weight: 900;
+  font-family: 'Roboto Mono', monospace;
+  box-shadow: inset 0 0 10px rgba(255, 215, 0, 0.1);
+  text-shadow: 0 0 8px rgba(255, 215, 0, 0.5);
+}
+
+/* 选中状态下的自定义头像变化 */
+.enemy-card.selected .enemy-avatar.custom {
+  background: rgba(255, 215, 0, 0.15);
+  border-style: solid;
+  box-shadow: 0 0 12px rgba(255, 215, 0, 0.2);
+}
+
+/* 动画定义 */
+@keyframes scan {
+  0% { top: -10%; }
+  100% { top: 110%; }
+}
+
+.stun-bg-anim { animation: stun-flash 2s infinite alternate; }
+@keyframes stun-flash { 0% { fill-opacity: 0.1; } 100% { fill-opacity: 0.3; } }
+
+.node-bar-anim { animation: node-pulse 1.5s infinite alternate; }
+@keyframes node-pulse { 0% { opacity: 0.4; } 100% { opacity: 0.8; } }
 </style>

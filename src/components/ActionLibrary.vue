@@ -168,7 +168,6 @@ function onNativeDragEnd() {
         <div class="header-icon-bar"></div>
         <h3 class="char-name">{{ activeCharacterName }}</h3>
       </div>
-      <div class="header-sub">干员技能</div>
       <div class="header-divider"></div>
     </div>
 
@@ -252,23 +251,27 @@ function onNativeDragEnd() {
 
 <style scoped>
 .library-container {
-  padding: 15px;
+  padding: 20px;
   display: flex;
   flex-direction: column;
   background-color: #252525;
   height: 100%;
-  gap: 15px;
+  gap: 20px;
   overflow-y: auto;
   transition: background-color 0.3s ease;
+  scrollbar-width: none;
+  -ms-overflow-style: none;
 }
 
+.library-container::-webkit-scrollbar {
+  display: none;
+}
 /* 头部样式 */
 .lib-header { display: flex; flex-direction: column; gap: 4px; }
 .header-main { display: flex; align-items: center; gap: 10px; }
 .header-icon-bar { width: 4px; height: 18px; background-color: #ffd700; }
 .char-name { margin: 0; color: #fff; font-size: 18px; letter-spacing: 1px; }
-.header-sub { font-size: 10px; color: #555; font-family: 'Roboto Mono', monospace; }
-.header-divider { height: 2px; background: linear-gradient(90deg, #ffd700 0%, transparent 100%); opacity: 0.3; margin-top: 5px; }
+.header-divider { height: 2px; background: linear-gradient(90deg, #ffd700 0%, transparent 100%); opacity: 0.3; margin-top: 3px; }
 
 /* 参数面板 */
 .gauge-settings-panel {

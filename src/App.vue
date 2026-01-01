@@ -38,6 +38,23 @@ html,
   overflow: hidden;
 }
 
+html.dark {
+  --el-bg-color-overlay: #1e1e1e !important;
+  --el-dialog-bg-color: #1e1e1e !important;
+  --el-fill-color-blank: #333333 !important;
+}
+
+.el-overlay-dialog .el-dialog {
+  background-color: #1e1e1e !important;
+  background-image: none !important;
+}
+
+.el-dialog__header,
+.el-dialog__body,
+.el-dialog__footer {
+  background-color: #1e1e1e !important;
+}
+
 .hidden {
   display: none !important;
 }
