@@ -554,40 +554,40 @@ onUnmounted(() => {
             导出图片
           </button>
 
-          <div class="divider-vertical"></div>
+          <div class="project-btn-group">
+            <button class="control-btn group-item load-btn" @click="triggerImport" title="导入 .json 项目文件或 .png 图片">
+              <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+                <polyline points="7 10 12 15 17 10"></polyline>
+                <line x1="12" y1="15" x2="12" y2="3"></line>
+              </svg>
+              加载
+            </button>
 
-          <button class="control-btn load-btn" @click="triggerImport" title="导入 .json 项目文件或 .png 图片">
-            <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-              <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
-              <polyline points="7 10 12 15 17 10"></polyline>
-              <line x1="12" y1="15" x2="12" y2="3"></line>
-            </svg>
-            加载
-          </button>
+            <button class="control-btn group-item save-btn" @click="store.exportProject" title="保存为 .json 文件">
+              <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"></path><polyline points="17 21 17 13 7 13 7 21"></polyline><polyline points="7 3 7 8 15 8"></polyline>
+              </svg>
+              保存
+            </button>
 
-          <button class="control-btn save-btn" @click="store.exportProject" title="保存为 .json 文件">
-            <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-              <path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"></path><polyline points="17 21 17 13 7 13 7 21"></polyline><polyline points="7 3 7 8 15 8"></polyline>
-            </svg>
-            保存
-          </button>
+            <button class="control-btn group-item share-btn" @click="copyShareCode" title="复制当前方案的分享码">
+              <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M4 12v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8"></path>
+                <polyline points="16 6 12 2 8 6"></polyline>
+                <line x1="12" y1="2" x2="12" y2="15"></line>
+              </svg>
+              分享
+            </button>
 
-
-          <button class="control-btn share-btn" @click="copyShareCode" title="复制当前方案的分享码">
-            <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-              <path d="M4 12v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8"></path>
-              <polyline points="16 6 12 2 8 6"></polyline>
-              <line x1="12" y1="2" x2="12" y2="15"></line>
-            </svg>
-            分享
-          </button>
-          <button class="control-btn load-btn" @click="openImportShareDialog" title="粘贴分享码导入方案">
-            <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-              <polyline points="9 11 12 14 22 4"></polyline>
-              <path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"></path>
-            </svg>
-            接收
-          </button>
+            <button class="control-btn group-item load-btn" @click="openImportShareDialog" title="粘贴分享码导入方案">
+              <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <polyline points="9 11 12 14 22 4"></polyline>
+                <path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"></path>
+              </svg>
+              接收
+            </button>
+          </div>
         </div>
       </header>
 
@@ -656,7 +656,7 @@ onUnmounted(() => {
       <template #header>
         <div class="module-deco header-type">
           <span class="module-code">欢迎使用 ENDAXIS</span>
-          <span class="module-label">终末地排轴工具 v1.0.0</span>
+          <span class="module-label">终末地排轴工具 v0.9.0</span>
         </div>
       </template>
 
@@ -786,6 +786,12 @@ onUnmounted(() => {
 .danger-btn:hover { border-color: #a61d24; color: #a61d24; background-color: rgba(255, 77, 79, 0.1); }
 .info-btn:hover { border-color: #00e5ff; color: #00e5ff; background-color: rgba(0, 229, 255, 0.1); }
 .share-btn:hover { border-color: #722ed1; color: #722ed1; background-color: rgba(114, 46, 209, 0.1); }
+/* 按钮组容器 */
+.project-btn-group { display: flex; align-items: center; }
+.project-btn-group .group-item { position: relative; border-radius: 0; margin-right: -1px; border: 1px solid #555; }
+.project-btn-group .group-item:first-child { border-top-left-radius: 4px; border-bottom-left-radius: 4px; }
+.project-btn-group .group-item:last-child { border-top-right-radius: 4px; border-bottom-right-radius: 4px; margin-right: 0; }
+.project-btn-group .group-item:hover { z-index: 2; border-color: currentColor; }
 
 /* Workspace & Panels */
 .timeline-workspace { flex-grow: 1; display: flex; flex-direction: column; overflow: hidden; position: relative; }
