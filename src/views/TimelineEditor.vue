@@ -127,7 +127,7 @@ onUnmounted(() => {
 
 // === 关于弹窗逻辑 ===
 const aboutDialogVisible = ref(false)
-const CURRENT_NOTICE_VERSION = '2025-12-5-update'
+const CURRENT_NOTICE_VERSION = '2026-1-2-update'
 
 onMounted(() => {
   const lastSeenVersion = localStorage.getItem('endaxis_notice_version')
@@ -656,7 +656,7 @@ onUnmounted(() => {
       <template #header>
         <div class="module-deco header-type">
           <span class="module-code">欢迎使用 ENDAXIS</span>
-          <span class="module-label">终末地排轴系统 v1.0.0</span>
+          <span class="module-label">终末地排轴工具 v1.0.0</span>
         </div>
       </template>
 
@@ -664,8 +664,8 @@ onUnmounted(() => {
         <div class="section-container tech-style no-margin">
           <div class="panel-tag-mini">系统信息</div>
           <div class="section-content-tech">
-            <p class="tech-p">本工具为《明日方舟：终末地》玩家自制作品，旨在提供可视化的战术序列规划环境。</p>
-            <p class="tech-p" style="margin-top: 5px;">当前核心算法已支持时延补偿与资源监控，由于项目处于早期开发阶段，部分干员属性使用了占位数据，请根据实机情况自行调整。</p>
+            <p class="tech-p">本工具为《明日方舟：终末地》玩家自制作品，旨在提供可视化的排轴规划环境。</p>
+            <p class="tech-p" style="margin-top: 5px;">当前项目处于早期开发阶段，部分干员属性使用了占位数据，请根据实机情况自行调整。如果有意向提供详细数据可以联系我们。</p>
           </div>
         </div>
         <div class="section-container tech-style border-blue no-margin">
