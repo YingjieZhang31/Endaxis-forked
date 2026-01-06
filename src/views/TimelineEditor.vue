@@ -794,6 +794,12 @@ onUnmounted(() => {
 
 /* Export Dialog Styles */
 .export-form { display: flex; flex-direction: column; gap: 20px; padding: 10px 0; }
+.dialog-footer {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+  width: 100%;
+}
 .form-item label { display: block; margin-bottom: 8px; font-weight: bold; color: #ccc; }
 .hint { font-size: 12px; color: #888; margin-top: 6px; }
 
@@ -940,7 +946,6 @@ onUnmounted(() => {
   padding: 0 24px !important;
   font-weight: bold !important;
   height: 36px;
-  border-radius: 4px;
 }
 
 /* 顶部悬浮标签 */
