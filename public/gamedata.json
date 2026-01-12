@@ -1,24 +1,24 @@
 {
   "ICON_DATABASE": {
-    "break": "/icons/icon_battle_physical_no_guard.png",
-    "armor_break": "/icons/icon_battle_physical_fracture.png",
-    "stagger": "/icons/icon_battle_physical_crush.png",
-    "knockdown": "/icons/icon_battle_physical_knockdown.png",
-    "knockup": "/icons/icon_battle_physical_airborne.png",
-    "blaze_attach": "/icons/icon_energy_fusion_fire.png",
-    "emag_attach": "/icons/icon_energy_fusion_pulse.png",
-    "cold_attach": "/icons/icon_energy_fusion_cryst.png",
-    "nature_attach": "/icons/icon_energy_fusion_nature.png",
-    "blaze_burst": "/icons/icon_burst_fusion_fire.png",
-    "emag_burst": "/icons/icon_burst_fusion_pulse.png",
-    "cold_burst": "/icons/icon_burst_fusion_cryst.png",
-    "nature_burst": "/icons/icon_burst_fusion_nature.png",
-    "burning": "/icons/icon_battle_debuff_burning.png",
-    "conductive": "/icons/icon_battle_debuff_conduct.png",
-    "frozen": "/icons/icon_battle_debuff_frozen.png",
-    "ice_shatter": "/icons/icon_battle_debuff_crystbreak.png",
-    "corrosion": "/icons/icon_battle_debuff_corrupt.png",
-    "default": "/icons/default_icon.png"
+    "break": "/icons/icon_battle_physical_no_guard.webp",
+    "armor_break": "/icons/icon_battle_physical_fracture.webp",
+    "stagger": "/icons/icon_battle_physical_crush.webp",
+    "knockdown": "/icons/icon_battle_physical_knockdown.webp",
+    "knockup": "/icons/icon_battle_physical_airborne.webp",
+    "blaze_attach": "/icons/icon_energy_fusion_fire.webp",
+    "emag_attach": "/icons/icon_energy_fusion_pulse.webp",
+    "cold_attach": "/icons/icon_energy_fusion_cryst.webp",
+    "nature_attach": "/icons/icon_energy_fusion_nature.webp",
+    "blaze_burst": "/icons/icon_burst_fusion_fire.webp",
+    "emag_burst": "/icons/icon_burst_fusion_pulse.webp",
+    "cold_burst": "/icons/icon_burst_fusion_cryst.webp",
+    "nature_burst": "/icons/icon_burst_fusion_nature.webp",
+    "burning": "/icons/icon_battle_debuff_burning.webp",
+    "conductive": "/icons/icon_battle_debuff_conduct.webp",
+    "frozen": "/icons/icon_battle_debuff_frozen.webp",
+    "ice_shatter": "/icons/icon_battle_debuff_crystbreak.webp",
+    "corrosion": "/icons/icon_battle_debuff_corrupt.webp",
+    "default": "/icons/default_icon.webp"
   },
   "characterRoster": [
     {
@@ -26,12 +26,12 @@
       "name": "管理员",
       "rarity": 6,
       "element": "physical",
-      "avatar": "/avatars/ENDMINISTRATOR/ENDMINISTRATOR.png",
+      "avatar": "/avatars/ENDMINISTRATOR/ENDMINISTRATOR.webp",
       "exclusive_buffs": [
         {
           "key": "endmin_debuff",
           "name": "结晶",
-          "path": "/avatars/ENDMINISTRATOR/icon_skill_endmin_debuff.png"
+          "path": "/avatars/ENDMINISTRATOR/icon_skill_endmin_debuff.webp"
         }
       ],
       "attack_duration": 3.7,
@@ -168,26 +168,26 @@
       "ultimate_enhancementTime": 0,
       "attack_gaugeGain": 0,
       "weapon": "sword",
-      "skill_icon": "/avatars/ENDMINISTRATOR/icon_skill_endmin_01.png",
-      "link_icon": "/avatars/ENDMINISTRATOR/icon_combo_skill_endmin_01.png",
-      "ultimate_icon": "/avatars/ENDMINISTRATOR/icon_ultimate_skill_endmin_01.png"
+      "skill_icon": "/avatars/ENDMINISTRATOR/icon_skill_endmin_01.webp",
+      "link_icon": "/avatars/ENDMINISTRATOR/icon_combo_skill_endmin_01.webp",
+      "ultimate_icon": "/avatars/ENDMINISTRATOR/icon_ultimate_skill_endmin_01.webp"
     },
     {
       "id": "POGRANICHNK",
       "name": "骏卫",
       "rarity": 6,
       "element": "physical",
-      "avatar": "/avatars/POGRANICHNK/POGRANICHNK.png",
+      "avatar": "/avatars/POGRANICHNK/POGRANICHNK.webp",
       "exclusive_buffs": [
         {
           "key": "pograni_buff",
           "name": "铁誓",
-          "path": "/avatars/POGRANICHNK/icon_battle_pograni_buff.png"
+          "path": "/avatars/POGRANICHNK/icon_battle_pograni_buff.webp"
         },
         {
           "key": "pograni_talent",
           "name": "士气激昂",
-          "path": "/avatars/POGRANICHNK/icon_battle_pograni_talent_1.png"
+          "path": "/avatars/POGRANICHNK/icon_battle_pograni_talent_1.webp"
         }
       ],
       "attack_duration": 3.3,
@@ -407,7 +407,7 @@
           ],
           "cooldown": 18,
           "gaugeGain": 10,
-          "icon": "/avatars/POGRANICHNK/icon_combo_skill_pograni_01.png"
+          "icon": "/avatars/POGRANICHNK/icon_combo_skill_pograni_01.webp"
         },
         {
           "id": "v_1765344406616",
@@ -434,7 +434,7 @@
           ],
           "cooldown": 18,
           "gaugeGain": 10,
-          "icon": "/avatars/POGRANICHNK/icon_combo_skill_pograni_01.png"
+          "icon": "/avatars/POGRANICHNK/icon_combo_skill_pograni_01.webp"
         },
         {
           "id": "v_1765344414601",
@@ -467,7 +467,7 @@
           ],
           "cooldown": 18,
           "gaugeGain": 10,
-          "icon": "/avatars/POGRANICHNK/icon_combo_skill_pograni_01.png"
+          "icon": "/avatars/POGRANICHNK/icon_combo_skill_pograni_01.webp"
         },
         {
           "id": "v_1766424867630",
@@ -500,33 +500,33 @@
           ],
           "cooldown": 18,
           "gaugeGain": 10,
-          "icon": "/avatars/POGRANICHNK/icon_combo_skill_pograni_01.png"
+          "icon": "/avatars/POGRANICHNK/icon_combo_skill_pograni_01.webp"
         }
       ],
       "ultimate_enhancementTime": 0,
       "ultimate_animationTime": 2.5,
       "attack_gaugeGain": 0,
       "weapon": "sword",
-      "skill_icon": "/avatars/POGRANICHNK/icon_skill_pograni_01.png",
-      "link_icon": "/avatars/POGRANICHNK/icon_combo_skill_pograni_01.png",
-      "ultimate_icon": "/avatars/POGRANICHNK/icon_ultimate_skill_pograni_01.png"
+      "skill_icon": "/avatars/POGRANICHNK/icon_skill_pograni_01.webp",
+      "link_icon": "/avatars/POGRANICHNK/icon_combo_skill_pograni_01.webp",
+      "ultimate_icon": "/avatars/POGRANICHNK/icon_ultimate_skill_pograni_01.webp"
     },
     {
       "id": "ARDELIA",
       "name": "艾尔黛拉",
       "rarity": 6,
       "element": "nature",
-      "avatar": "/avatars/ARDELIA/ARDELIA.png",
+      "avatar": "/avatars/ARDELIA/ARDELIA.webp",
       "exclusive_buffs": [
         {
           "key": "spell_vulnerable",
           "name": "法术脆弱",
-          "path": "/icons/icon_battle_affix_spell_vulnerable.png"
+          "path": "/icons/icon_battle_affix_spell_vulnerable.webp"
         },
         {
           "key": "physical_vulnerable",
           "name": "物理脆弱",
-          "path": "/icons/icon_battle_affix_physical_vulnerable.png"
+          "path": "/icons/icon_battle_affix_physical_vulnerable.webp"
         }
       ],
       "attack_duration": 4.3,
@@ -675,21 +675,21 @@
       "ultimate_animationTime": 2.7,
       "attack_gaugeGain": 0,
       "weapon": "funnel",
-      "skill_icon": "/avatars/ARDELIA/icon_skill_ardelia_01.png",
-      "link_icon": "/avatars/ARDELIA/icon_combo_skill_ardelia_01.png",
-      "ultimate_icon": "/avatars/ARDELIA/icon_ultimate_skill_ardelia_01.png"
+      "skill_icon": "/avatars/ARDELIA/icon_skill_ardelia_01.webp",
+      "link_icon": "/avatars/ARDELIA/icon_combo_skill_ardelia_01.webp",
+      "ultimate_icon": "/avatars/ARDELIA/icon_ultimate_skill_ardelia_01.webp"
     },
     {
       "id": "LASTRITE",
       "name": "别礼",
       "rarity": 6,
       "element": "cold",
-      "avatar": "/avatars/LASTRITE/LASTRITE.png",
+      "avatar": "/avatars/LASTRITE/LASTRITE.webp",
       "exclusive_buffs": [
         {
           "key": "lastrite_buff",
           "name": "低温灌注",
-          "path": "icon_battle_lastrite_buff.png"
+          "path": "icon_battle_lastrite_buff.webp"
         }
       ],
       "attack_duration": 4.3,
@@ -795,26 +795,26 @@
       "ultimate_animationTime": 2.9,
       "attack_gaugeGain": 0,
       "weapon": "claym",
-      "skill_icon": "/avatars/LASTRITE/icon_skill_lastrite_01.png",
-      "link_icon": "/avatars/LASTRITE/icon_combo_skill_lastrite_01.png",
-      "ultimate_icon": "/avatars/LASTRITE/icon_ultimate_skill_lastrite_01.png"
+      "skill_icon": "/avatars/LASTRITE/icon_skill_lastrite_01.webp",
+      "link_icon": "/avatars/LASTRITE/icon_combo_skill_lastrite_01.webp",
+      "ultimate_icon": "/avatars/LASTRITE/icon_ultimate_skill_lastrite_01.webp"
     },
     {
       "id": "GILBERTA",
       "name": "洁尔佩塔",
       "rarity": 6,
       "element": "nature",
-      "avatar": "/avatars/GILBERTA/GILBERTA.png",
+      "avatar": "/avatars/GILBERTA/GILBERTA.webp",
       "exclusive_buffs": [
         {
           "key": "affix_slow",
           "name": "缓速",
-          "path": "/icons/icon_battle_affix_slow.png"
+          "path": "/icons/icon_battle_affix_slow.webp"
         },
         {
           "key": "spell_vulnerable",
           "name": "法术脆弱",
-          "path": "/icons/icon_battle_affix_spell_vulnerable.png"
+          "path": "/icons/icon_battle_affix_spell_vulnerable.webp"
         }
       ],
       "attack_duration": 3.5,
@@ -984,16 +984,16 @@
       "ultimate_animationTime": 0.5,
       "attack_gaugeGain": 0,
       "weapon": "funnel",
-      "skill_icon": "/avatars/GILBERTA/icon_skill_aglina_01.png",
-      "link_icon": "/avatars/GILBERTA/icon_combo_skill_aglina_01.png",
-      "ultimate_icon": "/avatars/GILBERTA/icon_ultimate_skill_aglina_01.png"
+      "skill_icon": "/avatars/GILBERTA/icon_skill_aglina_01.webp",
+      "link_icon": "/avatars/GILBERTA/icon_combo_skill_aglina_01.webp",
+      "ultimate_icon": "/avatars/GILBERTA/icon_ultimate_skill_aglina_01.webp"
     },
     {
       "id": "YVONNE",
       "name": "伊冯",
       "rarity": 6,
       "element": "cold",
-      "avatar": "/avatars/YVONNE/YVONNE.png",
+      "avatar": "/avatars/YVONNE/YVONNE.webp",
       "exclusive_buffs": [],
       "attack_duration": 3.7,
       "attack_damage_ticks": [
@@ -1169,47 +1169,47 @@
           "spCost": 100,
           "gaugeGain": 6.5,
           "teamGaugeGain": 6.5,
-          "icon": "/avatars/YVONNE/icon_skill_yvonne_01.png"
+          "icon": "/avatars/YVONNE/icon_skill_yvonne_01.webp"
         }
       ],
       "ultimate_enhancementTime": 0,
       "ultimate_animationTime": 2,
       "weapon": "pistol",
-      "skill_icon": "/avatars/YVONNE/icon_skill_yvonne_01.png",
-      "link_icon": "/avatars/YVONNE/icon_combo_skill_yvonne_01.png",
-      "ultimate_icon": "/avatars/YVONNE/icon_ultimate_skill_yvonne_01.png"
+      "skill_icon": "/avatars/YVONNE/icon_skill_yvonne_01.webp",
+      "link_icon": "/avatars/YVONNE/icon_combo_skill_yvonne_01.webp",
+      "ultimate_icon": "/avatars/YVONNE/icon_ultimate_skill_yvonne_01.webp"
     },
     {
       "id": "LAEVATAIN",
       "name": "莱万汀",
       "rarity": 6,
       "element": "blaze",
-      "avatar": "/avatars/LAEVATAIN/LAEVATAIN.png",
+      "avatar": "/avatars/LAEVATAIN/LAEVATAIN.webp",
       "exclusive_buffs": [
         {
           "key": "magma_0",
           "name": "熔火0",
-          "path": "/avatars/LAEVATAIN/magma_0.png"
+          "path": "/avatars/LAEVATAIN/magma_0.webp"
         },
         {
           "key": "magma_1",
           "name": "熔火1",
-          "path": "/avatars/LAEVATAIN/magma_1.png"
+          "path": "/avatars/LAEVATAIN/magma_1.webp"
         },
         {
           "key": "magma_2",
           "name": "熔火2",
-          "path": "/avatars/LAEVATAIN/magma_2.png"
+          "path": "/avatars/LAEVATAIN/magma_2.webp"
         },
         {
           "key": "magma_3",
           "name": "熔火3",
-          "path": "/avatars/LAEVATAIN/magma_3.png"
+          "path": "/avatars/LAEVATAIN/magma_3.webp"
         },
         {
           "key": "magma_4",
           "name": "熔火4",
-          "path": "/avatars/LAEVATAIN/magma_4.png"
+          "path": "/avatars/LAEVATAIN/magma_4.webp"
         }
       ],
       "attack_duration": 3.3,
@@ -1462,7 +1462,7 @@
           "spCost": 100,
           "gaugeGain": 106.5,
           "teamGaugeGain": 6.5,
-          "icon": "/avatars/LAEVATAIN/icon_skill_laevat_01.png"
+          "icon": "/avatars/LAEVATAIN/icon_skill_laevat_01.webp"
         },
         {
           "id": "v_1767269025680",
@@ -1500,14 +1500,14 @@
           "spCost": 100,
           "gaugeGain": 0,
           "teamGaugeGain": 0,
-          "icon": "/avatars/LAEVATAIN/icon_skill_laevat_02_line.png"
+          "icon": "/avatars/LAEVATAIN/icon_skill_laevat_02_line.webp"
         },
         {
           "id": "v_1765344189692",
           "name": "大招内强化战技",
           "type": "skill",
           "duration": 1.9,
-          "icon": "/avatars/LAEVATAIN/icon_skill_laevat_02.png",
+          "icon": "/avatars/LAEVATAIN/icon_skill_laevat_02.webp",
           "allowedTypes": [
             "burning",
             "blaze_attach",
@@ -1545,26 +1545,26 @@
       "ultimate_enhancementTime": 15,
       "ultimate_animationTime": 2,
       "weapon": "sword",
-      "skill_icon": "/avatars/LAEVATAIN/icon_skill_laevat_01_line.png",
-      "link_icon": "/avatars/LAEVATAIN/icon_combo_skill_laevat_01.png",
-      "ultimate_icon": "/avatars/LAEVATAIN/icon_ultimate_skill_laevat_01.png"
+      "skill_icon": "/avatars/LAEVATAIN/icon_skill_laevat_01_line.webp",
+      "link_icon": "/avatars/LAEVATAIN/icon_combo_skill_laevat_01.webp",
+      "ultimate_icon": "/avatars/LAEVATAIN/icon_ultimate_skill_laevat_01.webp"
     },
     {
       "id": "LIFENG",
       "name": "黎风",
       "rarity": 6,
       "element": "physical",
-      "avatar": "/avatars/LIFENG/LIFENG.png",
+      "avatar": "/avatars/LIFENG/LIFENG.webp",
       "exclusive_buffs": [
         {
           "key": "combo",
           "name": "连击",
-          "path": "/icons/icon_battle_affix_combo.png"
+          "path": "/icons/icon_battle_affix_combo.webp"
         },
         {
           "key": "physical_vulnerable",
           "name": "物理脆弱",
-          "path": "/icons/icon_battle_affix_physical_vulnerable.png"
+          "path": "/icons/icon_battle_affix_physical_vulnerable.webp"
         }
       ],
       "attack_duration": 3.2,
@@ -1790,22 +1790,22 @@
           "gaugeGain": 0,
           "enhancementTime": 0,
           "animationTime": 1.9,
-          "icon": "/avatars/LIFENG/icon_ultimate_skill_lifeng_01.png"
+          "icon": "/avatars/LIFENG/icon_ultimate_skill_lifeng_01.webp"
         }
       ],
       "ultimate_enhancementTime": 0,
       "ultimate_animationTime": 1.9,
       "weapon": "lance",
-      "skill_icon": "/avatars/LIFENG/icon_skill_lifeng_01.png",
-      "link_icon": "/avatars/LIFENG/icon_combo_skill_lifeng_01.png",
-      "ultimate_icon": "/avatars/LIFENG/icon_ultimate_skill_lifeng_01.png"
+      "skill_icon": "/avatars/LIFENG/icon_skill_lifeng_01.webp",
+      "link_icon": "/avatars/LIFENG/icon_combo_skill_lifeng_01.webp",
+      "ultimate_icon": "/avatars/LIFENG/icon_ultimate_skill_lifeng_01.webp"
     },
     {
       "id": "EMBER",
       "name": "余烬",
       "rarity": 6,
       "element": "blaze",
-      "avatar": "/avatars/EMBER/EMBER.png",
+      "avatar": "/avatars/EMBER/EMBER.webp",
       "exclusive_buffs": [],
       "attack_duration": 4.2,
       "attack_damage_ticks": [
@@ -1936,16 +1936,16 @@
       "ultimate_enhancementTime": 0,
       "ultimate_animationTime": 1.7,
       "weapon": "claym",
-      "skill_icon": "/avatars/EMBER/icon_skill_azrila_01.png",
-      "link_icon": "/avatars/EMBER/icon_combo_skill_azrila_01.png",
-      "ultimate_icon": "/avatars/EMBER/icon_ultimate_skill_azrila_01.png"
+      "skill_icon": "/avatars/EMBER/icon_skill_azrila_01.webp",
+      "link_icon": "/avatars/EMBER/icon_combo_skill_azrila_01.webp",
+      "ultimate_icon": "/avatars/EMBER/icon_ultimate_skill_azrila_01.webp"
     },
     {
       "id": "XAIHI",
       "name": "赛希",
       "rarity": 5,
       "element": "cold",
-      "avatar": "/avatars/XAIHI/XAIHI.png",
+      "avatar": "/avatars/XAIHI/XAIHI.webp",
       "exclusive_buffs": [],
       "accept_team_gauge": true,
       "attack_duration": 3.3,
@@ -2060,16 +2060,16 @@
       "ultimate_enhancementTime": 0,
       "ultimate_animationTime": 1.5,
       "weapon": "funnel",
-      "skill_icon": "/avatars/XAIHI/icon_skill_seraph_01.png",
-      "link_icon": "/avatars/XAIHI/icon_combo_skill_seraph_01.png",
-      "ultimate_icon": "/avatars/XAIHI/icon_ultimate_skill_seraph_01.png"
+      "skill_icon": "/avatars/XAIHI/icon_skill_seraph_01.webp",
+      "link_icon": "/avatars/XAIHI/icon_combo_skill_seraph_01.webp",
+      "ultimate_icon": "/avatars/XAIHI/icon_ultimate_skill_seraph_01.webp"
     },
     {
       "id": "SNOWSHINE",
       "name": "昼雪",
       "rarity": 5,
       "element": "cold",
-      "avatar": "/avatars/SNOWSHINE/SNOWSHINE.png",
+      "avatar": "/avatars/SNOWSHINE/SNOWSHINE.webp",
       "exclusive_buffs": [],
       "accept_team_gauge": true,
       "attack_duration": 3.8,
@@ -2188,21 +2188,21 @@
       "ultimate_enhancementTime": 0,
       "ultimate_animationTime": 2,
       "weapon": "claym",
-      "skill_icon": "/avatars/SNOWSHINE/icon_skill_aurora_01.png",
-      "link_icon": "/avatars/SNOWSHINE/icon_combo_skill_aurora_01.png",
-      "ultimate_icon": "/avatars/SNOWSHINE/icon_ultimate_skill_aurora_01.png"
+      "skill_icon": "/avatars/SNOWSHINE/icon_skill_aurora_01.webp",
+      "link_icon": "/avatars/SNOWSHINE/icon_combo_skill_aurora_01.webp",
+      "ultimate_icon": "/avatars/SNOWSHINE/icon_ultimate_skill_aurora_01.webp"
     },
     {
       "id": "ARCLIGHT",
       "name": "弧光",
       "rarity": 5,
       "element": "emag",
-      "avatar": "/avatars/ARCLIGHT/ARCLIGHT.png",
+      "avatar": "/avatars/ARCLIGHT/ARCLIGHT.webp",
       "exclusive_buffs": [
         {
           "key": "ikut_talent",
           "name": "荒野游人",
-          "path": "/avatars/ARCLIGHT/icon_battle_ikut_talent_1.png"
+          "path": "/avatars/ARCLIGHT/icon_battle_ikut_talent_1.webp"
         }
       ],
       "accept_team_gauge": true,
@@ -2323,16 +2323,16 @@
       "ultimate_enhancementTime": 0,
       "ultimate_animationTime": 1.9,
       "weapon": "sword",
-      "skill_icon": "/avatars/ARCLIGHT/icon_skill_ikut_01_line.png",
-      "link_icon": "/avatars/ARCLIGHT/icon_combo_skill_ikut_01.png",
-      "ultimate_icon": "/avatars/ARCLIGHT/icon_ultimate_skill_ikut_01.png",
+      "skill_icon": "/avatars/ARCLIGHT/icon_skill_ikut_01_line.webp",
+      "link_icon": "/avatars/ARCLIGHT/icon_combo_skill_ikut_01.webp",
+      "ultimate_icon": "/avatars/ARCLIGHT/icon_ultimate_skill_ikut_01.webp",
       "variants": [
         {
           "id": "v_1767273184428",
           "name": "强化战技",
           "type": "skill",
           "duration": 1,
-          "icon": "/avatars/ARCLIGHT/icon_skill_ikut_01.png",
+          "icon": "/avatars/ARCLIGHT/icon_skill_ikut_01.webp",
           "allowedTypes": [],
           "physicalAnomaly": [],
           "damageTicks": [
@@ -2354,17 +2354,17 @@
       "name": "艾维文娜",
       "rarity": 5,
       "element": "emag",
-      "avatar": "/avatars/AVYWENNA/AVYWENNA.png",
+      "avatar": "/avatars/AVYWENNA/AVYWENNA.webp",
       "exclusive_buffs": [
         {
           "key": "Thunderlances",
           "name": "雷枪",
-          "path": "/avatars/AVYWENNA/icon_combo_skill_avywen_01.png"
+          "path": "/avatars/AVYWENNA/icon_combo_skill_avywen_01.webp"
         },
         {
           "key": "Thunderlances EX",
           "name": "强雷枪",
-          "path": "/avatars/AVYWENNA/icon_ultimate_skill_avywen_01.png"
+          "path": "/avatars/AVYWENNA/icon_ultimate_skill_avywen_01.webp"
         }
       ],
       "accept_team_gauge": true,
@@ -2492,16 +2492,16 @@
       "ultimate_enhancementTime": 0,
       "ultimate_animationTime": 1.5,
       "weapon": "lance",
-      "skill_icon": "/avatars/AVYWENNA/icon_skill_avywen_01_line.png",
-      "link_icon": "/avatars/AVYWENNA/icon_combo_skill_avywen_01.png",
-      "ultimate_icon": "/avatars/AVYWENNA/icon_ultimate_skill_avywen_01.png",
+      "skill_icon": "/avatars/AVYWENNA/icon_skill_avywen_01_line.webp",
+      "link_icon": "/avatars/AVYWENNA/icon_combo_skill_avywen_01.webp",
+      "ultimate_icon": "/avatars/AVYWENNA/icon_ultimate_skill_avywen_01.webp",
       "variants": [
         {
           "id": "v_1767273720814",
           "name": "战技-回收雷枪",
           "type": "skill",
           "duration": 0.5,
-          "icon": "/avatars/AVYWENNA/icon_skill_avywen_01.png",
+          "icon": "/avatars/AVYWENNA/icon_skill_avywen_01.webp",
           "allowedTypes": [
             "emag_burst",
             "conductive",
@@ -2527,12 +2527,12 @@
       "name": "大潘",
       "rarity": 5,
       "element": "physical",
-      "avatar": "/avatars/DAPAN/DAPAN.png",
+      "avatar": "/avatars/DAPAN/DAPAN.webp",
       "exclusive_buffs": [
         {
           "key": "dapan_buff",
           "name": "备料",
-          "path": "/avatars/DAPAN/icon_battle_dapan_buff.png"
+          "path": "/avatars/DAPAN/icon_battle_dapan_buff.webp"
         }
       ],
       "accept_team_gauge": true,
@@ -2703,16 +2703,16 @@
       "ultimate_animationTime": 1.5,
       "ultimate_enhancementTime": 0,
       "weapon": "claym",
-      "skill_icon": "/avatars/DAPAN/icon_skill_dapan_01.png",
-      "link_icon": "/avatars/DAPAN/icon_combo_skill_dapan_01.png",
-      "ultimate_icon": "/avatars/DAPAN/icon_ultimate_skill_dapan_01.png"
+      "skill_icon": "/avatars/DAPAN/icon_skill_dapan_01.webp",
+      "link_icon": "/avatars/DAPAN/icon_combo_skill_dapan_01.webp",
+      "ultimate_icon": "/avatars/DAPAN/icon_ultimate_skill_dapan_01.webp"
     },
     {
       "id": "WULFGARD",
       "name": "狼卫",
       "rarity": 5,
       "element": "blaze",
-      "avatar": "/avatars/WULFGARD/WULFGARD.png",
+      "avatar": "/avatars/WULFGARD/WULFGARD.webp",
       "exclusive_buffs": [],
       "accept_team_gauge": true,
       "attack_duration": 4,
@@ -2872,22 +2872,22 @@
           "spCost": 75,
           "gaugeGain": 6.5,
           "teamGaugeGain": 6.5,
-          "icon": "/avatars/WULFGARD/icon_skill_wolfgd_01.png"
+          "icon": "/avatars/WULFGARD/icon_skill_wolfgd_01.webp"
         }
       ],
       "ultimate_enhancementTime": 0,
       "ultimate_animationTime": 1.5,
       "weapon": "pistol",
-      "skill_icon": "/avatars/WULFGARD/icon_skill_wolfgd_01_line.png",
-      "link_icon": "/avatars/WULFGARD/icon_combo_skill_wolfgd_01.png",
-      "ultimate_icon": "/avatars/WULFGARD/icon_ultimate_skill_wolfgd_01.png"
+      "skill_icon": "/avatars/WULFGARD/icon_skill_wolfgd_01_line.webp",
+      "link_icon": "/avatars/WULFGARD/icon_combo_skill_wolfgd_01.webp",
+      "ultimate_icon": "/avatars/WULFGARD/icon_ultimate_skill_wolfgd_01.webp"
     },
     {
       "id": "PERLICA",
       "name": "佩丽卡",
       "rarity": 5,
       "element": "emag",
-      "avatar": "/avatars/PERLICA/PERLICA.png",
+      "avatar": "/avatars/PERLICA/PERLICA.webp",
       "exclusive_buffs": [],
       "accept_team_gauge": true,
       "attack_duration": 3.3,
@@ -3018,16 +3018,16 @@
       "ultimate_enhancementTime": 0,
       "ultimate_animationTime": 1.6,
       "weapon": "funnel",
-      "skill_icon": "/avatars/PERLICA/icon_skill_pelica_01.png",
-      "link_icon": "/avatars/PERLICA/icon_combo_skill_pelica_01.png",
-      "ultimate_icon": "/avatars/PERLICA/icon_ultimate_skill_pelica_01.png"
+      "skill_icon": "/avatars/PERLICA/icon_skill_pelica_01.webp",
+      "link_icon": "/avatars/PERLICA/icon_combo_skill_pelica_01.webp",
+      "ultimate_icon": "/avatars/PERLICA/icon_ultimate_skill_pelica_01.webp"
     },
     {
       "id": "CHENQIANYU",
       "name": "陈千语",
       "rarity": 5,
       "element": "physical",
-      "avatar": "/avatars/CHENQIANYU/CHENQIANYU.png",
+      "avatar": "/avatars/CHENQIANYU/CHENQIANYU.webp",
       "exclusive_buffs": [],
       "attack_duration": 3.2,
       "attack_damage_ticks": [
@@ -3164,16 +3164,16 @@
       "ultimate_enhancementTime": 0,
       "ultimate_animationTime": 1.6,
       "weapon": "sword",
-      "skill_icon": "/avatars/CHENQIANYU/icon_skill_chen_01.png",
-      "link_icon": "/avatars/CHENQIANYU/icon_combo_skill_chen_01.png",
-      "ultimate_icon": "/avatars/CHENQIANYU/icon_ultimate_skill_chen_01.png"
+      "skill_icon": "/avatars/CHENQIANYU/icon_skill_chen_01.webp",
+      "link_icon": "/avatars/CHENQIANYU/icon_combo_skill_chen_01.webp",
+      "ultimate_icon": "/avatars/CHENQIANYU/icon_ultimate_skill_chen_01.webp"
     },
     {
       "id": "ALESH",
       "name": "阿列什",
       "rarity": 5,
       "element": "cold",
-      "avatar": "/avatars/ALESH/ALESH.png",
+      "avatar": "/avatars/ALESH/ALESH.webp",
       "exclusive_buffs": [],
       "attack_duration": 3.2,
       "attack_damage_ticks": [
@@ -3301,16 +3301,16 @@
       "ultimate_animationTime": 1.6,
       "ultimate_enhancementTime": 0,
       "weapon": "sword",
-      "skill_icon": "/avatars/ALESH/icon_skill_deepfin_01_line.png",
-      "link_icon": "/avatars/ALESH/icon_combo_skill_deepfin_01.png",
-      "ultimate_icon": "/avatars/ALESH/icon_ultimate_skill_deepfin_01.png",
+      "skill_icon": "/avatars/ALESH/icon_skill_deepfin_01_line.webp",
+      "link_icon": "/avatars/ALESH/icon_combo_skill_deepfin_01.webp",
+      "ultimate_icon": "/avatars/ALESH/icon_ultimate_skill_deepfin_01.webp",
       "variants": [
         {
           "id": "v_1767274880488",
           "name": "强化战技",
           "type": "skill",
           "duration": 1.3,
-          "icon": "/avatars/ALESH/icon_skill_deepfin_01.png",
+          "icon": "/avatars/ALESH/icon_skill_deepfin_01.webp",
           "allowedTypes": [
             "frozen",
             "cold_attach",
@@ -3345,7 +3345,7 @@
       "name": "卡契尔",
       "rarity": 4,
       "element": "physical",
-      "avatar": "/avatars/CATCHER/CATCHER.png",
+      "avatar": "/avatars/CATCHER/CATCHER.webp",
       "exclusive_buffs": [],
       "accept_team_gauge": true,
       "attack_duration": 2.5,
@@ -3463,16 +3463,16 @@
       "ultimate_enhancementTime": 0,
       "ultimate_animationTime": 1.3,
       "weapon": "claym",
-      "skill_icon": "/avatars/CATCHER/icon_skill_meurs_01.png",
-      "link_icon": "/avatars/CATCHER/icon_combo_skill_meurs_01.png",
-      "ultimate_icon": "/avatars/CATCHER/icon_ultimate_skill_meurs_01.png"
+      "skill_icon": "/avatars/CATCHER/icon_skill_meurs_01.webp",
+      "link_icon": "/avatars/CATCHER/icon_combo_skill_meurs_01.webp",
+      "ultimate_icon": "/avatars/CATCHER/icon_ultimate_skill_meurs_01.webp"
     },
     {
       "id": "FLUORITE",
       "name": "萤石",
       "rarity": 4,
       "element": "nature",
-      "avatar": "/avatars/FLUORITE/FLUORITE.png",
+      "avatar": "/avatars/FLUORITE/FLUORITE.webp",
       "exclusive_buffs": [],
       "accept_team_gauge": true,
       "attack_duration": 2.5,
@@ -3571,31 +3571,31 @@
       "ultimate_enhancementTime": 0,
       "ultimate_animationTime": 0.5,
       "weapon": "pistol",
-      "skill_icon": "/avatars/FLUORITE/icon_skill_bounda_01.png",
-      "link_icon": "/avatars/FLUORITE/icon_combo_skill_bounda_01.png",
-      "ultimate_icon": "/avatars/FLUORITE/icon_ultimate_skill_bounda_01.png"
+      "skill_icon": "/avatars/FLUORITE/icon_skill_bounda_01.webp",
+      "link_icon": "/avatars/FLUORITE/icon_combo_skill_bounda_01.webp",
+      "ultimate_icon": "/avatars/FLUORITE/icon_ultimate_skill_bounda_01.webp"
     },
     {
       "id": "ANTAL",
       "name": "安塔尔",
       "rarity": 4,
       "element": "emag",
-      "avatar": "/avatars/ANTAL/ANTAL.png",
+      "avatar": "/avatars/ANTAL/ANTAL.webp",
       "exclusive_buffs": [
         {
           "key": "antal_buff",
           "name": "聚焦",
-          "path": "/avatars/ANTAL/icon_battle_antal_buff.png"
+          "path": "/avatars/ANTAL/icon_battle_antal_buff.webp"
         },
         {
           "key": "fire_enhance",
           "name": "灼热增幅",
-          "path": "/icons/icon_battle_affix_fire_enhance.png"
+          "path": "/icons/icon_battle_affix_fire_enhance.webp"
         },
         {
           "key": "pulse_enhance",
           "name": "电磁增幅",
-          "path": "/icons/icon_battle_affix_pulse_enhance.png"
+          "path": "/icons/icon_battle_affix_pulse_enhance.webp"
         }
       ],
       "accept_team_gauge": true,
@@ -3742,16 +3742,16 @@
       "ultimate_enhancementTime": 0,
       "ultimate_animationTime": 1.4,
       "weapon": "funnel",
-      "skill_icon": "/avatars/ANTAL/icon_skill_antal_01.png",
-      "link_icon": "/avatars/ANTAL/icon_combo_skill_antal_01.png",
-      "ultimate_icon": "/avatars/ANTAL/icon_ultimate_skill_antal_01.png"
+      "skill_icon": "/avatars/ANTAL/icon_skill_antal_01.webp",
+      "link_icon": "/avatars/ANTAL/icon_combo_skill_antal_01.webp",
+      "ultimate_icon": "/avatars/ANTAL/icon_ultimate_skill_antal_01.webp"
     },
     {
       "id": "ESTELLA",
       "name": "埃特拉",
       "rarity": 4,
       "element": "cold",
-      "avatar": "/avatars/ESTELLA/ESTELLA.png",
+      "avatar": "/avatars/ESTELLA/ESTELLA.webp",
       "exclusive_buffs": [],
       "attack_duration": 2.5,
       "attack_damage_ticks": [
@@ -3882,16 +3882,16 @@
       "ultimate_enhancementTime": 0,
       "ultimate_animationTime": 1.8,
       "weapon": "lance",
-      "skill_icon": "/avatars/ESTELLA/icon_skill_whiten_01.png",
-      "link_icon": "/avatars/ESTELLA/icon_combo_skill_whiten_01.png",
-      "ultimate_icon": "/avatars/ESTELLA/icon_ultimate_skill_whiten_01.png"
+      "skill_icon": "/avatars/ESTELLA/icon_skill_whiten_01.webp",
+      "link_icon": "/avatars/ESTELLA/icon_combo_skill_whiten_01.webp",
+      "ultimate_icon": "/avatars/ESTELLA/icon_ultimate_skill_whiten_01.webp"
     },
     {
       "id": "AKEKURI",
       "name": "秋栗",
       "rarity": 4,
       "element": "blaze",
-      "avatar": "/avatars/AKEKURI/AKEKURI.png",
+      "avatar": "/avatars/AKEKURI/AKEKURI.webp",
       "exclusive_buffs": [],
       "attack_duration": 2.5,
       "attack_damage_ticks": [
@@ -4003,16 +4003,16 @@
       "ultimate_animationTime": 1.7,
       "ultimate_enhancementTime": 0,
       "weapon": "sword",
-      "skill_icon": "/avatars/AKEKURI/icon_skill_karin_01.png",
-      "link_icon": "/avatars/AKEKURI/icon_combo_skill_karin_01.png",
-      "ultimate_icon": "/avatars/AKEKURI/icon_ultimate_skill_karin_01.png"
+      "skill_icon": "/avatars/AKEKURI/icon_skill_karin_01.webp",
+      "link_icon": "/avatars/AKEKURI/icon_combo_skill_karin_01.webp",
+      "ultimate_icon": "/avatars/AKEKURI/icon_ultimate_skill_karin_01.webp"
     }
   ],
   "enemyDatabase": [
     {
       "id": "eny_0045_agtrinit",
       "name": "三位一体",
-      "avatar": "/Icon_Enemy/eny_0045_agtrinit.png",
+      "avatar": "/Icon_Enemy/eny_0045_agtrinit.webp",
       "maxStagger": 280,
       "staggerNodeCount": 1,
       "staggerNodeDuration": 2,
@@ -4024,7 +4024,7 @@
     {
       "id": "eny_0051_rodin",
       "name": "“碾骨之拳”罗丹",
-      "avatar": "/Icon_Enemy/eny_0051_rodin.png",
+      "avatar": "/Icon_Enemy/eny_0051_rodin.webp",
       "maxStagger": 280,
       "staggerNodeCount": 1,
       "staggerNodeDuration": 2,
@@ -4036,7 +4036,7 @@
     {
       "id": "eny_0053_hsmob",
       "name": "莫留财",
-      "avatar": "/Icon_Enemy/eny_0053_hsmob.png",
+      "avatar": "/Icon_Enemy/eny_0053_hsmob.webp",
       "maxStagger": 80,
       "staggerNodeCount": 0,
       "staggerNodeDuration": 0,
@@ -4048,7 +4048,7 @@
     {
       "id": "eny_0093_hshog",
       "name": "球刺兽",
-      "avatar": "/Icon_Enemy/eny_0093_hshog.png",
+      "avatar": "/Icon_Enemy/eny_0093_hshog.webp",
       "maxStagger": 200,
       "staggerNodeCount": 0,
       "staggerNodeDuration": 0,
@@ -4060,7 +4060,7 @@
     {
       "id": "eny_0107_wgshoal2",
       "name": "潮行天使δ",
-      "avatar": "/Icon_Enemy/eny_0107_wgshoal2.png",
+      "avatar": "/Icon_Enemy/eny_0107_wgshoal2.webp",
       "maxStagger": 320,
       "staggerNodeCount": 1,
       "staggerNodeDuration": 2,
@@ -4083,7 +4083,7 @@
       "type": "sword",
       "rarity": 6,
       "duration": 20,
-      "icon": "/weapons/sword/wpn_sword_0021.png"
+      "icon": "/weapons/sword/wpn_sword_0021.webp"
     },
     {
       "id": "wpn_sword_0003",
@@ -4091,7 +4091,7 @@
       "type": "sword",
       "rarity": 3,
       "duration": 0,
-      "icon": "/weapons/sword/wpn_sword_0003.png"
+      "icon": "/weapons/sword/wpn_sword_0003.webp"
     }
   ]
 }

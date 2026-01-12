@@ -35,11 +35,11 @@ const getFullTypeName = (type) => {
 
 // 图标路径
 const WEAPON_ICON_MAP = {
-  'sword': '/icons/icon_attack_sword.png',
-  'claym': '/icons/icon_attack_claym.png',
-  'lance': '/icons/icon_attack_lance.png',
-  'pistol': '/icons/icon_attack_pistol.png',
-  'funnel': '/icons/icon_attack_funnel.png'
+  'sword': '/icons/icon_attack_sword.webp',
+  'claym': '/icons/icon_attack_claym.webp',
+  'lance': '/icons/icon_attack_lance.webp',
+  'pistol': '/icons/icon_attack_pistol.webp',
+  'funnel': '/icons/icon_attack_funnel.webp'
 }
 
 const currentWeaponIcon = computed(() => {
