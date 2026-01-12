@@ -51,7 +51,8 @@ const getFullTypeName = (type) => {
     'skill': '战技',
     'link': '连携',
     'ultimate': '终结技',
-    'execution': '处决'
+    'execution': '处决',
+    'weapon': '武器'
   }
   return map[type] || '技能'
 }
@@ -63,6 +64,13 @@ const getFullTypeName = (type) => {
 const isTicksExpanded = ref(false)
 const isBarsExpanded = ref(false)
 const localSelectedAnomalyId = ref(null) // 用于库模式下的本地选中状态
+const selectedWeaponStatus = computed(() => {
+  if (!store.selectedWeaponStatusId) return null
+  return store.weaponStatuses.find(s => s.id === store.selectedWeaponStatusId) || null
+})
+const isWeaponStatusMode = computed(() => !!selectedWeaponStatus.value)
+const activeLibraryList = computed(() => store.selectedLibrarySource === 'weapon' ? store.activeWeaponSkillLibrary : store.activeSkillLibrary)
+const isWeaponLibraryMode = computed(() => store.selectedLibrarySource === 'weapon')
 
 // 监听选中切换，重置本地状态
 watch(() => store.selectedLibrarySkillId, () => {
@@ -79,13 +87,16 @@ const targetData = computed(() => {
   }
   if (store.selectedLibrarySkillId) {
     // 寻找库模板
-    return store.activeSkillLibrary.find(s => s.id === store.selectedLibrarySkillId)
+    return activeLibraryList.value.find(s => s.id === store.selectedLibrarySkillId)
+  }
+  if (selectedWeaponStatus.value) {
+    return selectedWeaponStatus.value
   }
   return null
 })
 
 const isLibraryMode = computed(() => {
-  return !!store.selectedLibrarySkillId && !store.selectedActionId
+  return !!store.selectedLibrarySkillId && !store.selectedActionId && !isWeaponStatusMode.value
 })
 
 const currentCharacter = computed(() => {
@@ -103,11 +114,19 @@ const currentCharacter = computed(() => {
   return null
 })
 
-const currentSkillType = computed(() => targetData.value?.type || 'unknown')
+const currentSkillType = computed(() => {
+  if (isWeaponStatusMode.value) return 'weapon'
+  return targetData.value?.type || 'unknown'
+})
 
 // === 统一更新函数 ===
 function commitUpdate(payload) {
   if (!targetData.value) return
+
+  if (isWeaponStatusMode.value) {
+    store.updateWeaponStatus(store.selectedWeaponStatusId, payload)
+    return
+  }
 
   if (isLibraryMode.value) {
     // 更新库技能 (Character Overrides)
@@ -476,7 +495,7 @@ function handleStartConnection(id, type) {
 
         <div class="right-group">
           <div v-if="targetData" class="skill-type-minimal">
-            {{ getFullTypeName(targetData.type) }}
+            {{ getFullTypeName(currentSkillType) }}
           </div>
         </div>
       </div>
@@ -491,7 +510,6 @@ function handleStartConnection(id, type) {
             <label>持续时间(s)</label>
             <CustomNumberInput :model-value="targetData.duration" @update:model-value="val => updateActionProp('duration', val)" :step="0.1" :min="0" :activeColor="HIGHLIGHT_COLORS.default" text-align="center"/>
           </div>
-
           <div class="form-group compact" v-if="currentSkillType === 'link'">
             <label>冷却时间(s)</label>
             <CustomNumberInput :model-value="targetData.cooldown" @update:model-value="val => updateActionProp('cooldown', val)" :min="0" :activeColor="HIGHLIGHT_COLORS.default" text-align="center"/>
@@ -512,7 +530,7 @@ function handleStartConnection(id, type) {
             <CustomNumberInput :model-value="targetData.gaugeCost" @update:model-value="val => updateActionProp('gaugeCost', val)" :min="0" :border-color="HIGHLIGHT_COLORS.blue" text-align="center"/>
           </div>
 
-          <div class="form-group compact" v-if="!['execution'].includes(currentSkillType)">
+          <div class="form-group compact" v-if="!['execution','weapon'].includes(currentSkillType)">
             <label>自身充能</label>
             <CustomNumberInput :model-value="targetData.gaugeGain" @update:model-value="val => updateActionProp('gaugeGain', val)" :min="0" :border-color="HIGHLIGHT_COLORS.blue" text-align="center"/>
           </div>
@@ -528,7 +546,7 @@ function handleStartConnection(id, type) {
         </div>
       </div>
 
-      <div class="section-container tech-style border-red" @click="isTicksExpanded = !isTicksExpanded" style="cursor: pointer;">
+      <div v-if="!isWeaponLibraryMode && !isWeaponStatusMode" class="section-container tech-style border-red" @click="isTicksExpanded = !isTicksExpanded" style="cursor: pointer;">
         <div class="panel-tag-mini red">伤害判定点 ({{ (targetData.damageTicks || []).length }})</div>
 
         <div class="section-header-tech">
@@ -593,7 +611,7 @@ function handleStartConnection(id, type) {
         </div>
       </div>
 
-      <div class="section-container tech-style border-blue" @click="isBarsExpanded = !isBarsExpanded" style="cursor: pointer;">
+      <div v-if="!isWeaponLibraryMode && !isWeaponStatusMode" class="section-container tech-style border-blue" @click="isBarsExpanded = !isBarsExpanded" style="cursor: pointer;">
         <div class="panel-tag-mini blue">自定义时间条 ({{ customBarsList.length }})</div>
 
         <div class="section-header-tech">
@@ -629,7 +647,7 @@ function handleStartConnection(id, type) {
         </div>
       </div>
 
-      <div class="section-container tech-style">
+      <div v-if="!isWeaponLibraryMode && !isWeaponStatusMode" class="section-container tech-style">
         <div class="panel-tag-mini">状态效果与排布</div>
         <div class="anomalies-editor-container" style="background: transparent; border-color: rgba(255,255,255,0.1); margin-top: 10px;">
           <draggable v-model="anomalyRows" item-key="rowIndex" class="rows-container" handle=".row-handle" :animation="200">
@@ -710,7 +728,7 @@ function handleStartConnection(id, type) {
         </div>
       </div>
 
-      <div v-if="!isLibraryMode" class="section-container tech-style">
+      <div v-if="!isLibraryMode && !isWeaponLibraryMode && !isWeaponStatusMode" class="section-container tech-style">
         <div class="panel-tag-mini">技能连线关系</div>
 
         <div class="connection-header-group">

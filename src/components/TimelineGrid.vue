@@ -50,6 +50,9 @@ const isShiftDown = ref(false)
 const hoveredContext = ref(null)
 const draggingCycleBoundaryId = ref(null)
 const draggingSwitchEventId = ref(null)
+const draggingWeaponStatusId = ref(null)
+const wasWeaponStatusSelectedOnPress = ref(false)
+const weaponStatusDragOffset = ref(0)
 
 // === 边缘自动滚动相关状态 ===
 const autoScrollSpeed = ref(0)
@@ -263,6 +266,55 @@ function isWeaponEquipped(weaponId) {
   if (weaponTargetIndex.value === null) return false
   const track = store.tracks[weaponTargetIndex.value]
   return !!track && track.weaponId === weaponId
+}
+
+const weaponStatusesByTrack = computed(() => {
+  const map = new Map()
+  store.weaponStatuses.forEach(status => {
+    const idx = store.tracks.findIndex(t => t.id === status.trackId)
+    if (idx === -1) return
+    const arr = map.get(status.trackId) || []
+    arr.push(status)
+    map.set(status.trackId, arr)
+  })
+  map.forEach(arr => arr.sort((a, b) => a.startTime - b.startTime))
+  return map
+})
+
+function getWeaponStatusLeft(status) {
+  const start = Number(status.startTime) || 0
+  return start * TIME_BLOCK_WIDTH.value
+}
+
+function getWeaponStatusBarStyle(status) {
+  const start = Number(status.startTime) || 0
+  const rawDuration = Number(status.duration) || 0
+  const shiftedEnd = store.getShiftedEndTime(start, rawDuration, status.id)
+  const finalDuration = Math.max(0, shiftedEnd - start)
+  let width = finalDuration > 0 ? (finalDuration * TIME_BLOCK_WIDTH.value) : 0
+  if (width > 0) {
+    const ICON_SIZE = 20
+    const BAR_MARGIN = 2
+    width = Math.max(0, width - ICON_SIZE - BAR_MARGIN)
+  }
+  const color = status.color || '#b37feb'
+  return {
+    width: `${width}px`,
+    backgroundColor: color,
+    display: (finalDuration > 0 || rawDuration > 0) ? 'flex' : 'none'
+  }
+}
+
+function getWeaponStatusDurationLabel(status) {
+  const start = Number(status.startTime) || 0
+  const baseDuration = Math.max(0, Number(status.duration) || 0)
+  const shiftedEnd = store.getShiftedEndTime(start, baseDuration, status.id)
+  const finalDuration = Math.max(0, shiftedEnd - start)
+  const extensionAmount = Math.round((finalDuration - baseDuration) * 1000) / 1000
+  if (extensionAmount > 0) {
+    return `${store.formatTimeLabel(baseDuration)} (+${store.formatTimeLabel(extensionAmount)})`
+  }
+  return store.formatTimeLabel(baseDuration)
 }
 
 // ===================================================================================
@@ -983,6 +1035,34 @@ function onSwitchMarkerMouseDown(evt, id) {
   window.addEventListener('blur', onWindowMouseUp)
 }
 
+function onWeaponStatusMouseDown(evt, status) {
+  evt.stopPropagation()
+  evt.preventDefault()
+  if (connectionHandler.isDragging.value) return
+  if (evt.button !== 0) return
+
+  wasWeaponStatusSelectedOnPress.value = (store.selectedWeaponStatusId === status.id)
+
+  if (!wasWeaponStatusSelectedOnPress.value) {
+    store.selectWeaponStatus(status.id)
+  }
+
+  draggingWeaponStatusId.value = status.id
+  const mousePos = store.toTimelineSpace(evt.clientX, evt.clientY)
+  const offset = (mousePos.x / TIME_BLOCK_WIDTH.value) - (Number(status.startTime) || 0)
+  weaponStatusDragOffset.value = Number.isFinite(offset) ? offset : 0
+  initialMouseX.value = evt.clientX
+  initialMouseY.value = evt.clientY
+  isDragStarted.value = false
+  isMouseDown.value = true
+
+  document.body.classList.add('is-dragging')
+
+  window.addEventListener('mousemove', onWindowMouseMove)
+  window.addEventListener('mouseup', onWindowMouseUp)
+  window.addEventListener('blur', onWindowMouseUp)
+}
+
 function onWindowMouseMove(evt) {
   if (draggingSwitchEventId.value) {
     if (!isDragStarted.value) {
@@ -993,6 +1073,22 @@ function onWindowMouseMove(evt) {
     if (newTime > store.TOTAL_DURATION) newTime = store.TOTAL_DURATION
     newTime = Math.round(newTime * 1000) / 1000
     store.updateSwitchEvent(draggingSwitchEventId.value, newTime)
+    return
+  }
+  if (draggingWeaponStatusId.value) {
+    if (!isDragStarted.value) {
+      const dist = Math.sqrt(Math.pow(evt.clientX - initialMouseX.value, 2) + Math.pow(evt.clientY - initialMouseY.value, 2))
+      if (dist > dragThreshold) isDragStarted.value = true; else return
+    }
+    let newTime = calculateTimeFromEvent(evt, store.snapStep) - weaponStatusDragOffset.value
+    if (newTime > store.TOTAL_DURATION) newTime = store.TOTAL_DURATION
+    if (newTime < 0) newTime = 0
+    newTime = Math.round(newTime * 1000) / 1000
+    const status = store.weaponStatuses.find(s => s.id === draggingWeaponStatusId.value)
+    if (status) {
+      status.startTime = newTime
+      status.logicalStartTime = newTime
+    }
     return
   }
   if (draggingCycleBoundaryId.value) {
@@ -1076,6 +1172,25 @@ function onWindowMouseUp(event) {
     return
   }
 
+  if (draggingWeaponStatusId.value) {
+    if (!isDragStarted.value && wasWeaponStatusSelectedOnPress.value) {
+      store.selectWeaponStatus(draggingWeaponStatusId.value)
+    }
+
+    if (isDragStarted.value) {
+      store.commitState()
+    }
+
+    isDragStarted.value = false
+    draggingWeaponStatusId.value = null
+    document.body.classList.remove('is-dragging')
+    window.removeEventListener('mousemove', onWindowMouseMove)
+    window.removeEventListener('mouseup', onWindowMouseUp)
+    window.removeEventListener('blur', onWindowMouseUp)
+    isMouseDown.value = false
+    return
+  }
+
   if (draggingCycleBoundaryId.value) {
 
     if (!isDragStarted.value && wasCycleSelectedOnPress.value) {
@@ -1117,6 +1232,12 @@ function onWindowMouseUp(event) {
 function captureClick(e) { e.stopPropagation(); e.preventDefault() }
 function onTrackDrop(track, evt) {
   const skill = store.draggingSkillData; if (!skill || store.activeTrackId !== track.id) return
+  if (skill.librarySource === 'weapon' || skill.type === 'weapon') {
+    if (!track.weaponId || (skill.weaponId && skill.weaponId !== track.weaponId)) return
+    const startTime = calculateTimeFromEvent(evt)
+    store.addWeaponStatus(track.id, skill, startTime)
+    return
+  }
   const startTime = calculateTimeFromEvent(evt)
   store.addSkillToTrack(track.id, skill, startTime)
   nextTick(() => forceSvgUpdate())
@@ -1133,7 +1254,7 @@ function handleKeyDown(event) {
   const target = event.target
   if (target && (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA' || target.isContentEditable)) return
 
-  const hasSelection = store.selectedActionId || store.multiSelectedIds.size > 0 || store.selectedConnectionId || store.selectedCycleBoundaryId || store.selectedSwitchEventId
+  const hasSelection = store.selectedActionId || store.multiSelectedIds.size > 0 || store.selectedConnectionId || store.selectedCycleBoundaryId || store.selectedSwitchEventId || store.selectedWeaponStatusId
   if (!hasSelection) return
 
   if (event.key === 'Delete' || event.key === 'Backspace') {
@@ -1518,6 +1639,23 @@ onUnmounted(() => {
                     <img :src="store.characterRoster.find(c => c.id === sw.characterId)?.avatar" />
                   </div>
                   <div class="tag-time">{{ store.formatTimeLabel(sw.time) }}</div>
+                </div>
+              </div>
+              <div class="weapon-status-layer">
+                <div
+                  v-for="status in weaponStatusesByTrack.get(track.id) || []"
+                  :key="status.id"
+                  class="weapon-status-item"
+                  :class="{ 'is-selected': status.id === store.selectedWeaponStatusId, 'is-dragging': status.id === draggingWeaponStatusId }"
+                  :style="{ left: `${getWeaponStatusLeft(status)}px` }"
+                >
+                  <div class="weapon-status-icon-box" @mousedown.stop="onWeaponStatusMouseDown($event, status)">
+                    <img v-if="status.icon" :src="status.icon" @error="e=>e.target.style.display='none'" />
+                  </div>
+                  <div class="weapon-status-bar" :style="getWeaponStatusBarStyle(status)">
+                    <div class="striped-bg"></div>
+                    <span class="duration-text">{{ getWeaponStatusDurationLabel(status) }}</span>
+                  </div>
                 </div>
               </div>
             </div>
@@ -1956,7 +2094,7 @@ body.capture-mode .davinci-range {
   display: flex;
   align-items: center;
   background: #3a3a3a;
-  padding-left: 8px;
+  padding-left: 4px;
   transition: background 0.2s;
   border: 1px solid transparent;
 }
@@ -1971,12 +2109,12 @@ body.capture-mode .davinci-range {
   align-items: center;
   width: 100%;
   height: 100%;
-  padding: 0 10px;
+  padding: 0 6px;
 }
 
 .trigger-avatar-box {
   position: relative;
-  margin-right: 10px;
+  margin-right: 8px;
   cursor: pointer;
   flex-shrink: 0;
 }
@@ -2084,8 +2222,8 @@ body.capture-mode .davinci-range {
   user-select: none;
 }
 
-.trigger-avatar-wrapper { display: flex; flex-direction: column; align-items: center; gap: 6px; position: relative; width: 70px; }
-.weapon-slot-compact { cursor: pointer; position: absolute; top: 36px; left: -8px; }
+.trigger-avatar-wrapper { display: flex; flex-direction: column; align-items: center; gap: 4px; position: relative; width: 64px; }
+.weapon-slot-compact { cursor: pointer; position: absolute; top: 34px; left: -6px; }
 .weapon-box { width: 32px; height: 32px; border-radius: 6px; background: #444; display: flex; align-items: center; justify-content: center; overflow: hidden; border: 2px solid #555; box-sizing: border-box; transition: border-color 0.2s, background 0.2s; position: relative; }
 .weapon-box.weapon-empty { border: 2px dashed #666; }
 .weapon-slot-compact:hover .weapon-box { border-color: #ffd700; background: #555; box-shadow: none; }
@@ -2224,6 +2362,7 @@ body.capture-mode .davinci-range {
   position: relative;
   flex: 1;
   min-height: var(--track-height);
+  padding-bottom: 26px;
   width: fit-content;
   min-width: 100%;
   display: flex;
@@ -2774,6 +2913,98 @@ body.capture-mode .davinci-range {
 }
 .switch-tag.is-selected .tag-avatar {
   border-color: #fff; box-shadow: 0 0 8px #fff;
+}
+
+.weapon-status-layer {
+  position: absolute;
+  left: 0;
+  top: calc(100% + 4px);
+  height: 22px;
+  width: 100%;
+  pointer-events: none;
+}
+
+.weapon-status-item {
+  position: absolute;
+  display: flex;
+  align-items: center;
+  gap: 0;
+  pointer-events: none;
+}
+
+.weapon-status-icon-box {
+  width: 20px;
+  height: 20px;
+  background-color: #333;
+  border: 1px solid #999;
+  box-sizing: border-box;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+  flex-shrink: 0;
+  overflow: hidden;
+  pointer-events: auto;
+  cursor: grab;
+}
+
+.weapon-status-icon-box:active {
+  cursor: grabbing;
+}
+
+.weapon-status-item.is-selected .weapon-status-icon-box {
+  border-color: #ffd700;
+  box-shadow: 0 0 6px rgba(255, 215, 0, 0.45);
+}
+
+.weapon-status-icon-box img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.weapon-status-bar {
+  height: 16px;
+  border: none;
+  border-radius: 2px;
+  position: relative;
+  display: flex;
+  align-items: center;
+  overflow: visible;
+  box-sizing: border-box;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.5);
+  z-index: 1;
+  margin-left: 2px;
+}
+
+.weapon-status-bar .striped-bg {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  z-index: 1;
+  background: repeating-linear-gradient(
+    45deg,
+    rgba(255, 255, 255, 0.2),
+    rgba(255, 255, 255, 0.2) 2px,
+    transparent 2px,
+    transparent 6px
+  );
+  pointer-events: none;
+}
+
+.weapon-status-bar .duration-text {
+  position: absolute;
+  left: 4px;
+  font-size: 11px;
+  color: #fff;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.8);
+  z-index: 2;
+  font-weight: bold;
+  line-height: 1;
+  font-family: sans-serif;
+  white-space: nowrap;
 }
 :global(body.is-dragging) {
   user-select: none !important;

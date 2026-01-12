@@ -408,7 +408,7 @@ function handleReset() {
   }).catch(() => {})
 }
 
-// === 接收分享码逻辑 ===
+// === 接收数据码逻辑 ===
 const importShareDialogVisible = ref(false)
 const shareCodeInput = ref('')
 
@@ -582,7 +582,7 @@ onUnmounted(() => {
               加载
             </button>
 
-            <button class="ea-btn ea-btn--sm ea-btn--lift ea-btn--hover-purple group-item" @click="copyShareCode" title="复制当前方案的分享码">
+            <button class="ea-btn ea-btn--sm ea-btn--lift ea-btn--hover-purple group-item" @click="copyShareCode" title="复制当前项目的数据码">
               <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                 <path d="M4 12v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8"></path>
                 <polyline points="16 6 12 2 8 6"></polyline>
@@ -591,7 +591,7 @@ onUnmounted(() => {
               分享
             </button>
 
-            <button class="ea-btn ea-btn--sm ea-btn--lift ea-btn--hover-blue group-item" @click="openImportShareDialog" title="粘贴分享码导入方案">
+            <button class="ea-btn ea-btn--sm ea-btn--lift ea-btn--hover-blue group-item" @click="openImportShareDialog" title="粘贴数据码导入项目">
               <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                 <polyline points="9 11 12 14 22 4"></polyline>
                 <path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"></path>
@@ -631,14 +631,14 @@ onUnmounted(() => {
 
     <el-dialog
         v-model="importShareDialogVisible"
-        title="导入分享方案"
+        title="导入项目"
         width="500px"
         align-center
         class="custom-dialog"
         :append-to-body="true"
     >
       <div class="share-import-container">
-        <p class="dialog-hint">请粘贴分享码（Endaxis Share Code）：</p>
+        <p class="dialog-hint">请粘贴数据码：</p>
 
         <el-alert
             title="警告：导入将覆盖当前所有工程数据，建议先保存。"

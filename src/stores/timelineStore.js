@@ -111,6 +111,8 @@ export const useTimelineStore = defineStore('timeline', () => {
     const tracks = ref(createDefaultTracks())
     const connections = ref([])
     const characterOverrides = ref({})
+    const weaponOverrides = ref({})
+    const weaponStatuses = ref([])
 
     const connectionMap = computed(() => {
         const map = new Map()
@@ -237,6 +239,11 @@ export const useTimelineStore = defineStore('timeline', () => {
         const track = tracks.value.find(t => t.id === trackId);
         if (track) {
             track.weaponId = weaponId || null;
+            if (selectedLibrarySource.value === 'weapon') {
+                selectedLibrarySkillId.value = null;
+                selectedLibrarySource.value = 'character';
+            }
+            weaponStatuses.value = weaponStatuses.value.filter(s => s.trackId !== track.id);
             commitState();
         }
     }
@@ -261,7 +268,9 @@ export const useTimelineStore = defineStore('timeline', () => {
     const selectedConnectionId = ref(null)
     const selectedActionId = ref(null)
     const selectedLibrarySkillId = ref(null)
+    const selectedLibrarySource = ref('character')
     const selectedAnomalyId = ref(null)
+    const selectedWeaponStatusId = ref(null)
 
     const selectedCycleBoundaryId = ref(null)
     const switchEvents = ref([])
@@ -304,6 +313,8 @@ export const useTimelineStore = defineStore('timeline', () => {
             tracks: tracks.value,
             connections: connections.value,
             characterOverrides: characterOverrides.value,
+            weaponOverrides: weaponOverrides.value,
+            weaponStatuses: weaponStatuses.value,
             cycleBoundaries: cycleBoundaries.value,
             switchEvents: switchEvents.value
         })
@@ -333,6 +344,8 @@ export const useTimelineStore = defineStore('timeline', () => {
         tracks.value = normalizeTracks(snapshot.tracks)
         connections.value = snapshot.connections
         characterOverrides.value = snapshot.characterOverrides
+        weaponOverrides.value = snapshot.weaponOverrides || {}
+        weaponStatuses.value = snapshot.weaponStatuses || []
         cycleBoundaries.value = snapshot.cycleBoundaries || []
         switchEvents.value = snapshot.switchEvents || []
         clearSelection()
@@ -347,6 +360,8 @@ export const useTimelineStore = defineStore('timeline', () => {
             tracks: tracks.value,
             connections: connections.value,
             characterOverrides: characterOverrides.value,
+            weaponOverrides: weaponOverrides.value,
+            weaponStatuses: weaponStatuses.value,
             systemConstants: systemConstants.value,
             activeEnemyId: activeEnemyId.value,
             customEnemyParams: customEnemyParams.value,
@@ -363,6 +378,8 @@ export const useTimelineStore = defineStore('timeline', () => {
         tracks.value = normalizeTracks(incomingTracks)
         connections.value = JSON.parse(JSON.stringify(data.connections || []))
         characterOverrides.value = JSON.parse(JSON.stringify(data.characterOverrides || {}))
+        weaponOverrides.value = JSON.parse(JSON.stringify(data.weaponOverrides || {}))
+        weaponStatuses.value = JSON.parse(JSON.stringify(data.weaponStatuses || []))
         if (data.systemConstants) {
             systemConstants.value = { ...systemConstants.value, ...data.systemConstants }
         }
@@ -533,10 +550,20 @@ export const useTimelineStore = defineStore('timeline', () => {
         return ELEMENT_COLORS[charInfo.element] || ELEMENT_COLORS.default
     }
 
+    const getWeaponById = (weaponId) => {
+        return weaponDatabase.value.find(w => w.id === weaponId)
+    }
+
     const teamTracksInfo = computed(() => tracks.value.map(track => {
         const charInfo = characterRoster.value.find(c => c.id === track.id)
         return { ...track, ...(charInfo || { name: '请选择干员', avatar: '', rarity: 0 }) }
     }))
+
+    const activeWeapon = computed(() => {
+        const track = tracks.value.find(t => t.id === activeTrackId.value)
+        if (!track || !track.weaponId) return null
+        return getWeaponById(track.weaponId) || null
+    })
 
     const formatTimeLabel = (time) => {
         if (time === undefined || time === null) return '';
@@ -600,6 +627,7 @@ export const useTimelineStore = defineStore('timeline', () => {
 
             return {
                 id: globalId, type: type, name: name,
+                librarySource: 'character',
                 element: derivedElement,
                 ...merged,
                 damageTicks: finalDamageTicks,
@@ -623,6 +651,7 @@ export const useTimelineStore = defineStore('timeline', () => {
             return {
                 ...merged,
                 id: globalId,
+                librarySource: 'character',
                 physicalAnomaly: finalAnomalies,
                 damageTicks: finalDamageTicks,
                 allowedTypes: getAllowed(variant.allowedTypes),
@@ -658,6 +687,66 @@ export const useTimelineStore = defineStore('timeline', () => {
 
             return 0;
         });
+    })
+
+    const isWeaponSkillId = (id) => typeof id === 'string' && id.startsWith('weaponlib_')
+
+    const activeWeaponSkillLibrary = computed(() => {
+        const weapon = activeWeapon.value
+        if (!weapon) return []
+
+        const TYPE_ORDER = { weapon: 1, attack: 2, skill: 3, link: 4, ultimate: 5, execution: 6 }
+
+        const rawList = Array.isArray(weapon.skills) && weapon.skills.length > 0
+            ? weapon.skills
+            : [{
+                id: 'core',
+                name: weapon.name || '武器技能',
+                type: 'weapon',
+                duration: weapon.duration ?? 0,
+                icon: weapon.icon || '/weapons/default.png',
+            }]
+
+        return rawList.map((raw, idx) => {
+            const libId = `weaponlib_${weapon.id}_${raw.id || idx}`
+            const override = weaponOverrides.value[libId] || {}
+            const baseDuration = raw.duration ?? weapon.duration ?? 0
+            const durationVal = Number(baseDuration)
+            const safeDuration = Number.isFinite(durationVal) ? durationVal : 0
+            const baseCooldown = raw.cooldown ?? weapon.cooldown ?? 0
+            const clonedAnomalies = raw.physicalAnomaly ? JSON.parse(JSON.stringify(raw.physicalAnomaly)) : []
+            const clonedTicks = raw.damageTicks ? JSON.parse(JSON.stringify(raw.damageTicks)) : []
+
+            const baseSkill = {
+                id: libId,
+                name: raw.name || weapon.name || '武器技能',
+                type: raw.type || 'weapon',
+                librarySource: 'weapon',
+                weaponId: weapon.id,
+                duration: safeDuration,
+                cooldown: Number(baseCooldown) || 0,
+                icon: raw.icon || weapon.icon || '/weapons/default.png',
+                element: raw.element || weapon.element || 'physical',
+                customColor: '#b37feb',
+                gaugeCost: raw.gaugeCost || 0,
+                gaugeGain: raw.gaugeGain || 0,
+                teamGaugeGain: raw.teamGaugeGain || 0,
+                spCost: raw.spCost || 0,
+                spGain: raw.spGain || 0,
+                triggerWindow: raw.triggerWindow || 0,
+                physicalAnomaly: clonedAnomalies,
+                damageTicks: clonedTicks,
+                enhancementTime: raw.enhancementTime || 0,
+                animationTime: raw.animationTime || 0,
+            }
+
+            return { ...baseSkill, ...override }
+        }).sort((a, b) => {
+            const weightA = TYPE_ORDER[a.type] || 99
+            const weightB = TYPE_ORDER[b.type] || 99
+            if (weightA !== weightB) return weightA - weightB
+            return 0
+        })
     })
 
     function applyEnemyPreset(enemyId) {
@@ -712,11 +801,20 @@ export const useTimelineStore = defineStore('timeline', () => {
         clearSelection()
     }
 
-    function selectLibrarySkill(skillId) {
-        const isSame = (selectedLibrarySkillId.value === skillId)
-        clearSelection()
-        if (!isSame) {
-            selectedLibrarySkillId.value = skillId
+    function selectLibrarySkill(skillId, source = 'character') {
+        const normalizedSource = source || 'character'
+        const isSame = (selectedLibrarySkillId.value === skillId && selectedLibrarySource.value === normalizedSource)
+        if (skillId) {
+            clearSelection()
+            if (!isSame) {
+                selectedLibrarySkillId.value = skillId
+                selectedLibrarySource.value = normalizedSource
+            } else {
+                selectedLibrarySource.value = normalizedSource
+            }
+        } else {
+            selectedLibrarySkillId.value = null
+            selectedLibrarySource.value = normalizedSource
         }
     }
 
@@ -781,6 +879,14 @@ export const useTimelineStore = defineStore('timeline', () => {
         }
     }
 
+    function selectWeaponStatus(id) {
+        const isSame = (selectedWeaponStatusId.value === id)
+        clearSelection()
+        if (!isSame) {
+            selectedWeaponStatusId.value = id
+        }
+    }
+
     function selectCycleBoundary(id) {
         const isSame = (selectedCycleBoundaryId.value === id)
         clearSelection()
@@ -809,6 +915,7 @@ export const useTimelineStore = defineStore('timeline', () => {
     function setMultiSelection(idsArray) {
         multiSelectedIds.value = new Set(idsArray)
         if (idsArray.length === 1) { selectedActionId.value = idsArray[0] } else { selectedActionId.value = null }
+        selectedWeaponStatusId.value = null
     }
 
     function clearSelection() {
@@ -817,15 +924,25 @@ export const useTimelineStore = defineStore('timeline', () => {
         selectedAnomalyId.value = null
         selectedCycleBoundaryId.value = null
         selectedSwitchEventId.value = null
+        selectedWeaponStatusId.value = null
         multiSelectedIds.value.clear()
         selectedLibrarySkillId.value = null
+        selectedLibrarySource.value = 'character'
     }
 
     function addSkillToTrack(trackId, skill, startTime) {
         const track = tracks.value.find(t => t.id === trackId); if (!track) return
         const clonedAnomalies = skill.physicalAnomaly ? JSON.parse(JSON.stringify(skill.physicalAnomaly)) : [];
         clonedAnomalies.forEach(row => { row.forEach(effect => ensureEffectId(effect)) })
-        const newAction = { ...skill, instanceId: `inst_${uid()}`, physicalAnomaly: clonedAnomalies, logicalStartTime: startTime, startTime: startTime }
+        const newAction = {
+            ...skill,
+            instanceId: `inst_${uid()}`,
+            librarySource: skill.librarySource || 'character',
+            sourceWeaponId: skill.weaponId || track.weaponId || null,
+            physicalAnomaly: clonedAnomalies,
+            logicalStartTime: startTime,
+            startTime: startTime
+        }
         track.actions.push(newAction);
         track.actions.sort((a, b) => a.startTime - b.startTime)
         if (skill.type === 'link' || skill.type === 'ultimate') {
@@ -835,7 +952,37 @@ export const useTimelineStore = defineStore('timeline', () => {
         commitState()
     }
 
+    function addWeaponStatus(trackId, skill, startTime) {
+        if (!trackId) return
+        const durationVal = Number(skill.duration) || 0
+        const newStatus = {
+            id: `wstatus_${uid()}`,
+            trackId,
+            weaponId: skill.weaponId || null,
+            skillId: skill.id,
+            name: skill.name || '武器效果',
+            icon: skill.icon || '',
+            color: skill.customColor || '#b37feb',
+            startTime: startTime,
+            logicalStartTime: startTime,
+            duration: durationVal > 0 ? durationVal : 0,
+            type: 'weapon'
+        }
+        weaponStatuses.value.push(newStatus)
+        commitState()
+    }
+
     function removeCurrentSelection() {
+        if (selectedWeaponStatusId.value) {
+            const before = weaponStatuses.value.length
+            weaponStatuses.value = weaponStatuses.value.filter(s => s.id !== selectedWeaponStatusId.value)
+            const removed = before - weaponStatuses.value.length
+            selectedWeaponStatusId.value = null
+            if (removed > 0) {
+                commitState()
+                return { statusCount: removed, total: removed }
+            }
+        }
         const itemsToPull = [];
 
         const targets = new Set(multiSelectedIds.value);
@@ -996,9 +1143,20 @@ export const useTimelineStore = defineStore('timeline', () => {
         }
     }
 
+    function updateWeaponStatus(statusId, patch) {
+        const status = weaponStatuses.value.find(s => s.id === statusId)
+        if (!status) return
+        Object.assign(status, patch)
+        if (patch.startTime !== undefined) {
+            status.logicalStartTime = status.startTime
+        }
+        commitState()
+    }
+
     function updateLibrarySkill(skillId, props) {
-        if (!characterOverrides.value[skillId]) characterOverrides.value[skillId] = {}
-        Object.assign(characterOverrides.value[skillId], props)
+        const targetMap = isWeaponSkillId(skillId) ? weaponOverrides.value : characterOverrides.value
+        if (!targetMap[skillId]) targetMap[skillId] = {}
+        Object.assign(targetMap[skillId], props)
         tracks.value.forEach(track => {
             if (!track.actions) return;
             track.actions.forEach(action => { if (action.id === skillId) { Object.assign(action, props) } })
@@ -1016,6 +1174,7 @@ export const useTimelineStore = defineStore('timeline', () => {
             }
             if (oldOperatorId) {
                 switchEvents.value = switchEvents.value.filter(s => s.characterId !== oldOperatorId);
+                weaponStatuses.value = weaponStatuses.value.filter(s => s.trackId !== oldOperatorId);
             }
             track.id = newOperatorId;
             track.weaponId = null;
@@ -1036,6 +1195,7 @@ export const useTimelineStore = defineStore('timeline', () => {
         }
         if (oldOperatorId) {
             switchEvents.value = switchEvents.value.filter(s => s.characterId !== oldOperatorId);
+            weaponStatuses.value = weaponStatuses.value.filter(s => s.trackId !== oldOperatorId);
         }
         track.id = null;
         track.weaponId = null;
@@ -1971,8 +2131,8 @@ export const useTimelineStore = defineStore('timeline', () => {
     const STORAGE_KEY = 'endaxis_autosave'
 
     function initAutoSave() {
-        watch([tracks, connections, characterOverrides, systemConstants, scenarioList, activeScenarioId, activeEnemyId, customEnemyParams, cycleBoundaries, switchEvents],
-            ([newTracks, newConns, newOverrides, newSys, newScList, newActiveId, newEnemyId, newCustomParams, newBoundaries, newSwEvents]) => {
+        watch([tracks, connections, characterOverrides, weaponOverrides, weaponStatuses, systemConstants, scenarioList, activeScenarioId, activeEnemyId, customEnemyParams, cycleBoundaries, switchEvents],
+            ([newTracks, newConns, newOverrides, newWeaponOverrides, newWeaponStatuses, newSys, newScList, newActiveId, newEnemyId, newCustomParams, newBoundaries, newSwEvents]) => {
 
                 if (isLoading.value) return
 
@@ -1984,6 +2144,8 @@ export const useTimelineStore = defineStore('timeline', () => {
                         tracks: newTracks,
                         connections: newConns,
                         characterOverrides: newOverrides,
+                        weaponOverrides: newWeaponOverrides,
+                        weaponStatuses: newWeaponStatuses,
                         systemConstants: newSys,
                         activeEnemyId: newEnemyId,
                         customEnemyParams: newCustomParams,
@@ -2024,6 +2186,7 @@ export const useTimelineStore = defineStore('timeline', () => {
                     tracks.value = createDefaultTracks();
                     connections.value = [];
                     characterOverrides.value = {};
+                    weaponOverrides.value = {};
                 }
 
                 historyStack.value = []; historyIndex.value = -1; commitState();
@@ -2038,6 +2201,8 @@ export const useTimelineStore = defineStore('timeline', () => {
         tracks.value = createDefaultTracks();
         connections.value = [];
         characterOverrides.value = {};
+        weaponOverrides.value = {};
+        weaponStatuses.value = [];
         cycleBoundaries.value = [];
         switchEvents.value = [];
 
@@ -2105,8 +2270,12 @@ export const useTimelineStore = defineStore('timeline', () => {
                 tracks: tracks.value,
                 connections: connections.value,
                 characterOverrides: characterOverrides.value,
+                weaponOverrides: weaponOverrides.value,
+                weaponStatuses: weaponStatuses.value,
                 activeEnemyId: activeEnemyId.value,
-                cycleBoundaries: cycleBoundaries.value
+                customEnemyParams: customEnemyParams.value,
+                cycleBoundaries: cycleBoundaries.value,
+                switchEvents: switchEvents.value
             }
         }
 
@@ -2174,6 +2343,10 @@ export const useTimelineStore = defineStore('timeline', () => {
                     tracks.value = createDefaultTracks();
                     connections.value = [];
                     characterOverrides.value = {};
+                    weaponOverrides.value = {};
+                    weaponStatuses.value = [];
+                    cycleBoundaries.value = [];
+                    switchEvents.value = [];
                 }
             }
 
@@ -2206,10 +2379,10 @@ export const useTimelineStore = defineStore('timeline', () => {
     return {
         MAX_SCENARIOS, toTimelineSpace, toViewportSpace, toGameTime, toRealTime,
         systemConstants, isLoading, characterRoster, iconDatabase, tracks, connections, activeTrackId, timelineScrollTop, timelineShift, timelineRect, trackLaneRects, nodeRects, draggingSkillData,
-        selectedActionId, selectedLibrarySkillId, multiSelectedIds, clipboard, isCapturing, setIsCapturing, showCursorGuide, isBoxSelectMode, cursorPosTimeline, cursorCurrentTime, cursorPosition, snapStep,
+        selectedActionId, selectedLibrarySkillId, selectedLibrarySource, selectedWeaponStatusId, multiSelectedIds, clipboard, isCapturing, setIsCapturing, showCursorGuide, isBoxSelectMode, cursorPosTimeline, cursorCurrentTime, cursorPosition, snapStep,
         selectedAnomalyId, setSelectedAnomalyId, updateTrackGaugeEfficiency,
-        teamTracksInfo, activeSkillLibrary, BASE_BLOCK_WIDTH, setBaseBlockWidth, formatTimeLabel, ZOOM_LIMITS, timeBlockWidth, ELEMENT_COLORS, getCharacterElementColor, isActionSelected, hoveredActionId, setHoveredAction,
-        fetchGameData, exportProject, importProject, exportShareString, importShareString, TOTAL_DURATION, selectTrack, changeTrackOperator, clearTrack, selectLibrarySkill, updateLibrarySkill, selectAction, updateAction,
+        teamTracksInfo, activeSkillLibrary, activeWeaponSkillLibrary, BASE_BLOCK_WIDTH, setBaseBlockWidth, formatTimeLabel, ZOOM_LIMITS, timeBlockWidth, ELEMENT_COLORS, getCharacterElementColor, isActionSelected, hoveredActionId, setHoveredAction,
+        fetchGameData, exportProject, importProject, exportShareString, importShareString, TOTAL_DURATION, selectTrack, changeTrackOperator, clearTrack, selectLibrarySkill, updateLibrarySkill, selectAction, updateAction, updateWeaponStatus,
         addSkillToTrack, setDraggingSkill, setTimelineShift, setScrollTop, setTimelineRect, setTrackLaneRect, setNodeRect, calculateGlobalSpData, calculateGaugeData, calculateGlobalStaggerData, updateTrackInitialGauge, updateTrackMaxGauge, updateTrackOriginiumArtsPower, updateTrackLinkCdReduction, updateTrackWeapon,
         removeConnection, updateConnection, updateConnectionPort, getColor, toggleCursorGuide, toggleBoxSelectMode, setCursorPosition, toggleSnapStep, nudgeSelection,
         setMultiSelection, clearSelection, copySelection, pasteSelection, removeCurrentSelection, undo, redo, commitState,
@@ -2218,11 +2391,11 @@ export const useTimelineStore = defineStore('timeline', () => {
         connectionMap, actionMap, effectsMap, getConnectionById, resolveNode, getNodesOfConnection, enableConnectionTool, connectionDragState, connectionSnapState, validConnectionTargetIds, createConnection, toggleConnectionTool,
         cycleBoundaries, selectedCycleBoundaryId, addCycleBoundary, updateCycleBoundary, selectCycleBoundary,
         contextMenu, openContextMenu, closeContextMenu,
-        switchEvents, selectedSwitchEventId, addSwitchEvent, updateSwitchEvent, selectSwitchEvent,
+        switchEvents, selectedSwitchEventId, addSwitchEvent, updateSwitchEvent, selectSwitchEvent, selectWeaponStatus,
         toggleActionLock, toggleActionDisable, setActionColor,
         globalExtensions, getShiftedEndTime, refreshAllActionShifts, getActionById, getEffectById,
         enemyDatabase, activeEnemyId, applyEnemyPreset, ENEMY_TIERS, enemyCategories,
         scenarioList, activeScenarioId, switchScenario, addScenario, duplicateScenario, deleteScenario,
-        effectLayouts, getNodeRect, weaponDatabase,
+        effectLayouts, getNodeRect, weaponDatabase, weaponOverrides, weaponStatuses, activeWeapon, getWeaponById, isWeaponSkillId, addWeaponStatus,
     }
 })

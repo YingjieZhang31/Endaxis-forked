@@ -10,8 +10,15 @@ const activeTrack = computed(() => store.tracks.find(t => t.id === store.activeT
 const activeCharacter = computed(() => {
   return store.characterRoster.find(c => c.id === store.activeTrackId)
 })
+const activeWeapon = computed(() => activeTrack.value?.weaponId ? store.getWeaponById(activeTrack.value.weaponId) : null)
+const hasActiveCharacter = computed(() => !!(activeTrack.value && activeCharacter.value))
 
 const activeCharacterName = computed(() => activeCharacter.value ? activeCharacter.value.name : '未选择干员')
+const activeWeaponName = computed(() => activeWeapon.value ? activeWeapon.value.name : '未装备武器')
+const activeLibraryTab = ref('character')
+const hasWeaponLibrary = computed(() => store.activeWeaponSkillLibrary.length > 0)
+const currentLibrary = computed(() => activeLibraryTab.value === 'weapon' ? store.activeWeaponSkillLibrary : store.activeSkillLibrary)
+const activeLibraryTitle = computed(() => activeLibraryTab.value === 'weapon' ? activeWeaponName.value : activeCharacterName.value)
 
 // 技能类型完整名称映射
 const getFullTypeName = (type) => {
@@ -20,7 +27,8 @@ const getFullTypeName = (type) => {
     'skill': '战技',
     'link': '连携',
     'ultimate': '终结技',
-    'execution': '处决'
+    'execution': '处决',
+    'weapon': '武器'
   }
   return map[type] || '技能'
 }
@@ -40,6 +48,9 @@ const currentWeaponIcon = computed(() => {
 })
 
 function getSkillDisplayIcon(skill) {
+  if (skill.librarySource === 'weapon') {
+    return skill.icon || activeWeapon.value?.icon || ''
+  }
   if (['attack', 'execution'].includes(skill.type)) {
     return currentWeaponIcon.value
   }
@@ -105,11 +116,11 @@ const originiumArtsPowerValue = computed({
 const localSkills = ref([])
 
 function onSkillClick(skillId) {
-  store.selectLibrarySkill(skillId)
+  store.selectLibrarySkill(skillId, activeLibraryTab.value === 'weapon' ? 'weapon' : 'character')
 }
 
 watch(
-    () => store.activeSkillLibrary,
+    () => currentLibrary.value,
     (newVal) => {
       if (newVal && newVal.length > 0) {
         localSkills.value = JSON.parse(JSON.stringify(newVal))
@@ -119,6 +130,37 @@ watch(
     },
     { immediate: true, deep: true }
 )
+
+watch(activeLibraryTab, (tab) => {
+  if (tab === 'weapon' && !hasWeaponLibrary.value) {
+    activeLibraryTab.value = 'character'
+    return
+  }
+  if (store.selectedLibrarySource !== tab) {
+    store.selectLibrarySkill(null, tab)
+  }
+})
+
+watch(activeWeapon, (weapon) => {
+  if (!weapon && activeLibraryTab.value === 'weapon') {
+    activeLibraryTab.value = 'character'
+  }
+})
+
+watch(hasActiveCharacter, (val) => {
+  if (!val) {
+    activeLibraryTab.value = 'character'
+  }
+})
+
+watch(() => store.selectedLibrarySource, (src) => {
+  if (src === 'weapon' && hasWeaponLibrary.value) {
+    activeLibraryTab.value = 'weapon'
+  }
+  if (src === 'character') {
+    activeLibraryTab.value = 'character'
+  }
+})
 
 // === 拖拽 Ghost 逻辑 ===
 function hexToRgba(hex, alpha) {
@@ -130,6 +172,7 @@ function hexToRgba(hex, alpha) {
 }
 
 function getSkillThemeColor(skill) {
+  if (skill.customColor) return skill.customColor
   if (skill.type === 'link') return store.getColor('link')
   if (skill.type === 'execution') return store.getColor('execution')
   if (skill.type === 'attack') return store.getColor('physical')
@@ -138,35 +181,85 @@ function getSkillThemeColor(skill) {
   return store.getColor('default')
 }
 
+function formatDurationLabel(val) {
+  const num = Number(val)
+  if (!Number.isFinite(num)) return 0
+  const rounded = Math.round(num * 1000) / 1000
+  return rounded
+}
+
 function onNativeDragStart(evt, skill) {
+  const isWeaponSkill = (skill.librarySource === 'weapon')
   const ghost = document.createElement('div');
   ghost.id = 'custom-drag-ghost';
-  ghost.textContent = skill.name;
 
-  const duration = Number(skill.duration) || 1;
-  const realWidth = duration * store.timeBlockWidth;
+  const duration = Number(skill.duration) || 0;
   const themeColor = getSkillThemeColor(skill);
 
-  Object.assign(ghost.style, {
-    position: 'absolute', top: '-9999px', left: '-9999px',
-    width: `${realWidth}px`, height: '50px',
-    border: `2px dashed ${themeColor}`,
-    backgroundColor: hexToRgba(themeColor, 0.2),
-    color: '#ffffff',
-    boxShadow: `0 0 10px ${themeColor}`,
-    textShadow: `0 1px 2px rgba(0,0,0,0.8)`,
-    display: 'flex', alignItems: 'center', justifyContent: 'center',
-    boxSizing: 'border-box',
-    fontSize: '12px', fontWeight: 'bold', zIndex: '999999', pointerEvents: 'none',
-    fontFamily: 'sans-serif', whiteSpace: 'nowrap',
-    backdropFilter: 'blur(4px)'
-  });
+  if (isWeaponSkill) {
+    const safeColor = themeColor || '#ccc'
+    const iconBox = document.createElement('div')
+    iconBox.style.width = '20px'
+    iconBox.style.height = '20px'
+    iconBox.style.border = `1px solid ${safeColor}`
+    iconBox.style.background = '#333'
+    iconBox.style.display = 'flex'
+    iconBox.style.alignItems = 'center'
+    iconBox.style.justifyContent = 'center'
+    iconBox.style.overflow = 'hidden'
+    iconBox.style.boxSizing = 'border-box'
 
-  document.body.appendChild(ghost);
-  evt.dataTransfer.setDragImage(ghost, 10, 25);
+    if (skill.icon) {
+      const img = document.createElement('img')
+      img.src = skill.icon
+      img.style.width = '100%'
+      img.style.height = '100%'
+      img.style.objectFit = 'cover'
+      iconBox.appendChild(img)
+    }
+
+    ghost.appendChild(iconBox)
+
+    const size = 20
+    Object.assign(ghost.style, {
+      position: 'absolute', top: '-9999px', left: '-9999px',
+      width: `${size}px`,
+      height: `${size}px`,
+      boxSizing: 'border-box',
+      zIndex: '999999',
+      pointerEvents: 'none'
+    });
+    document.body.appendChild(ghost);
+    evt.dataTransfer.setDragImage(ghost, size / 2, size / 2);
+  } else {
+    const realWidth = (duration || 1) * store.timeBlockWidth;
+    ghost.textContent = skill.name || '';
+    Object.assign(ghost.style, {
+      position: 'absolute', top: '-9999px', left: '-9999px',
+      width: `${realWidth}px`, height: '50px',
+      border: `2px dashed ${themeColor}`,
+      backgroundColor: hexToRgba(themeColor, 0.2),
+      color: '#ffffff',
+      boxShadow: `0 0 10px ${themeColor}`,
+      textShadow: `0 1px 2px rgba(0,0,0,0.8)`,
+      display: 'flex', alignItems: 'center', justifyContent: 'center',
+      boxSizing: 'border-box',
+      fontSize: '12px', fontWeight: 'bold', zIndex: '999999', pointerEvents: 'none',
+      fontFamily: 'sans-serif', whiteSpace: 'nowrap',
+      backdropFilter: 'blur(4px)'
+    });
+    document.body.appendChild(ghost);
+    evt.dataTransfer.setDragImage(ghost, 10, 25);
+  }
   evt.dataTransfer.effectAllowed = 'copy';
 
-  store.setDraggingSkill(skill);
+  const payload = {
+    ...skill,
+    librarySource: skill.librarySource || (activeLibraryTab.value === 'weapon' ? 'weapon' : 'character'),
+    weaponId: skill.weaponId || activeWeapon.value?.id || null
+  }
+
+  store.setDraggingSkill(payload);
   document.body.classList.add('is-lib-dragging');
 
   setTimeout(() => {
@@ -186,12 +279,29 @@ function onNativeDragEnd() {
     <div class="lib-header">
       <div class="header-main">
         <div class="header-icon-bar"></div>
-        <h3 class="char-name">{{ activeCharacterName }}</h3>
+        <h3 class="char-name">{{ activeLibraryTitle }}</h3>
+      </div>
+      <div class="lib-tabs">
+        <button
+          class="lib-tab"
+          :class="{ active: hasActiveCharacter && activeLibraryTab === 'character' }"
+          :disabled="!hasActiveCharacter"
+          @click="activeLibraryTab = 'character'">
+          干员
+        </button>
+        <button
+          class="lib-tab"
+          :class="{ active: hasActiveCharacter && activeLibraryTab === 'weapon' }"
+          :disabled="!hasWeaponLibrary || !hasActiveCharacter"
+          title="需要为当前干员选择武器"
+          @click="activeLibraryTab = 'weapon'">
+          武器
+        </button>
       </div>
       <div class="header-divider"></div>
     </div>
 
-    <div v-if="activeTrack && activeCharacter" class="gauge-settings-panel">
+    <div v-if="activeTrack && activeCharacter && activeLibraryTab === 'character'" class="gauge-settings-panel">
       <div class="panel-tag">干员数值</div>
 
       <div class="setting-group">
@@ -258,37 +368,38 @@ function onNativeDragEnd() {
       </div>
     </div>
 
-    <div class="skill-section">
-      <div v-if="activeTrack && activeCharacter" class="skill-section">
-        <div class="section-title-box">
-          <span class="section-title">技能模块库</span>
-          <span class="section-hint">点击编辑基础数值 / 拖拽排轴</span>
-        </div>
-        <div class="skill-grid">
-          <div
-              v-for="skill in localSkills"
-              :key="skill.id"
-              class="skill-card"
-              :class="{ 'is-selected': store.selectedLibrarySkillId === skill.id }"
-              :style="{ '--accent-color': getSkillThemeColor(skill) }"
-              draggable="true"
-              @dragstart="onNativeDragStart($event, skill)"
-              @dragend="onNativeDragEnd"
-              @click="onSkillClick(skill.id)"
-          >
-            <div class="card-edge"></div>
-            <div class="card-body">
-              <div class="skill-meta"><span v-if="!skill.name.includes(getFullTypeName(skill.type))" class="skill-type">{{ getFullTypeName(skill.type) }}</span>
-                <span v-else class="skill-type-empty"></span>
-                <span class="skill-time">{{ skill.duration }}s</span>
-              </div>
-              <div class="skill-name">{{ skill.name }}</div>
+    <div v-if="hasActiveCharacter" class="skill-section">
+      <div class="section-title-box">
+        <span class="section-title">{{ activeLibraryTab === 'weapon' ? '武器BUFF库' : '干员技能库' }}</span>
+        <span class="section-hint">
+          {{ activeLibraryTab === 'weapon' ? '拖拽武器BUFF到轨道，拖拽位置即为开始时间' : '点击编辑基础数值 / 拖拽排轴' }}
+        </span>
+      </div>
+      <div v-if="localSkills.length > 0" class="skill-grid">
+        <div
+            v-for="skill in localSkills"
+            :key="skill.id"
+            class="skill-card"
+            :class="{ 'is-selected': store.selectedLibrarySkillId === skill.id && store.selectedLibrarySource === (activeLibraryTab === 'weapon' ? 'weapon' : 'character') }"
+            :style="{ '--accent-color': getSkillThemeColor(skill) }"
+            draggable="true"
+            @dragstart="onNativeDragStart($event, skill)"
+            @dragend="onNativeDragEnd"
+            @click="onSkillClick(skill.id)"
+        >
+          <div class="card-edge"></div>
+          <div class="card-body">
+            <div class="skill-meta"><span v-if="!skill.name.includes(getFullTypeName(skill.type))" class="skill-type">{{ getFullTypeName(skill.type) }}</span>
+              <span v-else class="skill-type-empty"></span>
+              <span class="skill-time">{{ formatDurationLabel(skill.duration) }}s</span>
             </div>
+            <div class="skill-name">{{ skill.name }}</div>
+          </div>
 
-            <div class="card-bg-deco" v-if="getSkillDisplayIcon(skill)">
-              <img :src="getSkillDisplayIcon(skill)" class="weapon-icon-inner" />
-            </div>
-            <div v-else class="card-bg-deco-empty"></div> </div>
+          <div class="card-bg-deco" v-if="getSkillDisplayIcon(skill)">
+            <img :src="getSkillDisplayIcon(skill)" class="weapon-icon-inner" />
+          </div>
+          <div v-else class="card-bg-deco-empty"></div>
         </div>
       </div>
     </div>
@@ -317,6 +428,20 @@ function onNativeDragEnd() {
 .header-main { display: flex; align-items: center; gap: 10px; }
 .header-icon-bar { width: 4px; height: 18px; background-color: #ffd700; }
 .char-name { margin: 0; color: #fff; font-size: 18px; letter-spacing: 1px; }
+.lib-tabs { display: flex; gap: 8px; margin-top: 6px; }
+.lib-tab {
+  background: #1f1f1f;
+  border: 1px solid #333;
+  color: #bbb;
+  padding: 6px 12px;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 12px;
+  transition: all 0.2s ease;
+}
+.lib-tab:hover:not(:disabled) { color: #fff; border-color: #555; }
+.lib-tab.active { color: #ffd700; border-color: #ffd700; box-shadow: 0 0 10px rgba(255, 215, 0, 0.2); }
+.lib-tab:disabled { opacity: 0.35; cursor: not-allowed; }
 .header-divider { height: 2px; background: linear-gradient(90deg, #ffd700 0%, transparent 100%); opacity: 0.3; margin-top: 3px; }
 
 /* 参数面板 */
