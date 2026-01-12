@@ -80,6 +80,15 @@ const gaugeEfficiencyValue = computed({
   }
 })
 
+const originiumArtsPowerValue = computed({
+  get: () => activeTrack.value ? (activeTrack.value.originiumArtsPower ?? 0) : 0,
+  set: (val) => {
+    if (store.activeTrackId) {
+      store.updateTrackOriginiumArtsPower(store.activeTrackId, val)
+    }
+  }
+})
+
 // === 技能列表逻辑 ===
 const localSkills = ref([])
 
@@ -209,6 +218,19 @@ function onNativeDragEnd() {
           <CustomNumberInput v-model="gaugeEfficiencyValue" :min="0" :max="300" suffix="%" active-color="#52c41a" class="tech-input" />
         </div>
       </div>
+
+      <div class="group-divider"></div>
+
+      <div class="setting-group">
+        <div class="setting-info">
+          <span class="label">源石技艺强度</span>
+          <span class="value purple">{{ originiumArtsPowerValue }}</span>
+        </div>
+        <div class="setting-controls">
+          <el-slider v-model="originiumArtsPowerValue" :min="0" :max="200" :step="1" :show-tooltip="false" size="small" class="tech-slider purple-theme" />
+          <CustomNumberInput v-model="originiumArtsPowerValue" :min="0" :max="200" :step="1" active-color="#b37feb" class="tech-input" />
+        </div>
+      </div>
     </div>
 
     <div class="skill-section">
@@ -319,6 +341,7 @@ function onNativeDragEnd() {
 .cyan { color: #00e5ff; }
 .gold { color: #ffd700; }
 .green { color: #52c41a; }
+.purple { color: #b37feb; }
 .setting-controls { display: flex; align-items: center; gap: 12px; }
 .tech-slider { flex-grow: 1; }
 .tech-input { width: 150px; }
@@ -444,4 +467,6 @@ function onNativeDragEnd() {
 .gold-theme :deep(.el-slider__bar) { background-color: #ffd700; }
 .green-theme { color: #52c41a; }
 .green-theme :deep(.el-slider__bar) { background-color: #52c41a; }
+.purple-theme { color: #b37feb; }
+.purple-theme :deep(.el-slider__bar) { background-color: #b37feb; }
 </style>

@@ -88,12 +88,23 @@ export const useTimelineStore = defineStore('timeline', () => {
         { id: 'default_sc', name: '方案 1', data: null }
     ])
 
-    const tracks = ref([
-        { id: null, actions: [], initialGauge: 0, maxGaugeOverride: null, gaugeEfficiency: 100 },
-        { id: null, actions: [], initialGauge: 0, maxGaugeOverride: null, gaugeEfficiency: 100 },
-        { id: null, actions: [], initialGauge: 0, maxGaugeOverride: null, gaugeEfficiency: 100 },
-        { id: null, actions: [], initialGauge: 0, maxGaugeOverride: null, gaugeEfficiency: 100 },
-    ])
+    const createEmptyTrack = () => ({
+        id: null,
+        actions: [],
+        initialGauge: 0,
+        maxGaugeOverride: null,
+        gaugeEfficiency: 100,
+        originiumArtsPower: 0,
+    })
+
+    const createDefaultTracks = () => [
+        createEmptyTrack(),
+        createEmptyTrack(),
+        createEmptyTrack(),
+        createEmptyTrack(),
+    ]
+
+    const tracks = ref(createDefaultTracks())
     const connections = ref([])
     const characterOverrides = ref({})
 
@@ -202,6 +213,14 @@ export const useTimelineStore = defineStore('timeline', () => {
         }
     }
 
+    function updateTrackOriginiumArtsPower(trackId, value) {
+        const track = tracks.value.find(t => t.id === trackId);
+        if (track) {
+            track.originiumArtsPower = value;
+            commitState();
+        }
+    }
+
     // ===================================================================================
     // 交互状态
     // ===================================================================================
@@ -291,7 +310,7 @@ export const useTimelineStore = defineStore('timeline', () => {
     }
 
     function restoreState(snapshot) {
-        tracks.value = snapshot.tracks
+        tracks.value = normalizeTracks(snapshot.tracks)
         connections.value = snapshot.connections
         characterOverrides.value = snapshot.characterOverrides
         cycleBoundaries.value = snapshot.cycleBoundaries || []
@@ -318,7 +337,10 @@ export const useTimelineStore = defineStore('timeline', () => {
 
     function _loadSnapshot(data) {
         if (!data) return
-        tracks.value = JSON.parse(JSON.stringify(data.tracks))
+        const incomingTracks = data.tracks
+            ? JSON.parse(JSON.stringify(data.tracks))
+            : createDefaultTracks()
+        tracks.value = normalizeTracks(incomingTracks)
         connections.value = JSON.parse(JSON.stringify(data.connections || []))
         characterOverrides.value = JSON.parse(JSON.stringify(data.characterOverrides || {}))
         if (data.systemConstants) {
@@ -466,6 +488,17 @@ export const useTimelineStore = defineStore('timeline', () => {
         if (!effect._id) effect._id = uid()
         return effect._id
     }
+
+    const normalizeTrack = (track) => {
+        if (!track) return createEmptyTrack()
+        return {
+            ...createEmptyTrack(),
+            ...track,
+            actions: track.actions || []
+        }
+    }
+
+    const normalizeTracks = (list = []) => list.map(t => normalizeTrack(t))
 
     const getCharacterElementColor = (characterId) => {
         const charInfo = characterRoster.value.find(c => c.id === characterId)
@@ -1581,25 +1614,44 @@ export const useTimelineStore = defineStore('timeline', () => {
         } = systemConstants.value;
 
         const snap = (t) => Math.round(t * 1000) / 1000;
+        const ORIGINIUM_ARTS_FACTOR = 0.005;
 
         const events = [];
         tracks.value.forEach(track => {
             if (!track.actions) return;
+            const originiumArtsPower = Number(track.originiumArtsPower) || 0;
+            const knockBonusMultiplier = 1 + originiumArtsPower * ORIGINIUM_ARTS_FACTOR;
             track.actions.forEach(action => {
                 if (action.isDisabled || (action.triggerWindow || 0) < 0) return;
 
                 // 收集所有失衡值变动事件，并进行时间对齐
-                if (action.stagger > 0) {
-                    const actualEndTime = getShiftedEndTime(action.startTime, action.duration, action.instanceId);
-                    events.push({ time: snap(actualEndTime), change: Number(action.stagger) });
+                const effectTypeMap = new Map();
+                if (action.physicalAnomaly && action.physicalAnomaly.length > 0) {
+                    const rows = Array.isArray(action.physicalAnomaly[0])
+                        ? action.physicalAnomaly
+                        : [action.physicalAnomaly];
+                    rows.forEach(row => {
+                        row.forEach(effect => {
+                            const id = ensureEffectId(effect);
+                            effectTypeMap.set(id, effect.type);
+                        })
+                    })
                 }
 
                 if (action.damageTicks) {
                     action.damageTicks.forEach(tick => {
                         const staggerVal = Number(tick.stagger) || 0;
                         if (staggerVal > 0) {
+                            const boundEffects = Array.isArray(tick.boundEffects) ? tick.boundEffects : [];
+                            const hasKnockBinding = boundEffects.some(id => {
+                                const type = effectTypeMap.get(id);
+                                return type === 'knockup' || type === 'knockdown';
+                            });
+                            const bonusMultiplier = hasKnockBinding ? knockBonusMultiplier : 1;
+                            const adjustedStagger = Math.round(staggerVal * bonusMultiplier * 1000) / 1000;
+
                             const actualTickTime = getShiftedEndTime(action.startTime, Number(tick.offset) || 0, action.instanceId);
-                            events.push({ time: snap(actualTickTime), change: staggerVal });
+                            events.push({ time: snap(actualTickTime), change: adjustedStagger });
                         }
                     });
                 }
@@ -1940,7 +1992,7 @@ export const useTimelineStore = defineStore('timeline', () => {
                 if (currentSc && currentSc.data) {
                     _loadSnapshot(currentSc.data)
                 } else {
-                    tracks.value = [{ id: null, actions: [] }, { id: null, actions: [] }, { id: null, actions: [] }, { id: null, actions: [] }];
+                    tracks.value = createDefaultTracks();
                     connections.value = [];
                     characterOverrides.value = {};
                 }
@@ -1954,7 +2006,7 @@ export const useTimelineStore = defineStore('timeline', () => {
 
     function resetProject() {
         localStorage.removeItem(STORAGE_KEY);
-        tracks.value = [{ id: null, actions: [] }, { id: null, actions: [] }, { id: null, actions: [] }, { id: null, actions: [] }];
+        tracks.value = createDefaultTracks();
         connections.value = [];
         characterOverrides.value = {};
         cycleBoundaries.value = [];
@@ -2087,7 +2139,7 @@ export const useTimelineStore = defineStore('timeline', () => {
                 if (currentSc && currentSc.data) {
                     _loadSnapshot(currentSc.data)
                 } else {
-                    tracks.value = [{ id: null, actions: [] }, { id: null, actions: [] }, { id: null, actions: [] }, { id: null, actions: [] }];
+                    tracks.value = createDefaultTracks();
                     connections.value = [];
                     characterOverrides.value = {};
                 }
@@ -2126,7 +2178,7 @@ export const useTimelineStore = defineStore('timeline', () => {
         selectedAnomalyId, setSelectedAnomalyId, updateTrackGaugeEfficiency,
         teamTracksInfo, activeSkillLibrary, BASE_BLOCK_WIDTH, setBaseBlockWidth, formatTimeLabel, ZOOM_LIMITS, timeBlockWidth, ELEMENT_COLORS, getCharacterElementColor, isActionSelected, hoveredActionId, setHoveredAction,
         fetchGameData, exportProject, importProject, exportShareString, importShareString, TOTAL_DURATION, selectTrack, changeTrackOperator, clearTrack, selectLibrarySkill, updateLibrarySkill, selectAction, updateAction,
-        addSkillToTrack, setDraggingSkill, setTimelineShift, setScrollTop, setTimelineRect, setTrackLaneRect, setNodeRect, calculateGlobalSpData, calculateGaugeData, calculateGlobalStaggerData, updateTrackInitialGauge, updateTrackMaxGauge,
+        addSkillToTrack, setDraggingSkill, setTimelineShift, setScrollTop, setTimelineRect, setTrackLaneRect, setNodeRect, calculateGlobalSpData, calculateGaugeData, calculateGlobalStaggerData, updateTrackInitialGauge, updateTrackMaxGauge, updateTrackOriginiumArtsPower,
         removeConnection, updateConnection, updateConnectionPort, getColor, toggleCursorGuide, toggleBoxSelectMode, setCursorPosition, toggleSnapStep, nudgeSelection,
         setMultiSelection, clearSelection, copySelection, pasteSelection, removeCurrentSelection, undo, redo, commitState,
         removeAnomaly, initAutoSave, loadFromBrowser, resetProject, selectedConnectionId, selectConnection, selectAnomaly,

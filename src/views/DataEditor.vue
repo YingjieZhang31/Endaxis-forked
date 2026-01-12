@@ -282,18 +282,25 @@ function getDamageTicks(char, type) {
   if (!char) return []
   const key = `${type}_damage_ticks`
   if (!char[key]) char[key] = []
+  normalizeDamageTicks(char[key])
   return char[key]
 }
 
 function addDamageTick(char, type) {
   const list = getDamageTicks(char, type)
   // 默认判定点：0秒时，造成0失衡，回复0技力
-  list.push({ offset: 0, stagger: 0, sp: 0 })
+  list.push({ offset: 0, stagger: 0, sp: 0, boundEffects: [] })
 }
 
 function removeDamageTick(char, type, index) {
   const list = getDamageTicks(char, type)
   list.splice(index, 1)
+}
+
+function normalizeDamageTicks(list = []) {
+  list.forEach(tick => {
+    if (!tick.boundEffects) tick.boundEffects = []
+  })
 }
 
 
@@ -406,6 +413,24 @@ function handleGroupCheck(list, isChecked, key) {
   }
 }
 
+function generateEffectId() {
+  return Math.random().toString(36).substring(2, 9)
+}
+
+function createEffect(defaultType = 'default') {
+  return { _id: generateEffectId(), type: defaultType, stacks: 1, duration: 0, offset: 0 }
+}
+
+function ensureEffectIds(rows) {
+  if (!rows || rows.length === 0) return
+  const normalized = Array.isArray(rows[0]) ? rows : [rows]
+  normalized.forEach(row => {
+    row.forEach(effect => {
+      if (effect && !effect._id) effect._id = generateEffectId()
+    })
+  })
+}
+
 function getVariantAvailableOptions(variant) {
   const allowedList = variant.allowedTypes || []
   const combinedKeys = new Set([...allowedList, 'default'])
@@ -428,6 +453,35 @@ function buildOptions(keysSet) {
   })
 }
 
+function buildBindingOptionsFromAnomalies(raw) {
+  if (!raw || raw.length === 0) return []
+  ensureEffectIds(raw)
+  const rows = Array.isArray(raw[0]) ? raw : [raw]
+  const seen = new Set()
+  const options = []
+
+  rows.forEach(row => {
+    row.forEach(effect => {
+      if (!effect || !effect._id || seen.has(effect._id)) return
+      seen.add(effect._id)
+      options.push({ value: effect._id, label: EFFECT_NAMES[effect.type] || effect.type || 'Unknown' })
+    })
+  })
+
+  return options
+}
+
+function getBindingOptions(skillType) {
+  if (!selectedChar.value) return []
+  const raw = selectedChar.value[`${skillType}_anomalies`]
+  return buildBindingOptionsFromAnomalies(raw)
+}
+
+function getVariantBindingOptions(variant) {
+  if (!variant) return []
+  return buildBindingOptionsFromAnomalies(variant.physicalAnomaly)
+}
+
 // === 二维数组通用处理逻辑 ===
 
 function getAnomalyRows(char, skillType) {
@@ -435,6 +489,7 @@ function getAnomalyRows(char, skillType) {
   const key = `${skillType}_anomalies`
   const raw = char[key] || []
   if (raw.length === 0) return []
+  ensureEffectIds(raw)
   if (!Array.isArray(raw[0])) return [raw]
   return raw
 }
@@ -447,7 +502,7 @@ function addAnomalyRow(char, skillType) {
   }
   const allowedList = char[`${skillType}_allowed_types`] || []
   const defaultType = allowedList.length > 0 ? allowedList[0] : 'default'
-  char[key].push([{ type: defaultType, stacks: 1, duration: 0, offset: 0 }])
+  char[key].push([createEffect(defaultType)])
 }
 
 function addAnomalyToRow(char, skillType, rowIndex) {
@@ -455,7 +510,7 @@ function addAnomalyToRow(char, skillType, rowIndex) {
   const allowedList = char[`${skillType}_allowed_types`] || []
   const defaultType = allowedList.length > 0 ? allowedList[0] : 'default'
   if (rows[rowIndex]) {
-    rows[rowIndex].push({ type: defaultType, stacks: 1, duration: 0, offset: 0 })
+    rows[rowIndex].push(createEffect(defaultType))
   }
 }
 
@@ -473,13 +528,13 @@ function removeAnomaly(char, skillType, rowIndex, colIndex) {
 function addVariantRow(variant) {
   if (!variant.physicalAnomaly) variant.physicalAnomaly = []
   const defaultType = (variant.allowedTypes && variant.allowedTypes.length > 0) ? variant.allowedTypes[0] : 'default'
-  variant.physicalAnomaly.push([{ type: defaultType, stacks: 1, duration: 0, offset: 0 }])
+  variant.physicalAnomaly.push([createEffect(defaultType)])
 }
 
 function addVariantEffect(variant, rowIndex) {
   if (variant.physicalAnomaly && variant.physicalAnomaly[rowIndex]) {
     const defaultType = (variant.allowedTypes && variant.allowedTypes.length > 0) ? variant.allowedTypes[0] : 'default'
-    variant.physicalAnomaly[rowIndex].push({ type: defaultType, stacks: 1, duration: 0, offset: 0 })
+    variant.physicalAnomaly[rowIndex].push(createEffect(defaultType))
   }
 }
 
@@ -492,13 +547,20 @@ function removeVariantEffect(variant, rowIndex, colIndex) {
   }
 }
 
+function getVariantTicks(variant) {
+  if (!variant.damageTicks) variant.damageTicks = []
+  normalizeDamageTicks(variant.damageTicks)
+  return variant.damageTicks
+}
+
 // 变体里的判定点操作
 function addVariantDamageTick(variant) {
-  if(!variant.damageTicks) variant.damageTicks = []
-  variant.damageTicks.push({ offset: 0, stagger: 0, sp: 0 })
+  const ticks = getVariantTicks(variant)
+  ticks.push({ offset: 0, stagger: 0, sp: 0, boundEffects: [] })
 }
 function removeVariantDamageTick(variant, index) {
-  if(variant.damageTicks) variant.damageTicks.splice(index, 1)
+  const ticks = getVariantTicks(variant)
+  ticks.splice(index, 1)
 }
 
 function onSkillGaugeInput(event) {
@@ -508,11 +570,30 @@ function onSkillGaugeInput(event) {
   }
 }
 
+function normalizeCharacterForSave(char) {
+  const skillTypes = ['attack', 'skill', 'link', 'ultimate', 'execution']
+  skillTypes.forEach(type => {
+    const tickKey = `${type}_damage_ticks`
+    if (!char[tickKey]) char[tickKey] = []
+    normalizeDamageTicks(char[tickKey])
+    ensureEffectIds(char[`${type}_anomalies`])
+  })
+
+  if (char.variants) {
+    char.variants.forEach(variant => {
+      if (!variant.damageTicks) variant.damageTicks = []
+      normalizeDamageTicks(variant.damageTicks)
+      ensureEffectIds(variant.physicalAnomaly)
+    })
+  }
+}
+
 function saveData() {
   characterRoster.value.sort((a, b) => (b.rarity || 0) - (a.rarity || 0));
 
   // Normalize optional fields so we don't persist placeholder sentinel values.
   for (const char of characterRoster.value || []) {
+    normalizeCharacterForSave(char)
     for (const key of Object.keys(char)) {
       if (key.endsWith('_element') && char[key] === '') {
         delete char[key]
@@ -804,15 +885,32 @@ function saveData() {
 
               <div class="ticks-editor-area" style="margin-top: 10px;">
                 <label style="font-size: 12px; color: #aaa; font-weight: bold; display: block; margin-bottom: 5px;">伤害判定点</label>
-                <div v-if="(!variant.damageTicks || variant.damageTicks.length === 0)" class="empty-ticks-hint">暂无判定点</div>
-                <div v-for="(tick, tIdx) in (variant.damageTicks || [])" :key="tIdx" class="tick-row">
-                  <div class="tick-idx">HIT {{ tIdx + 1 }}</div>
-                  <div class="tick-inputs">
-                    <div class="t-group"><label>时间(s)</label><input type="number" v-model.number="tick.offset" step="0.1" class="mini-input"></div>
-                    <div class="t-group"><label style="color:#ff7875">失衡值</label><input type="number" v-model.number="tick.stagger" class="mini-input"></div>
-                    <div class="t-group"><label style="color:#ffd700">回复技力</label><input type="number" v-model.number="tick.sp" class="mini-input"></div>
+                <div v-if="getVariantTicks(variant).length === 0" class="empty-ticks-hint">暂无判定点</div>
+                <div v-for="(tick, tIdx) in getVariantTicks(variant)" :key="tIdx" class="tick-row">
+                  <div class="tick-top">
+                    <div class="tick-idx">HIT {{ tIdx + 1 }}</div>
+                    <div class="tick-inputs">
+                      <div class="t-group"><label>时间(s)</label><input type="number" v-model.number="tick.offset" step="0.1" class="mini-input"></div>
+                      <div class="t-group"><label style="color:#ff7875">失衡值</label><input type="number" v-model.number="tick.stagger" class="mini-input"></div>
+                      <div class="t-group"><label style="color:#ffd700">回复技力</label><input type="number" v-model.number="tick.sp" class="mini-input"></div>
+                    </div>
+                    <button class="ea-btn ea-btn--icon ea-btn--icon-24 ea-btn--glass-rect ea-btn--accent-red ea-btn--glass-rect-danger" @click="removeVariantDamageTick(variant, tIdx)">×</button>
                   </div>
-                  <button class="ea-btn ea-btn--icon ea-btn--icon-24 ea-btn--glass-rect ea-btn--accent-red ea-btn--glass-rect-danger" @click="removeVariantDamageTick(variant, tIdx)">×</button>
+                  <div class="tick-binding">
+                    <label>绑定状态</label>
+                    <el-select
+                        v-model="tick.boundEffects"
+                        multiple
+                        collapse-tags
+                        collapse-tags-tooltip
+                        size="small"
+                        class="tick-select"
+                        placeholder="选择要绑定的状态"
+                        :disabled="getVariantBindingOptions(variant).length === 0"
+                    >
+                      <el-option v-for="opt in getVariantBindingOptions(variant)" :key="opt.value" :label="opt.label" :value="opt.value" />
+                    </el-select>
+                  </div>
                 </div>
                 <button class="ea-btn ea-btn--block ea-btn--lg ea-btn--dashed-panel ea-btn--radius-6" style="margin-top: 5px;" @click="addVariantDamageTick(variant)">+ 添加判定点</button>
               </div>
@@ -916,13 +1014,30 @@ function saveData() {
                   暂无判定点，请点击下方按钮添加
                 </div>
                 <div v-for="(tick, tIdx) in getDamageTicks(selectedChar, type)" :key="tIdx" class="tick-row">
-                  <div class="tick-idx">HIT {{ tIdx + 1 }}</div>
-                  <div class="tick-inputs">
-                    <div class="t-group"><label>时间(s)</label><input type="number" v-model.number="tick.offset" step="0.1" class="mini-input"></div>
-                    <div class="t-group"><label style="color:#ff7875">失衡值</label><input type="number" v-model.number="tick.stagger" class="mini-input"></div>
-                    <div class="t-group"><label style="color:#ffd700">回复技力</label><input type="number" v-model.number="tick.sp" class="mini-input"></div>
+                  <div class="tick-top">
+                    <div class="tick-idx">HIT {{ tIdx + 1 }}</div>
+                    <div class="tick-inputs">
+                      <div class="t-group"><label>时间(s)</label><input type="number" v-model.number="tick.offset" step="0.1" class="mini-input"></div>
+                      <div class="t-group"><label style="color:#ff7875">失衡值</label><input type="number" v-model.number="tick.stagger" class="mini-input"></div>
+                      <div class="t-group"><label style="color:#ffd700">回复技力</label><input type="number" v-model.number="tick.sp" class="mini-input"></div>
+                    </div>
+                    <button class="ea-btn ea-btn--icon ea-btn--icon-24 ea-btn--glass-rect ea-btn--accent-red ea-btn--glass-rect-danger" @click="removeDamageTick(selectedChar, type, tIdx)">×</button>
                   </div>
-                  <button class="ea-btn ea-btn--icon ea-btn--icon-24 ea-btn--glass-rect ea-btn--accent-red ea-btn--glass-rect-danger" @click="removeDamageTick(selectedChar, type, tIdx)">×</button>
+                  <div class="tick-binding">
+                    <label>绑定状态</label>
+                    <el-select
+                        v-model="tick.boundEffects"
+                        multiple
+                        collapse-tags
+                        collapse-tags-tooltip
+                        size="small"
+                        class="tick-select"
+                        placeholder="选择要绑定的状态"
+                        :disabled="getBindingOptions(type).length === 0"
+                    >
+                      <el-option v-for="opt in getBindingOptions(type)" :key="opt.value" :label="opt.label" :value="opt.value" />
+                    </el-select>
+                  </div>
                 </div>
                 <button class="ea-btn ea-btn--block ea-btn--lg ea-btn--dashed-panel ea-btn--radius-6" style="margin-top: 10px;" @click="addDamageTick(selectedChar, type)">+ 添加判定点</button>
               </div>
@@ -1297,11 +1412,16 @@ function saveData() {
 
 /* Ticks Editor Area */
 .ticks-editor-area { background: #1f1f1f; padding: 15px; border-radius: 6px; border: 1px solid #333; margin-bottom: 20px; }
-.tick-row { display: flex; align-items: center; gap: 15px; margin-bottom: 8px; background: #2b2b2b; padding: 8px; border-radius: 4px; border-left: 3px solid #666; }
-.tick-idx { font-family: monospace; color: #888; font-size: 12px; width: 40px; }
-.tick-inputs { display: flex; gap: 15px; flex-grow: 1; }
+.tick-row { display: flex; flex-direction: column; align-items: stretch; gap: 10px; margin-bottom: 8px; background: #2b2b2b; padding: 10px; border-radius: 4px; border-left: 3px solid #666; }
+.tick-top { display: flex; align-items: center; gap: 15px; width: 100%; }
+.tick-idx { font-family: monospace; color: #888; font-size: 12px; width: 48px; }
+.tick-inputs { display: flex; gap: 15px; flex-grow: 1; flex-wrap: wrap; }
 .t-group { display: flex; align-items: center; gap: 6px; }
 .t-group label { font-size: 11px; color: #aaa; white-space: nowrap; }
+.tick-binding { display: flex; flex-direction: column; gap: 6px; width: 100%; }
+.tick-select { width: 100%; }
+:deep(.tick-binding label) { font-size: 12px; color: #ccc; font-weight: 600; letter-spacing: 0.2px; }
+:deep(.tick-select .el-input__wrapper) { background: #16161a; box-shadow: 0 0 0 1px #333 inset; }
 .empty-ticks-hint { color: #666; font-size: 12px; text-align: center; padding: 10px; font-style: italic; }
 
 .info-banner { background: rgba(50, 50, 50, 0.5); padding: 12px; border-left: 3px solid #666; color: #aaa; margin-bottom: 20px; font-size: 13px; border-radius: 0 4px 4px 0; }

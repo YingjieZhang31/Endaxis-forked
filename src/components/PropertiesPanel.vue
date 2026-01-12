@@ -256,7 +256,7 @@ function updateActionProp(key, value) {
 
 function addDamageTick() {
   const currentTicks = targetData.value.damageTicks ? [...targetData.value.damageTicks] : []
-  currentTicks.push({ offset: 0, stagger: 0, sp: 0 })
+  currentTicks.push({ offset: 0, stagger: 0, sp: 0, boundEffects: [] })
   currentTicks.sort((a, b) => a.offset - b.offset)
   commitUpdate({ damageTicks: currentTicks })
   isTicksExpanded.value = true
@@ -276,6 +276,30 @@ function updateDamageTick(index, key, value) {
   }
   commitUpdate({ damageTicks: currentTicks })
 }
+
+const availableEffectOptions = computed(() => {
+  if (!targetData.value || !targetData.value.physicalAnomaly) return []
+  const rowsRaw = targetData.value.physicalAnomaly
+  if (!rowsRaw || rowsRaw.length === 0) return []
+  const rows = Array.isArray(rowsRaw[0]) ? rowsRaw : [rowsRaw]
+  const seen = new Set()
+  const options = []
+
+  rows.forEach(row => {
+    row.forEach(effect => {
+      if (!effect._id) effect._id = Math.random().toString(36).substring(2, 9)
+      if (seen.has(effect._id)) return
+      seen.add(effect._id)
+      options.push({
+        value: effect._id,
+        label: EFFECT_NAMES[effect.type] || effect.type || 'Unknown',
+        type: effect.type || 'unknown'
+      })
+    })
+  })
+
+  return options
+})
 
 const customBarsList = computed(() => targetData.value?.customBars || [])
 
@@ -540,6 +564,31 @@ function handleStartConnection(id, type) {
                   <CustomNumberInput :model-value="tick.sp || 0" @update:model-value="val => updateDamageTick(index, 'sp', val)" :step="1" :min="0" border-color="#ffd700" text-align="center"/>
                 </div>
               </div>
+              <div class="tick-row binding-row">
+                <div class="tick-col full-width">
+                  <label>绑定状态图标</label>
+                  <el-select
+                      :model-value="tick.boundEffects || []"
+                      @update:model-value="val => updateDamageTick(index, 'boundEffects', val)"
+                      multiple
+                      collapse-tags
+                      collapse-tags-tooltip
+                      placeholder="选择要绑定的状态"
+                      size="small"
+                      class="tick-select"
+                      :disabled="availableEffectOptions.length === 0"
+                  >
+                    <el-option
+                        v-for="opt in availableEffectOptions"
+                        :key="opt.value"
+                        :label="opt.label"
+                        :value="opt.value"
+                    >
+                      <span class="option-tag">{{ opt.label }}</span>
+                    </el-option>
+                  </el-select>
+                </div>
+              </div>
           </div>
         </div>
       </div>
@@ -799,7 +848,11 @@ function handleStartConnection(id, type) {
 .tick-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; border-bottom: 1px solid rgba(255, 255, 255, 0.05); padding-bottom: 4px; }
 .tick-idx { font-size: 10px; font-weight: 900; font-family: 'Inter', monospace; letter-spacing: 1px; text-transform: uppercase; }
 .tick-row { display: flex; gap: 2px; align-items: flex-end; }
+.binding-row { align-items: flex-start; }
 .tick-col label { font-size: 9px !important; color: rgba(255, 255, 255, 0.3) !important; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 4px !important; }
+.tick-col.full-width { flex: 1; }
+.tick-select { width: 100%; }
+.option-tag { color: #e0e0e0; }
 .anomalies-editor-container { padding: 8px; border-radius: 4px; border: 1px solid rgba(255, 255, 255, 0.05); }
 .anomaly-editor-row { display: flex; align-items: center; gap: 4px; margin-bottom: 8px; background: rgba(255, 255, 255, 0.02); padding: 6px; border: 1px solid rgba(255, 255, 255, 0.05); border-left: 3px solid rgba(255, 255, 255, 0.15); border-radius: 2px; position: relative; transition: all 0.2s; clip-path: polygon(0 0, 100% 0, 100% 85%, 98% 100%, 0 100%); }
 .anomaly-editor-row:hover { background: rgba(255, 255, 255, 0.05); border-color: rgba(255, 255, 255, 0.1); }
