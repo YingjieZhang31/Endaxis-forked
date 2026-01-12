@@ -58,6 +58,21 @@ const themeColor = computed(() => {
 
 const actionLayout = computed(() => store.nodeRects[props.action.instanceId])
 
+// 连携冷却计算
+const effectiveCooldown = computed(() => {
+  const baseCd = props.action.cooldown || 0
+  if (props.action.type !== 'link') return baseCd
+  const track = store.tracks.find(t => t.actions?.some(a => a.instanceId === props.action.instanceId))
+  const clamp = (val) => {
+    const num = Number(val) || 0
+    if (num < 0) return 0
+    if (num > 100) return 100
+    return num
+  }
+  const reduction = clamp(track?.linkCdReduction ?? store.systemConstants.linkCdReduction ?? 0)
+  return baseCd * (1 - reduction / 100)
+})
+
 // 主体样式计算
 const style = computed(() => {
   const layout = actionLayout.value
@@ -156,11 +171,11 @@ const cdStyle = computed(() => {
   }
 
   const widthUnit = store.timeBlockWidth
-  const rawCd = props.action.cooldown || 0
+  const cdVal = effectiveCooldown.value
 
-  if (rawCd <= 0) return { display: 'none' }
+  if (cdVal <= 0) return { display: 'none' }
 
-  const width = rawCd * widthUnit
+  const width = cdVal * widthUnit
   return {
     width: `${width}px`,
     transform: `translate(${layout.bar.leftEdge}px, ${layout.bar.relativeY}px)`,
@@ -413,10 +428,10 @@ function handleEffectDrop(effectId) {
        @dragstart.prevent>
 
 
-    <div v-if="!isGhostMode && action.cooldown > 0" class="cd-bar-container bottom-bar" :style="cdStyle">
+    <div v-if="!isGhostMode && effectiveCooldown > 0" class="cd-bar-container bottom-bar" :style="cdStyle">
       <div class="cd-line" :style="{ backgroundColor: themeColor }"></div>
 
-      <span class="cd-text" :style="{ color: themeColor }">{{ store.formatTimeLabel(action.cooldown) }}</span>
+      <span class="cd-text" :style="{ color: themeColor }">{{ store.formatTimeLabel(effectiveCooldown) }}</span>
 
       <div class="cd-end-mark"
            :style="{

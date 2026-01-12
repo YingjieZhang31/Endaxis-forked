@@ -16,6 +16,7 @@ export const useTimelineStore = defineStore('timeline', () => {
         initialSp: 200,
         spRegenRate: 8,
         skillSpCostDefault: 100,
+        linkCdReduction: 0,
         maxStagger: 100,
         staggerNodeCount: 0,
         staggerNodeDuration: 2,
@@ -95,6 +96,7 @@ export const useTimelineStore = defineStore('timeline', () => {
         maxGaugeOverride: null,
         gaugeEfficiency: 100,
         originiumArtsPower: 0,
+        linkCdReduction: 0,
     })
 
     const createDefaultTracks = () => [
@@ -217,6 +219,14 @@ export const useTimelineStore = defineStore('timeline', () => {
         const track = tracks.value.find(t => t.id === trackId);
         if (track) {
             track.originiumArtsPower = value;
+            commitState();
+        }
+    }
+
+    function updateTrackLinkCdReduction(trackId, value) {
+        const track = tracks.value.find(t => t.id === trackId);
+        if (track) {
+            track.linkCdReduction = clampPercent(value);
             commitState();
         }
     }
@@ -487,6 +497,13 @@ export const useTimelineStore = defineStore('timeline', () => {
     const ensureEffectId = (effect) => {
         if (!effect._id) effect._id = uid()
         return effect._id
+    }
+
+    const clampPercent = (val) => {
+        const num = Number(val) || 0;
+        if (num < 0) return 0;
+        if (num > 100) return 100;
+        return num;
     }
 
     const normalizeTrack = (track) => {
@@ -2178,7 +2195,7 @@ export const useTimelineStore = defineStore('timeline', () => {
         selectedAnomalyId, setSelectedAnomalyId, updateTrackGaugeEfficiency,
         teamTracksInfo, activeSkillLibrary, BASE_BLOCK_WIDTH, setBaseBlockWidth, formatTimeLabel, ZOOM_LIMITS, timeBlockWidth, ELEMENT_COLORS, getCharacterElementColor, isActionSelected, hoveredActionId, setHoveredAction,
         fetchGameData, exportProject, importProject, exportShareString, importShareString, TOTAL_DURATION, selectTrack, changeTrackOperator, clearTrack, selectLibrarySkill, updateLibrarySkill, selectAction, updateAction,
-        addSkillToTrack, setDraggingSkill, setTimelineShift, setScrollTop, setTimelineRect, setTrackLaneRect, setNodeRect, calculateGlobalSpData, calculateGaugeData, calculateGlobalStaggerData, updateTrackInitialGauge, updateTrackMaxGauge, updateTrackOriginiumArtsPower,
+        addSkillToTrack, setDraggingSkill, setTimelineShift, setScrollTop, setTimelineRect, setTrackLaneRect, setNodeRect, calculateGlobalSpData, calculateGaugeData, calculateGlobalStaggerData, updateTrackInitialGauge, updateTrackMaxGauge, updateTrackOriginiumArtsPower, updateTrackLinkCdReduction,
         removeConnection, updateConnection, updateConnectionPort, getColor, toggleCursorGuide, toggleBoxSelectMode, setCursorPosition, toggleSnapStep, nudgeSelection,
         setMultiSelection, clearSelection, copySelection, pasteSelection, removeCurrentSelection, undo, redo, commitState,
         removeAnomaly, initAutoSave, loadFromBrowser, resetProject, selectedConnectionId, selectConnection, selectAnomaly,

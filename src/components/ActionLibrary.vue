@@ -80,6 +80,18 @@ const gaugeEfficiencyValue = computed({
   }
 })
 
+const linkCdReductionValue = computed({
+  get: () => {
+    if (!activeTrack.value) return 0
+    return activeTrack.value.linkCdReduction ?? 0
+  },
+  set: (val) => {
+    if (store.activeTrackId) {
+      store.updateTrackLinkCdReduction(store.activeTrackId, val)
+    }
+  }
+})
+
 const originiumArtsPowerValue = computed({
   get: () => activeTrack.value ? (activeTrack.value.originiumArtsPower ?? 0) : 0,
   set: (val) => {
@@ -216,6 +228,19 @@ function onNativeDragEnd() {
         <div class="setting-controls">
           <el-slider v-model="gaugeEfficiencyValue" :min="0" :max="300" :step="0.1" :show-tooltip="false" size="small" class="tech-slider green-theme" />
           <CustomNumberInput v-model="gaugeEfficiencyValue" :min="0" :max="300" suffix="%" active-color="#52c41a" class="tech-input" />
+        </div>
+      </div>
+
+      <div class="group-divider"></div>
+
+      <div class="setting-group">
+        <div class="setting-info">
+          <span class="label">连携技冷却缩减</span>
+          <span class="value gold">{{ linkCdReductionValue }}%</span>
+        </div>
+        <div class="setting-controls">
+          <el-slider v-model="linkCdReductionValue" :min="0" :max="100" :step="1" :show-tooltip="false" size="small" class="tech-slider gold-theme" />
+          <CustomNumberInput v-model="linkCdReductionValue" :min="0" :max="100" suffix="%" active-color="#ffd700" class="tech-input" />
         </div>
       </div>
 
