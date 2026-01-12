@@ -66,7 +66,7 @@ async function convertImages() {
         try {
             await sharp(pngPath)
                 .webp({
-                    quality: 90
+                    lossless: true
                 })
                 .toFile(webpPath);
 
