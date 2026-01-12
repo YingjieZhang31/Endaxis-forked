@@ -1542,9 +1542,9 @@ onUnmounted(() => {
          @mousemove="onGridMouseMove" @mouseleave="onGridMouseLeave" @contextmenu="onBackgroundContextMenu">
 
       <div class="tracks-content-scroller" :style="transformStyle">
-        <div class="cursor-guide"
-             :style="{ left: `${store.cursorPosTimeline.x}px` }"
-             v-show="isCursorVisible && store.showCursorGuide && !store.isBoxSelectMode">
+        <div v-if="store.showCursorGuide && !store.isBoxSelectMode" class="cursor-guide"
+             :style="{ transform: `translateX(${store.cursorPosTimeline.x}px)` }"
+             v-show="isCursorVisible">
 
           <div class="guide-time-label">
             {{ store.formatTimeLabel(store.cursorCurrentTime) }}
@@ -1614,12 +1614,12 @@ onUnmounted(() => {
             </template>
           </svg>
 
-          <div v-for="(track, index) in store.tracks" :key="index" class="track-row" :id="`track-row-${index}`" :style="{ '--track-height': `${TRACK_HEIGHT}px` }"
+          <div v-memo="[track]" v-for="(track, index) in store.tracks" :key="index" class="track-row" :id="`track-row-${index}`" :style="{ '--track-height': `${TRACK_HEIGHT}px` }"
                :class="{ 'is-active-drop': track.id === store.activeTrackId,'is-last-track': index === store.tracks.length - 1 }" @dragover="onTrackDragOver" @drop="onTrackDrop(track, $event)">
             <div class="track-lane" :style="getTrackLaneStyle" ref="trackLaneRefs" :data-track-index="index" :data-track-id="track.id">
               <GaugeOverlay v-if="track.id" :track-id="track.id"/>
               <div class="actions-container">
-                <ActionItem v-for="action in track.actions" :key="action.instanceId" :action="action"
+                <ActionItem v-memo="[action]" v-for="action in track.actions" :key="action.instanceId" :action="action"
                   @mousedown="onActionMouseDown($event, track, action)"
                   @mousemove="updateAlignGuide($event, action, $el.querySelector(`#action-${action.instanceId}`))"
                   @mouseleave="hideAlignGuide"
