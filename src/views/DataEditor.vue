@@ -55,7 +55,6 @@ const selectedCharId = ref(null)
 const selectedEnemyId = ref(null)
 const selectedWeaponId = ref(null)
 const activeTab = ref('basic')
-const newCategoryName = ref('')
 
 const filteredRoster = computed(() => {
   let list = characterRoster.value || []
@@ -63,7 +62,7 @@ const filteredRoster = computed(() => {
     const q = searchQuery.value.toLowerCase()
     list = list.filter(c => c.name.toLowerCase().includes(q) || c.id.toLowerCase().includes(q))
   }
-  return list.sort((a, b) => (b.rarity || 0) - (a.rarity || 0))
+  return [...list].sort((a, b) => (b.rarity || 0) - (a.rarity || 0))
 })
 
 const groupedEnemies = computed(() => {
@@ -114,9 +113,12 @@ const filteredWeapons = computed(() => {
     list = list.filter(w => (w.name || '').toLowerCase().includes(q) || (w.id || '').toLowerCase().includes(q))
   }
   const order = { sword: 1, claym: 2, lance: 3, pistol: 4, funnel: 5 }
-  return list
-      .sort((a, b) => (order[a.type] || 99) - (order[b.type] || 99))
-      .sort((a, b) => (b.rarity || 0) - (a.rarity || 0))
+
+  return [...list].sort((a, b) => {
+    const rarityDiff = (b.rarity || 0) - (a.rarity || 0)
+    if (rarityDiff !== 0) return rarityDiff
+    return (order[a.type] || 99) - (order[b.type] || 99)
+  })
 })
 
 const groupedWeapons = computed(() => {
@@ -1424,7 +1426,7 @@ function saveData() {
 
 /* Main Content */
 .cms-content { flex-grow: 1; overflow-y: auto; padding: 30px 40px; background-color: #1e1e1e; }
-.editor-panel { max-width: 1000px; margin: 0 auto; animation: fadeIn 0.3s ease; }
+.editor-panel { max-width: 1000px; margin: 0 auto; animation: fadeIn 0.3s ease; --ea-tier-color: #fff; }
 
 /* Header */
 .panel-header { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 25px; border-bottom: 1px solid #333; padding-bottom: 20px; }
@@ -1463,23 +1465,6 @@ function saveData() {
   transition: box-shadow 0.2s, background-color 0.2s;
 }
 .form-group input:focus {
-  box-shadow: 0 0 0 1px #ffd700 inset;
-  outline: none;
-  background: #1f1f24;
-}
-.ea-textarea {
-  width: 100%;
-  background: #16161a;
-  border: none;
-  box-shadow: 0 0 0 1px #333 inset;
-  color: #f0f0f0;
-  padding: 10px 12px;
-  border-radius: 0;
-  font-size: 14px;
-  transition: box-shadow 0.2s, background-color 0.2s;
-  resize: vertical;
-}
-.ea-textarea:focus {
   box-shadow: 0 0 0 1px #ffd700 inset;
   outline: none;
   background: #1f1f24;
