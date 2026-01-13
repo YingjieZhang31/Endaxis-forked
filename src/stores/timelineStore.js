@@ -702,7 +702,7 @@ export const useTimelineStore = defineStore('timeline', () => {
             ? weapon.skills
             : [{
                 id: 'core',
-                name: weapon.name || '武器技能',
+                name: weapon.buffName || weapon.name || '武器技能',
                 type: 'weapon',
                 duration: weapon.duration ?? 0,
                 icon: weapon.icon || '/weapons/default.webp',
@@ -720,7 +720,7 @@ export const useTimelineStore = defineStore('timeline', () => {
 
             const baseSkill = {
                 id: libId,
-                name: raw.name || weapon.name || '武器技能',
+                name: raw.name || weapon.buffName || weapon.name || '武器技能',
                 type: raw.type || 'weapon',
                 librarySource: 'weapon',
                 weaponId: weapon.id,

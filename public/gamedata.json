@@ -4075,5 +4075,56 @@
     "裂地者",
     "沧贼",
     "野外生物"
+  ],
+  "weaponDatabase": [
+    {
+      "id": "wpn_sword_0021",
+      "name": "宏愿",
+      "type": "sword",
+      "rarity": 6,
+      "duration": 20,
+      "icon": "/weapons/sword/wpn_sword_0021.webp",
+      "buffName": "长愿"
+    },
+    {
+      "id": "wpn_sword_0003",
+      "name": "塔尔11",
+      "type": "sword",
+      "rarity": 3,
+      "duration": 0,
+      "icon": "/weapons/sword/wpn_sword_0003.webp"
+    },
+    {
+      "id": "wpn_claym_0008",
+      "name": "破碎君王",
+      "type": "claym",
+      "rarity": 6,
+      "duration": 8,
+      "icon": "/weapons/claym/wpn_claym_0008.webp"
+    },
+    {
+      "id": "wpn_lance_0012",
+      "name": "负山",
+      "type": "lance",
+      "rarity": 6,
+      "duration": 20,
+      "icon": "/weapons/lance/wpn_lance_0012.webp"
+    },
+    {
+      "id": "wpn_pistol_0009",
+      "name": "同类相食",
+      "type": "pistol",
+      "rarity": 6,
+      "duration": 15,
+      "icon": "/weapons/pistol/wpn_pistol_0009.webp"
+    },
+    {
+      "id": "wpn_funnel_0004",
+      "name": "迷失荒野",
+      "type": "funnel",
+      "rarity": 5,
+      "duration": 15,
+      "icon": "/weapons/funnel/wpn_funnel_0004.webp"
+    }
   ]
 }

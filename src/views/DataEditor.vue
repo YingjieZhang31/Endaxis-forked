@@ -271,6 +271,7 @@ function addNewWeapon() {
   const newWeapon = {
     id: newId,
     name: '新武器',
+    buffName: '',
     type: 'sword',
     rarity: 3,
     duration: 0,
@@ -1346,8 +1347,16 @@ function saveData() {
             </div>
             <div class="form-group full-width"><label>图标路径</label><input v-model="selectedWeapon.icon" type="text" /></div>
             <div class="form-group full-width">
-              <label>持续时间 (s，若有BUFF)</label>
-              <input type="number" min="0" step="0.1" v-model.number="selectedWeapon.duration">
+              <div class="form-grid" style="gap: 20px;">
+                <div class="form-group">
+                  <label>BUFF 名称</label>
+                  <input v-model="selectedWeapon.buffName" type="text" />
+                </div>
+                <div class="form-group">
+                  <label>持续时间 (s)</label>
+                  <input type="number" min="0" step="0.1" v-model.number="selectedWeapon.duration">
+                </div>
+              </div>
             </div>
           </div>
         </div>

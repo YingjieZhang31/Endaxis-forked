@@ -2365,7 +2365,7 @@ body.capture-mode .davinci-range {
   position: relative;
   flex: 1;
   min-height: var(--track-height);
-  padding-bottom: 26px;
+  padding-bottom: 30px;
   width: fit-content;
   min-width: 100%;
   display: flex;
@@ -2921,7 +2921,7 @@ body.capture-mode .davinci-range {
 .weapon-status-layer {
   position: absolute;
   left: 0;
-  top: calc(100% + 4px);
+  top: calc(100% + 8px);
   height: 22px;
   width: 100%;
   pointer-events: none;
