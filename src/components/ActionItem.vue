@@ -264,18 +264,20 @@ const animationTimeWidth = computed(() => {
 
   return 0
 })
+
+const char = computed(() => {
+  const action = store.getActionById(props.action.instanceId)
+  let charId = action?.trackId
+  return store.characterRoster.find(c => c.id === charId)
+})
+
 // 辅助函数
 function getEffectColor(type) { return store.getColor(type) }
 function getIconPath(type) {
-  let charId = null
-  for (const track of store.tracks) {
-    if (track.actions.some(a => a.instanceId === props.action.instanceId)) { charId = track.id; break; }
-  }
-  if (charId) {
-    const charInfo = store.characterRoster.find(c => c.id === charId)
-    if (charInfo?.exclusive_buffs) {
-      const exclusive = charInfo.exclusive_buffs.find(b => b.key === type)
-      if (exclusive?.path) return exclusive.path
+  if (char.value && char.value.exclusive_buffs) {
+    const exclusive = char.value.exclusive_buffs.find(b => b.key === type)
+    if (exclusive?.path) {
+      return exclusive.path
     }
   }
   return store.iconDatabase[type] || store.iconDatabase['default'] || ''

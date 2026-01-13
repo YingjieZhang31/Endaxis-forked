@@ -13,6 +13,7 @@
     "convert:images": "node scripts/convert-png-to-webp.js"
   },
   "dependencies": {
+    "@vueuse/core": "^14.1.0",
     "@zumer/snapdom": "^2.0.1",
     "element-plus": "^2.11.8",
     "pinia": "^3.0.4",

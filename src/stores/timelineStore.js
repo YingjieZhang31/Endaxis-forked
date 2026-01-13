@@ -1,5 +1,6 @@
 import { defineStore } from 'pinia'
 import { ref, computed, watch } from 'vue'
+import { watchThrottled } from '@vueuse/core'
 import { executeFetch } from '@/api/fetchStrategy.js'
 import { compressGzip, decompressGzip } from '@/utils/gzipUtils'
 
@@ -2131,7 +2132,7 @@ export const useTimelineStore = defineStore('timeline', () => {
     const STORAGE_KEY = 'endaxis_autosave'
 
     function initAutoSave() {
-        watch([tracks, connections, characterOverrides, weaponOverrides, weaponStatuses, systemConstants, scenarioList, activeScenarioId, activeEnemyId, customEnemyParams, cycleBoundaries, switchEvents],
+        watchThrottled([tracks, connections, characterOverrides, weaponOverrides, weaponStatuses, systemConstants, scenarioList, activeScenarioId, activeEnemyId, customEnemyParams, cycleBoundaries, switchEvents],
             ([newTracks, newConns, newOverrides, newWeaponOverrides, newWeaponStatuses, newSys, newScList, newActiveId, newEnemyId, newCustomParams, newBoundaries, newSwEvents]) => {
 
                 if (isLoading.value) return
@@ -2163,7 +2164,7 @@ export const useTimelineStore = defineStore('timeline', () => {
                     activeEnemyId: newEnemyId
                 }
                 localStorage.setItem(STORAGE_KEY, JSON.stringify(snapshot))
-            }, { deep: true })
+            }, { deep: true, throttle: 500 })
     }
 
     function loadFromBrowser() {
