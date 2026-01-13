@@ -120,6 +120,7 @@ export const useTimelineStore = defineStore('timeline', () => {
     const connections = ref([])
     const characterOverrides = ref({})
     const weaponOverrides = ref({})
+    const equipmentCategoryOverrides = ref({})
     const weaponStatuses = ref([])
 
     const connectionMap = computed(() => {
@@ -336,6 +337,7 @@ export const useTimelineStore = defineStore('timeline', () => {
             connections: connections.value,
             characterOverrides: characterOverrides.value,
             weaponOverrides: weaponOverrides.value,
+            equipmentCategoryOverrides: equipmentCategoryOverrides.value,
             weaponStatuses: weaponStatuses.value,
             cycleBoundaries: cycleBoundaries.value,
             switchEvents: switchEvents.value
@@ -367,6 +369,7 @@ export const useTimelineStore = defineStore('timeline', () => {
         connections.value = snapshot.connections
         characterOverrides.value = snapshot.characterOverrides
         weaponOverrides.value = snapshot.weaponOverrides || {}
+        equipmentCategoryOverrides.value = snapshot.equipmentCategoryOverrides || {}
         weaponStatuses.value = snapshot.weaponStatuses || []
         cycleBoundaries.value = snapshot.cycleBoundaries || []
         switchEvents.value = snapshot.switchEvents || []
@@ -383,6 +386,7 @@ export const useTimelineStore = defineStore('timeline', () => {
             connections: connections.value,
             characterOverrides: characterOverrides.value,
             weaponOverrides: weaponOverrides.value,
+            equipmentCategoryOverrides: equipmentCategoryOverrides.value,
             weaponStatuses: weaponStatuses.value,
             systemConstants: systemConstants.value,
             activeEnemyId: activeEnemyId.value,
@@ -401,6 +405,7 @@ export const useTimelineStore = defineStore('timeline', () => {
         connections.value = JSON.parse(JSON.stringify(data.connections || []))
         characterOverrides.value = JSON.parse(JSON.stringify(data.characterOverrides || {}))
         weaponOverrides.value = JSON.parse(JSON.stringify(data.weaponOverrides || {}))
+        equipmentCategoryOverrides.value = JSON.parse(JSON.stringify(data.equipmentCategoryOverrides || {}))
         weaponStatuses.value = JSON.parse(JSON.stringify(data.weaponStatuses || []))
         if (data.systemConstants) {
             systemConstants.value = { ...systemConstants.value, ...data.systemConstants }
@@ -586,6 +591,19 @@ export const useTimelineStore = defineStore('timeline', () => {
         return equipmentCategoryConfigs.value?.[category] || null
     }
 
+    const getEquipmentCategoryOverride = (category) => {
+        if (!category) return null
+        return equipmentCategoryOverrides.value?.[category] || null
+    }
+
+    function updateEquipmentCategoryOverride(category, patch) {
+        if (!category || !patch) return
+        if (!equipmentCategoryOverrides.value) equipmentCategoryOverrides.value = {}
+        if (!equipmentCategoryOverrides.value[category]) equipmentCategoryOverrides.value[category] = {}
+        Object.assign(equipmentCategoryOverrides.value[category], patch)
+        commitState()
+    }
+
     const getTrackEquipmentIds = (trackId) => {
         const track = tracks.value.find(t => t.id === trackId)
         if (!track) return []
@@ -605,8 +623,9 @@ export const useTimelineStore = defineStore('timeline', () => {
     }
 
     const getSetBonusDuration = (category) => {
+        const override = getEquipmentCategoryOverride(category)
         const cfg = getEquipmentCategoryConfig(category)
-        const duration = cfg?.setBonus?.duration
+        const duration = override?.setBonus?.duration ?? cfg?.setBonus?.duration
         const num = Number(duration)
         return Number.isFinite(num) ? Math.max(0, num) : 0
     }
@@ -1020,14 +1039,35 @@ export const useTimelineStore = defineStore('timeline', () => {
 
     function addSkillToTrack(trackId, skill, startTime) {
         const track = tracks.value.find(t => t.id === trackId); if (!track) return
-        const clonedAnomalies = skill.physicalAnomaly ? JSON.parse(JSON.stringify(skill.physicalAnomaly)) : [];
-        clonedAnomalies.forEach(row => { row.forEach(effect => ensureEffectId(effect)) })
+
+        const clonedAnomalies = skill.physicalAnomaly ? JSON.parse(JSON.stringify(skill.physicalAnomaly)) : []
+        const anomalyRows = Array.isArray(clonedAnomalies?.[0]) ? clonedAnomalies : [clonedAnomalies]
+        const effectIdMap = new Map()
+
+        anomalyRows.forEach(row => {
+            if (!Array.isArray(row)) return
+            row.forEach(effect => {
+                if (!effect) return
+                const oldId = effect._id
+                const newId = uid()
+                effect._id = newId
+                if (oldId) effectIdMap.set(oldId, newId)
+            })
+        })
+
+        const clonedTicks = skill.damageTicks ? JSON.parse(JSON.stringify(skill.damageTicks)) : []
+        clonedTicks.forEach(tick => {
+            if (!tick || !Array.isArray(tick.boundEffects) || tick.boundEffects.length === 0) return
+            tick.boundEffects = tick.boundEffects.map(id => effectIdMap.get(id) || id)
+        })
+
         const newAction = {
             ...skill,
             instanceId: `inst_${uid()}`,
             librarySource: skill.librarySource || 'character',
             sourceWeaponId: skill.weaponId || track.weaponId || null,
             physicalAnomaly: clonedAnomalies,
+            damageTicks: clonedTicks,
             logicalStartTime: startTime,
             startTime: startTime
         }
@@ -1183,9 +1223,25 @@ export const useTimelineStore = defineStore('timeline', () => {
             const newId = `inst_${uid()}`
             idMap.set(item.data.instanceId, newId)
             const clonedAction = JSON.parse(JSON.stringify(item.data))
-            if (clonedAction.physicalAnomaly) {
-                clonedAction.physicalAnomaly.forEach(row => {
-                    row.forEach(eff => eff._id = uid())
+
+            const effectIdMap = new Map()
+            if (clonedAction.physicalAnomaly && clonedAction.physicalAnomaly.length > 0) {
+                const anomalyRows = Array.isArray(clonedAction.physicalAnomaly?.[0]) ? clonedAction.physicalAnomaly : [clonedAction.physicalAnomaly]
+                anomalyRows.forEach(row => {
+                    if (!Array.isArray(row)) return
+                    row.forEach(effect => {
+                        if (!effect) return
+                        const oldId = effect._id
+                        const newEffectId = uid()
+                        effect._id = newEffectId
+                        if (oldId) effectIdMap.set(oldId, newEffectId)
+                    })
+                })
+            }
+            if (effectIdMap.size > 0 && clonedAction.damageTicks) {
+                clonedAction.damageTicks.forEach(tick => {
+                    if (!tick || !Array.isArray(tick.boundEffects) || tick.boundEffects.length === 0) return
+                    tick.boundEffects = tick.boundEffects.map(id => effectIdMap.get(id) || id)
                 })
             }
             const newStartTime = Math.max(0, item.data.startTime + timeDelta)
@@ -2246,8 +2302,8 @@ export const useTimelineStore = defineStore('timeline', () => {
     const STORAGE_KEY = 'endaxis_autosave'
 
     function initAutoSave() {
-        watchThrottled([tracks, connections, characterOverrides, weaponOverrides, weaponStatuses, systemConstants, scenarioList, activeScenarioId, activeEnemyId, customEnemyParams, cycleBoundaries, switchEvents],
-            ([newTracks, newConns, newOverrides, newWeaponOverrides, newWeaponStatuses, newSys, newScList, newActiveId, newEnemyId, newCustomParams, newBoundaries, newSwEvents]) => {
+        watchThrottled([tracks, connections, characterOverrides, weaponOverrides, equipmentCategoryOverrides, weaponStatuses, systemConstants, scenarioList, activeScenarioId, activeEnemyId, customEnemyParams, cycleBoundaries, switchEvents],
+            ([newTracks, newConns, newOverrides, newWeaponOverrides, newEquipmentCatOverrides, newWeaponStatuses, newSys, newScList, newActiveId, newEnemyId, newCustomParams, newBoundaries, newSwEvents]) => {
 
                 if (isLoading.value) return
 
@@ -2260,6 +2316,7 @@ export const useTimelineStore = defineStore('timeline', () => {
                         connections: newConns,
                         characterOverrides: newOverrides,
                         weaponOverrides: newWeaponOverrides,
+                        equipmentCategoryOverrides: newEquipmentCatOverrides,
                         weaponStatuses: newWeaponStatuses,
                         systemConstants: newSys,
                         activeEnemyId: newEnemyId,
@@ -2302,6 +2359,7 @@ export const useTimelineStore = defineStore('timeline', () => {
                     connections.value = [];
                     characterOverrides.value = {};
                     weaponOverrides.value = {};
+                    equipmentCategoryOverrides.value = {};
                 }
 
                 historyStack.value = []; historyIndex.value = -1; commitState();
@@ -2317,6 +2375,7 @@ export const useTimelineStore = defineStore('timeline', () => {
         connections.value = [];
         characterOverrides.value = {};
         weaponOverrides.value = {};
+        equipmentCategoryOverrides.value = {};
         weaponStatuses.value = [];
         cycleBoundaries.value = [];
         switchEvents.value = [];
@@ -2401,6 +2460,7 @@ export const useTimelineStore = defineStore('timeline', () => {
                 connections: connections.value,
                 characterOverrides: characterOverrides.value,
                 weaponOverrides: weaponOverrides.value,
+                equipmentCategoryOverrides: equipmentCategoryOverrides.value,
                 weaponStatuses: weaponStatuses.value,
                 activeEnemyId: activeEnemyId.value,
                 customEnemyParams: customEnemyParams.value,
@@ -2477,6 +2537,7 @@ export const useTimelineStore = defineStore('timeline', () => {
                     weaponStatuses.value = [];
                     cycleBoundaries.value = [];
                     switchEvents.value = [];
+                    equipmentCategoryOverrides.value = {};
                 }
             }
 
@@ -2528,6 +2589,7 @@ export const useTimelineStore = defineStore('timeline', () => {
         scenarioList, activeScenarioId, switchScenario, addScenario, duplicateScenario, deleteScenario,
         effectLayouts, getNodeRect, weaponDatabase, weaponOverrides, weaponStatuses, activeWeapon, getWeaponById, isWeaponSkillId, addWeaponStatus,
         equipmentDatabase, equipmentCategories, equipmentCategoryConfigs, getEquipmentById, updateTrackEquipment,
+        equipmentCategoryOverrides, updateEquipmentCategoryOverride,
         activeSetBonusLibrary, addSetBonusStatus, getActiveSetBonusCategories,
     }
 })

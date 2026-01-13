@@ -2454,7 +2454,7 @@ body.capture-mode .davinci-range {
 }
 
 .trigger-avatar-wrapper { display: flex; flex-direction: column; align-items: center; gap: 4px; position: relative; width: 64px; }
-.weapon-slot-compact { cursor: pointer; position: absolute; top: 34px; left: -6px; }
+.weapon-slot-compact { cursor: pointer; position: absolute; top: 80%; left: -12px; }
 .weapon-box { width: 32px; height: 32px; border-radius: 6px; background: #444; display: flex; align-items: center; justify-content: center; overflow: hidden; border: 2px solid #555; box-sizing: border-box; transition: border-color 0.2s, background 0.2s; position: relative; }
 .weapon-box.weapon-empty { border: 2px dashed #666; }
 .weapon-slot-compact:hover .weapon-box { border-color: #ffd700; background: #555; box-shadow: none; }
@@ -2479,23 +2479,23 @@ body.capture-mode .davinci-range {
 
 .equip-slots-compact {
   position: absolute;
-  top: 34px;
-  right: -6px;
+  top: 80%;
+  right: -12px;
   pointer-events: auto;
 }
 
 .equip-grid {
   display: grid;
-  grid-template-columns: repeat(2, 16px);
-  grid-template-rows: repeat(2, 16px);
-  gap: 2px;
+  grid-template-columns: repeat(2, 22px);
+  grid-template-rows: repeat(2, 22px);
+  gap: 3px;
   padding: 0;
 }
 
 .equip-box {
-  width: 16px;
-  height: 16px;
-  border-radius: 4px;
+  width: 22px;
+  height: 22px;
+  border-radius: 6px;
   background: #444;
   border: 2px solid #555;
   box-sizing: border-box;
@@ -2528,6 +2528,21 @@ body.capture-mode .davinci-range {
   height: 100%;
   position: relative;
 }
+
+.equip-placeholder::before,
+.equip-placeholder::after {
+  content: '';
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  background: #888;
+  border-radius: 1px;
+  transition: background 0.2s;
+}
+.equip-placeholder::before { width: 12px; height: 2px; transform: translate(-50%, -50%); }
+.equip-placeholder::after { width: 2px; height: 12px; transform: translate(-50%, -50%); }
+.equip-box:hover .equip-placeholder::before,
+.equip-box:hover .equip-placeholder::after { background: #2dd4bf; }
 
 /* ==========================================================================
    5. Main Content Scroller

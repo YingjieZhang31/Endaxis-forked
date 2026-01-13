@@ -52,7 +52,8 @@ const getFullTypeName = (type) => {
     'link': '连携',
     'ultimate': '终结技',
     'execution': '处决',
-    'weapon': '武器'
+    'weapon': '武器',
+    'set': '套装'
   }
   return map[type] || '技能'
 }
@@ -69,7 +70,12 @@ const selectedWeaponStatus = computed(() => {
   return store.weaponStatuses.find(s => s.id === store.selectedWeaponStatusId) || null
 })
 const isWeaponStatusMode = computed(() => !!selectedWeaponStatus.value)
-const activeLibraryList = computed(() => store.selectedLibrarySource === 'weapon' ? store.activeWeaponSkillLibrary : store.activeSkillLibrary)
+const isSetLibraryMode = computed(() => store.selectedLibrarySource === 'set')
+const activeLibraryList = computed(() => {
+  if (store.selectedLibrarySource === 'weapon') return store.activeWeaponSkillLibrary
+  if (store.selectedLibrarySource === 'set') return store.activeSetBonusLibrary
+  return store.activeSkillLibrary
+})
 const isWeaponLibraryMode = computed(() => store.selectedLibrarySource === 'weapon')
 
 // 监听选中切换，重置本地状态
@@ -129,7 +135,18 @@ function commitUpdate(payload) {
   }
 
   if (isLibraryMode.value) {
-    // 更新库技能 (Character Overrides)
+    if (isSetLibraryMode.value) {
+      const category = targetData.value.setCategory
+      if (!category) return
+      if (payload.duration !== undefined) {
+        store.updateEquipmentCategoryOverride(category, {
+          setBonus: { duration: payload.duration }
+        })
+      }
+      return
+    }
+
+    // 更新库技能 (Character/Weapon Overrides)
     store.updateLibrarySkill(targetData.value.id, payload)
   } else {
     // 更新时间轴实例
@@ -530,7 +547,7 @@ function handleStartConnection(id, type) {
             <CustomNumberInput :model-value="targetData.gaugeCost" @update:model-value="val => updateActionProp('gaugeCost', val)" :min="0" :border-color="HIGHLIGHT_COLORS.blue" text-align="center"/>
           </div>
 
-          <div class="form-group compact" v-if="!['execution','weapon'].includes(currentSkillType)">
+          <div class="form-group compact" v-if="!['execution','weapon','set'].includes(currentSkillType)">
             <label>自身充能</label>
             <CustomNumberInput :model-value="targetData.gaugeGain" @update:model-value="val => updateActionProp('gaugeGain', val)" :min="0" :border-color="HIGHLIGHT_COLORS.blue" text-align="center"/>
           </div>
@@ -546,7 +563,7 @@ function handleStartConnection(id, type) {
         </div>
       </div>
 
-      <div v-if="!isWeaponLibraryMode && !isWeaponStatusMode" class="section-container tech-style border-red" @click="isTicksExpanded = !isTicksExpanded" style="cursor: pointer;">
+      <div v-if="!isWeaponLibraryMode && !isWeaponStatusMode && !isSetLibraryMode" class="section-container tech-style border-red" @click="isTicksExpanded = !isTicksExpanded" style="cursor: pointer;">
         <div class="panel-tag-mini red">伤害判定点 ({{ (targetData.damageTicks || []).length }})</div>
 
         <div class="section-header-tech">
@@ -611,7 +628,7 @@ function handleStartConnection(id, type) {
         </div>
       </div>
 
-      <div v-if="!isWeaponLibraryMode && !isWeaponStatusMode" class="section-container tech-style border-blue" @click="isBarsExpanded = !isBarsExpanded" style="cursor: pointer;">
+      <div v-if="!isWeaponLibraryMode && !isWeaponStatusMode && !isSetLibraryMode" class="section-container tech-style border-blue" @click="isBarsExpanded = !isBarsExpanded" style="cursor: pointer;">
         <div class="panel-tag-mini blue">自定义时间条 ({{ customBarsList.length }})</div>
 
         <div class="section-header-tech">
@@ -647,7 +664,7 @@ function handleStartConnection(id, type) {
         </div>
       </div>
 
-      <div v-if="!isWeaponLibraryMode && !isWeaponStatusMode" class="section-container tech-style">
+      <div v-if="!isWeaponLibraryMode && !isWeaponStatusMode && !isSetLibraryMode" class="section-container tech-style">
         <div class="panel-tag-mini">状态效果与排布</div>
         <div class="anomalies-editor-container" style="background: transparent; border-color: rgba(255,255,255,0.1); margin-top: 10px;">
           <draggable v-model="anomalyRows" item-key="rowIndex" class="rows-container" handle=".row-handle" :animation="200">
