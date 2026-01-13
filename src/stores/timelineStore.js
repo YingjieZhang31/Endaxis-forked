@@ -705,7 +705,7 @@ export const useTimelineStore = defineStore('timeline', () => {
                 name: weapon.name || '武器技能',
                 type: 'weapon',
                 duration: weapon.duration ?? 0,
-                icon: weapon.icon || '/weapons/default.png',
+                icon: weapon.icon || '/weapons/default.webp',
             }]
 
         return rawList.map((raw, idx) => {
@@ -726,7 +726,7 @@ export const useTimelineStore = defineStore('timeline', () => {
                 weaponId: weapon.id,
                 duration: safeDuration,
                 cooldown: Number(baseCooldown) || 0,
-                icon: raw.icon || weapon.icon || '/weapons/default.png',
+                icon: raw.icon || weapon.icon || '/weapons/default.webp',
                 element: raw.element || weapon.element || 'physical',
                 customColor: '#b37feb',
                 gaugeCost: raw.gaugeCost || 0,

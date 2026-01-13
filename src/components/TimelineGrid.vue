@@ -1742,7 +1742,7 @@ onUnmounted(() => {
         <div class="roster-grid">
           <div v-for="weapon in group.list" :key="weapon.id" class="roster-card" :class="[`rarity-${getWeaponRarity(weapon)}-style`]" @click="confirmWeaponSelection(weapon.id)">
             <div class="card-avatar-wrapper" :style="getWeaponRarity(weapon) === 6 ? {} : { borderColor: getRarityBaseColor(getWeaponRarity(weapon)) }">
-              <img :src="weapon.icon || '/weapons/default.png'" loading="lazy" />
+              <img :src="weapon.icon || '/weapons/default.webp'" loading="lazy" />
             </div>
             <div class="card-name">{{ weapon.name }}</div>
             <div v-if="isWeaponEquipped(weapon.id)" class="in-team-tag weapon-equipped">已装备</div>

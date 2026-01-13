@@ -39,7 +39,7 @@
 
 **访问地址：**
 
-- **本地开发**：`http://localhost:5173/Endaxis/editor`
+- **本地开发**：`http://localhost:5173/editor`
 
 **使用说明：**
 

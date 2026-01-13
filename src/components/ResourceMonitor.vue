@@ -182,7 +182,7 @@ const transformStyle = computed(() => {
       <div class="enemy-select-module" @click="isEnemySelectorVisible = true">
         <div class="module-deco-line"></div>
         <div class="enemy-avatar-box">
-          <img v-if="!activeEnemyInfo.isCustom" :src="activeEnemyInfo.avatar" @error="e=>e.target.src='/Endaxis/avatars/default_enemy.png'" />
+          <img v-if="!activeEnemyInfo.isCustom" :src="activeEnemyInfo.avatar" @error="e=>e.target.src='/Endaxis/avatars/default_enemy.webp'" />
           <div v-else class="custom-avatar-placeholder">?</div>
           <div class="scan-line"></div>
         </div>
@@ -379,7 +379,7 @@ const transformStyle = computed(() => {
                  @click="selectEnemy(enemy.id)">
 
               <div class="enemy-avatar-wrapper">
-                <img :src="enemy.avatar" class="enemy-avatar" @error="e=>e.target.src='/Endaxis/avatars/default_enemy.png'"/>
+                <img :src="enemy.avatar" class="enemy-avatar" @error="e=>e.target.src='/Endaxis/avatars/default_enemy.webp'"/>
                 <div v-if="enemy.tier && enemy.tier !== 'normal'" class="tier-badge" :style="{ backgroundColor: getTierColor(enemy.tier) }">
                   {{ getTierLabel(enemy.tier) }}
                 </div>

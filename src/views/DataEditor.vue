@@ -228,7 +228,7 @@ function addNewCharacter() {
   const allGlobalEffects = [...effectKeys]
 
   const newChar = {
-    id: newId, name: "新干员", rarity: 5, element: "physical", weapon: "sword", avatar: "/avatars/default.png", exclusive_buffs: [],
+    id: newId, name: "新干员", rarity: 5, element: "physical", weapon: "sword", avatar: "/avatars/default.webp", exclusive_buffs: [],
     accept_team_gauge: true,
 
     // 初始化各类动作属性
@@ -251,7 +251,7 @@ function addNewEnemy() {
   const newEnemy = {
     id: newId,
     name: '新敌人',
-    avatar: '/Icon_Enemy/default_enemy.png',
+    avatar: '/Icon_Enemy/default_enemy.webp',
     maxStagger: 100,
     staggerNodeCount: 0,
     staggerNodeDuration: 2,
@@ -274,7 +274,7 @@ function addNewWeapon() {
     type: 'sword',
     rarity: 3,
     duration: 0,
-    icon: '/weapons/default.png'
+    icon: '/weapons/default.webp'
   }
   if (!weaponDatabase.value) weaponDatabase.value = []
   weaponDatabase.value.push(newWeapon)
@@ -744,7 +744,7 @@ function saveData() {
              @click="selectChar(char.id)">
 
           <div class="avatar-wrapper-small" :class="`rarity-${char.rarity}-border`">
-            <img :src="char.avatar" @error="e=>e.target.src='/avatars/default.png'" />
+            <img :src="char.avatar" @error="e=>e.target.src='/avatars/default.webp'" />
           </div>
 
           <div class="char-info">
@@ -775,7 +775,7 @@ function saveData() {
                 @click="selectEnemy(enemy.id)">
 
               <div class="avatar-wrapper-small" :style="{ borderColor: ENEMY_TIERS.find(t=>t.value===enemy.tier)?.color }">
-                <img :src="enemy.avatar" @error="e=>e.target.src='/avatars/default_enemy.png'" />
+                <img :src="enemy.avatar" @error="e=>e.target.src='/avatars/default_enemy.webp'" />
               </div>
 
               <div class="char-info">
@@ -812,8 +812,8 @@ function saveData() {
               <div class="avatar-wrapper-small" :class="`rarity-${Math.max(3, weapon.rarity || 3)}-border`" style="display:flex;align-items:center;justify-content:center; overflow:hidden;">
                 <img
                     :key="weapon.icon || weapon.id"
-                    :src="weapon.icon || '/weapons/default.png'"
-                    @error="e=>e.target.src='/weapons/default.png'"
+                    :src="weapon.icon || '/weapons/default.webp'"
+                    @error="e=>e.target.src='/weapons/default.webp'"
                     style="width:100%;height:100%;object-fit:cover;" />
               </div>
               <div class="char-info">
@@ -849,7 +849,7 @@ function saveData() {
         <header class="panel-header">
           <div class="header-left">
             <div class="avatar-wrapper-large" :class="`rarity-${selectedChar.rarity}-border`">
-              <img :src="selectedChar.avatar" @error="e=>e.target.src='/avatars/default.png'" />
+              <img :src="selectedChar.avatar" @error="e=>e.target.src='/avatars/default.webp'" />
             </div>
 
             <div class="header-titles">
@@ -1251,7 +1251,7 @@ function saveData() {
         <header class="panel-header">
           <div class="header-left">
             <div class="avatar-wrapper-large" style="border-color: #ff4d4f">
-              <img :src="selectedEnemy.avatar" @error="e=>e.target.src='/avatars/default_enemy.png'" />
+              <img :src="selectedEnemy.avatar" @error="e=>e.target.src='/avatars/default_enemy.webp'" />
             </div>
             <div class="header-titles">
               <h1 class="edit-title">{{ selectedEnemy.name }}</h1>
@@ -1312,8 +1312,8 @@ function saveData() {
             <div class="avatar-wrapper-large" :class="`rarity-${Math.max(3, selectedWeapon.rarity || 3)}-border`" style="display:flex;align-items:center;justify-content:center;font-weight:700;color:#fff; overflow:hidden;">
               <img
                   :key="selectedWeapon.icon || selectedWeapon.id"
-                  :src="selectedWeapon.icon || '/weapons/default.png'"
-                  @error="e=>e.target.src='/weapons/default.png'"
+                  :src="selectedWeapon.icon || '/weapons/default.webp'"
+                  @error="e=>e.target.src='/weapons/default.webp'"
                   style="width:100%; height:100%; object-fit:cover;" />
             </div>
             <div class="header-titles">
