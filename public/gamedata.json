@@ -696,7 +696,7 @@
       "attack_damage_ticks": [
         {
           "offset": 0,
-          "sp": 20,
+          "sp": 30,
           "stagger": 25,
           "boundEffects": []
         }
@@ -4084,7 +4084,18 @@
       "rarity": 6,
       "duration": 20,
       "icon": "/weapons/sword/wpn_sword_0021.webp",
-      "buffName": "长愿"
+      "buffName": "长愿",
+      "commonSlots": [
+        {
+          "modifierId": "agility",
+          "size": "large"
+        },
+        {
+          "modifierId": "attack",
+          "size": "large"
+        }
+      ],
+      "buffBonuses": []
     },
     {
       "id": "wpn_sword_0003",
@@ -4092,7 +4103,19 @@
       "type": "sword",
       "rarity": 3,
       "duration": 0,
-      "icon": "/weapons/sword/wpn_sword_0003.webp"
+      "icon": "/weapons/sword/wpn_sword_0003.webp",
+      "commonSlots": [
+        {
+          "modifierId": "primary_ability",
+          "size": "small"
+        },
+        {
+          "modifierId": null,
+          "size": "small"
+        }
+      ],
+      "buffBonuses": [],
+      "buffName": "武装整备"
     },
     {
       "id": "wpn_claym_0008",
@@ -4100,7 +4123,19 @@
       "type": "claym",
       "rarity": 6,
       "duration": 8,
-      "icon": "/weapons/claym/wpn_claym_0008.webp"
+      "icon": "/weapons/claym/wpn_claym_0008.webp",
+      "commonSlots": [
+        {
+          "modifierId": "strength",
+          "size": "large"
+        },
+        {
+          "modifierId": "attack",
+          "size": "large"
+        }
+      ],
+      "buffBonuses": [],
+      "buffName": "君王威慑"
     },
     {
       "id": "wpn_lance_0012",
@@ -4108,7 +4143,18 @@
       "type": "lance",
       "rarity": 6,
       "duration": 20,
-      "icon": "/weapons/lance/wpn_lance_0012.webp"
+      "icon": "/weapons/lance/wpn_lance_0012.webp",
+      "commonSlots": [
+        {
+          "modifierId": "agility",
+          "size": "large"
+        },
+        {
+          "modifierId": "physical_dmg",
+          "size": "large"
+        }
+      ],
+      "buffBonuses": []
     },
     {
       "id": "wpn_pistol_0009",
@@ -4116,7 +4162,18 @@
       "type": "pistol",
       "rarity": 6,
       "duration": 15,
-      "icon": "/weapons/pistol/wpn_pistol_0009.webp"
+      "icon": "/weapons/pistol/wpn_pistol_0009.webp",
+      "commonSlots": [
+        {
+          "modifierId": "strength",
+          "size": "large"
+        },
+        {
+          "modifierId": "attack",
+          "size": "large"
+        }
+      ],
+      "buffBonuses": []
     },
     {
       "id": "wpn_funnel_0004",
@@ -4124,7 +4181,1139 @@
       "type": "funnel",
       "rarity": 5,
       "duration": 15,
-      "icon": "/weapons/funnel/wpn_funnel_0004.webp"
+      "icon": "/weapons/funnel/wpn_funnel_0004.webp",
+      "commonSlots": [
+        {
+          "modifierId": "intellect",
+          "size": "medium"
+        },
+        {
+          "modifierId": "emag_dmg",
+          "size": "medium"
+        }
+      ],
+      "buffBonuses": [],
+      "buffName": "荒芜集簇"
+    },
+    {
+      "id": "wpn_sword_0006",
+      "name": "熔铸火焰",
+      "buffName": "嘶鸣烈火",
+      "type": "sword",
+      "rarity": 6,
+      "duration": 20,
+      "icon": "/weapons/sword/wpn_sword_0006.webp",
+      "commonSlots": [
+        {
+          "modifierId": "intellect",
+          "size": "large"
+        },
+        {
+          "modifierId": "attack",
+          "size": "large"
+        }
+      ],
+      "buffBonuses": []
+    },
+    {
+      "id": "wpn_sword_0010",
+      "name": "黯色火炬",
+      "buffName": "觊觎堆叠",
+      "type": "sword",
+      "rarity": 6,
+      "duration": 0,
+      "icon": "/weapons/sword/wpn_sword_0010.webp",
+      "commonSlots": [
+        {
+          "modifierId": "primary_ability",
+          "size": "large"
+        },
+        {
+          "modifierId": "blaze_dmg",
+          "size": "large"
+        }
+      ],
+      "buffBonuses": []
+    },
+    {
+      "id": "wpn_sword_0011",
+      "name": "扶摇",
+      "buffName": "青云",
+      "type": "sword",
+      "rarity": 6,
+      "duration": 0,
+      "icon": "/weapons/sword/wpn_sword_0011.webp",
+      "commonSlots": [
+        {
+          "modifierId": "agility",
+          "size": "large"
+        },
+        {
+          "modifierId": "crit_rate",
+          "size": "large"
+        }
+      ],
+      "buffBonuses": []
+    },
+    {
+      "id": "wpn_sword_0012",
+      "name": "热熔切割器",
+      "buffName": "高热解放",
+      "type": "sword",
+      "rarity": 6,
+      "duration": 20,
+      "icon": "/weapons/sword/wpn_sword_0012.webp",
+      "commonSlots": [
+        {
+          "modifierId": "will",
+          "size": "large"
+        },
+        {
+          "modifierId": "attack",
+          "size": "large"
+        }
+      ],
+      "buffBonuses": []
+    },
+    {
+      "id": "wpn_sword_0013",
+      "name": "显赫声名",
+      "buffName": "规行矩止",
+      "type": "sword",
+      "rarity": 6,
+      "duration": 20,
+      "icon": "/weapons/sword/wpn_sword_0013.webp",
+      "commonSlots": [
+        {
+          "modifierId": "agility",
+          "size": "large"
+        },
+        {
+          "modifierId": "physical_dmg",
+          "size": "large"
+        }
+      ],
+      "buffBonuses": []
+    },
+    {
+      "id": "wpn_sword_0014",
+      "name": "白夜新星",
+      "buffName": "白夜新星",
+      "type": "sword",
+      "rarity": 6,
+      "duration": 15,
+      "icon": "/weapons/sword/wpn_sword_0014.webp",
+      "commonSlots": [
+        {
+          "modifierId": "intellect",
+          "size": "large"
+        },
+        {
+          "modifierId": "originium_arts_power",
+          "size": "large"
+        }
+      ],
+      "buffBonuses": []
+    },
+    {
+      "id": "wpn_sword_0016",
+      "name": "不知归",
+      "buffName": "轮回",
+      "type": "sword",
+      "rarity": 6,
+      "duration": 30,
+      "icon": "/weapons/sword/wpn_sword_0016.webp",
+      "commonSlots": [
+        {
+          "modifierId": "will",
+          "size": "large"
+        },
+        {
+          "modifierId": "attack",
+          "size": "large"
+        }
+      ],
+      "buffBonuses": []
+    },
+    {
+      "id": "wpn_sword_0005",
+      "name": "钢铁余音",
+      "buffName": "旧火余音",
+      "type": "sword",
+      "rarity": 5,
+      "duration": 20,
+      "icon": "/weapons/sword/wpn_sword_0005.webp",
+      "commonSlots": [
+        {
+          "modifierId": "agility",
+          "size": "medium"
+        },
+        {
+          "modifierId": "physical_dmg",
+          "size": "medium"
+        }
+      ],
+      "buffBonuses": []
+    },
+    {
+      "id": "wpn_sword_0007",
+      "name": "坚城铸造者",
+      "buffName": "残城归途",
+      "type": "sword",
+      "rarity": 5,
+      "duration": 0,
+      "icon": "/weapons/sword/wpn_sword_0007.webp",
+      "commonSlots": [
+        {
+          "modifierId": "intellect",
+          "size": "medium"
+        },
+        {
+          "modifierId": "arts_dmg",
+          "size": "medium"
+        }
+      ],
+      "buffBonuses": []
+    },
+    {
+      "id": "wpn_sword_0015",
+      "name": "仰止",
+      "buffName": "高山仰止",
+      "type": "sword",
+      "rarity": 5,
+      "duration": 0,
+      "icon": "/weapons/sword/wpn_sword_0015.webp",
+      "commonSlots": [
+        {
+          "modifierId": "agility",
+          "size": "medium"
+        },
+        {
+          "modifierId": "physical_dmg",
+          "size": "medium"
+        }
+      ],
+      "buffBonuses": []
+    },
+    {
+      "id": "wpn_sword_0018",
+      "name": "十二问",
+      "buffName": "竭心诘问",
+      "type": "sword",
+      "rarity": 5,
+      "duration": 20,
+      "icon": "/weapons/sword/wpn_sword_0018.webp",
+      "commonSlots": [
+        {
+          "modifierId": "agility",
+          "size": "medium"
+        },
+        {
+          "modifierId": "attack",
+          "size": "medium"
+        }
+      ],
+      "buffBonuses": []
+    },
+    {
+      "id": "wpn_sword_0019",
+      "name": "O.B.J.轻芒",
+      "buffName": "不羁锋芒",
+      "type": "sword",
+      "rarity": 5,
+      "duration": 20,
+      "icon": "/weapons/sword/wpn_sword_0019.webp",
+      "commonSlots": [
+        {
+          "modifierId": "agility",
+          "size": "medium"
+        },
+        {
+          "modifierId": "attack",
+          "size": "medium"
+        }
+      ],
+      "buffBonuses": []
+    },
+    {
+      "id": "wpn_sword_0020",
+      "name": "逐鳞3.0",
+      "buffName": "逐鳞意",
+      "type": "sword",
+      "rarity": 5,
+      "duration": 15,
+      "icon": "/weapons/sword/wpn_sword_0020.webp",
+      "commonSlots": [
+        {
+          "modifierId": "strength",
+          "size": "medium"
+        },
+        {
+          "modifierId": "ult_charge_eff",
+          "size": "medium"
+        }
+      ],
+      "buffBonuses": []
+    },
+    {
+      "id": "wpn_sword_0008",
+      "name": "应急手段",
+      "buffName": "应急强化",
+      "type": "sword",
+      "rarity": 4,
+      "duration": 20,
+      "icon": "/weapons/sword/wpn_sword_0008.webp",
+      "commonSlots": [
+        {
+          "modifierId": "agility",
+          "size": "small"
+        },
+        {
+          "modifierId": "physical_dmg",
+          "size": "small"
+        }
+      ],
+      "buffBonuses": []
+    },
+    {
+      "id": "wpn_sword_0009",
+      "name": "浪潮",
+      "buffName": "生生不息",
+      "type": "sword",
+      "rarity": 4,
+      "duration": 20,
+      "icon": "/weapons/sword/wpn_sword_0009.webp",
+      "commonSlots": [
+        {
+          "modifierId": "intellect",
+          "size": "small"
+        },
+        {
+          "modifierId": "attack",
+          "size": "small"
+        }
+      ],
+      "buffBonuses": []
+    },
+    {
+      "id": "wpn_claym_0004",
+      "name": "典范",
+      "buffName": "多层斩断",
+      "type": "claym",
+      "rarity": 6,
+      "duration": 30,
+      "icon": "/weapons/claym/wpn_claym_0004.webp",
+      "commonSlots": [
+        {
+          "modifierId": "strength",
+          "size": "large"
+        },
+        {
+          "modifierId": "attack",
+          "size": "large"
+        }
+      ],
+      "buffBonuses": []
+    },
+    {
+      "id": "wpn_claym_0006",
+      "name": "昔日精品",
+      "buffName": "切碎疗法",
+      "type": "claym",
+      "rarity": 6,
+      "duration": 0,
+      "icon": "/weapons/claym/wpn_claym_0006.webp",
+      "commonSlots": [
+        {
+          "modifierId": "will",
+          "size": "large"
+        },
+        {
+          "modifierId": "hp",
+          "size": "large"
+        }
+      ],
+      "buffBonuses": []
+    },
+    {
+      "id": "wpn_claym_0007",
+      "name": "大雷斑",
+      "buffName": "塔罗斯之眼",
+      "type": "claym",
+      "rarity": 6,
+      "duration": 0,
+      "icon": "/weapons/claym/wpn_claym_0007.webp",
+      "commonSlots": [
+        {
+          "modifierId": "strength",
+          "size": "large"
+        },
+        {
+          "modifierId": "hp",
+          "size": "large"
+        }
+      ],
+      "buffBonuses": []
+    },
+    {
+      "id": "wpn_claym_0013",
+      "name": "赫拉芬格",
+      "buffName": "切骨之寒",
+      "type": "claym",
+      "rarity": 6,
+      "duration": 0,
+      "icon": "/weapons/claym/wpn_claym_0013.webp",
+      "commonSlots": [
+        {
+          "modifierId": "strength",
+          "size": "large"
+        },
+        {
+          "modifierId": "cold_dmg",
+          "size": "large"
+        }
+      ],
+      "buffBonuses": []
+    },
+    {
+      "id": "wpn_claym_0011",
+      "name": "探骊",
+      "buffName": "钩玄猎秘",
+      "type": "claym",
+      "rarity": 5,
+      "duration": 30,
+      "icon": "/weapons/claym/wpn_claym_0011.webp",
+      "commonSlots": [
+        {
+          "modifierId": "strength",
+          "size": "medium"
+        },
+        {
+          "modifierId": "ult_charge_eff",
+          "size": "medium"
+        }
+      ],
+      "buffBonuses": []
+    },
+    {
+      "id": "wpn_claym_0012",
+      "name": "终点之声",
+      "buffName": "骑士荣光",
+      "type": "claym",
+      "rarity": 5,
+      "duration": 0,
+      "icon": "/weapons/claym/wpn_claym_0012.webp",
+      "commonSlots": [
+        {
+          "modifierId": "strength",
+          "size": "medium"
+        },
+        {
+          "modifierId": "hp",
+          "size": "medium"
+        }
+      ],
+      "buffBonuses": []
+    },
+    {
+      "id": "wpn_claym_0014",
+      "name": "古渠",
+      "buffName": "千秋旧土",
+      "type": "claym",
+      "rarity": 5,
+      "duration": 20,
+      "icon": "/weapons/claym/wpn_claym_0014.webp",
+      "commonSlots": [
+        {
+          "modifierId": "strength",
+          "size": "medium"
+        },
+        {
+          "modifierId": "originium_arts_power",
+          "size": "medium"
+        }
+      ],
+      "buffBonuses": []
+    },
+    {
+      "id": "wpn_claym_0015",
+      "name": "O.B.J.重荷",
+      "buffName": "坚韧心性",
+      "type": "claym",
+      "rarity": 5,
+      "duration": 15,
+      "icon": "/weapons/claym/wpn_claym_0015.webp",
+      "commonSlots": [
+        {
+          "modifierId": "strength",
+          "size": "medium"
+        },
+        {
+          "modifierId": "hp",
+          "size": "medium"
+        }
+      ],
+      "buffBonuses": []
+    },
+    {
+      "id": "wpn_claym_0003",
+      "name": "工业零点一",
+      "buffName": "应急强化",
+      "type": "claym",
+      "rarity": 4,
+      "duration": 20,
+      "icon": "/weapons/claym/wpn_claym_0003.webp",
+      "commonSlots": [
+        {
+          "modifierId": "strength",
+          "size": "small"
+        },
+        {
+          "modifierId": "attack",
+          "size": "small"
+        }
+      ],
+      "buffBonuses": []
+    },
+    {
+      "id": "wpn_claym_0009",
+      "name": "淬火者",
+      "buffName": "淬砺成兵",
+      "type": "claym",
+      "rarity": 4,
+      "duration": 10,
+      "icon": "/weapons/claym/wpn_claym_0009.webp",
+      "commonSlots": [
+        {
+          "modifierId": "will",
+          "size": "small"
+        },
+        {
+          "modifierId": "hp",
+          "size": "small"
+        }
+      ],
+      "buffBonuses": []
+    },
+    {
+      "id": "wpn_claym_0010",
+      "name": "达尔霍夫7",
+      "buffName": "武装整备",
+      "type": "claym",
+      "rarity": 3,
+      "duration": 0,
+      "icon": "/weapons/claym/wpn_claym_0010.webp",
+      "commonSlots": [
+        {
+          "modifierId": "primary_ability",
+          "size": "small"
+        },
+        {
+          "modifierId": null,
+          "size": "small"
+        }
+      ],
+      "buffBonuses": []
+    },
+    {
+      "id": "wpn_lance_0010",
+      "name": "骁勇",
+      "buffName": "美德盈利",
+      "type": "lance",
+      "rarity": 6,
+      "duration": 0,
+      "icon": "/weapons/lance/wpn_lance_0010.webp",
+      "commonSlots": [
+        {
+          "modifierId": "agility",
+          "size": "large"
+        },
+        {
+          "modifierId": "physical_dmg",
+          "size": "large"
+        }
+      ],
+      "buffBonuses": []
+    },
+    {
+      "id": "wpn_lance_0011",
+      "name": "J.E.T.",
+      "buffName": "太空物理学",
+      "type": "lance",
+      "rarity": 6,
+      "duration": 15,
+      "icon": "/weapons/lance/wpn_lance_0011.webp",
+      "commonSlots": [
+        {
+          "modifierId": "will",
+          "size": "large"
+        },
+        {
+          "modifierId": "attack",
+          "size": "large"
+        }
+      ],
+      "buffBonuses": []
+    },
+    {
+      "id": "wpn_lance_0006",
+      "name": "向心之引",
+      "buffName": "同心圆",
+      "type": "lance",
+      "rarity": 5,
+      "duration": 0,
+      "icon": "/weapons/lance/wpn_lance_0006.webp",
+      "commonSlots": [
+        {
+          "modifierId": "will",
+          "size": "medium"
+        },
+        {
+          "modifierId": "emag_dmg",
+          "size": "medium"
+        }
+      ],
+      "buffBonuses": []
+    },
+    {
+      "id": "wpn_lance_0004",
+      "name": "嵌合正义",
+      "buffName": "愤怒接合",
+      "type": "lance",
+      "rarity": 5,
+      "duration": 15,
+      "icon": "/weapons/lance/wpn_lance_0004.webp",
+      "commonSlots": [
+        {
+          "modifierId": "strength",
+          "size": "medium"
+        },
+        {
+          "modifierId": "ult_charge_eff",
+          "size": "medium"
+        }
+      ],
+      "buffBonuses": []
+    },
+    {
+      "id": "wpn_lance_0013",
+      "name": "O.B.J.尖峰",
+      "buffName": "攀越冰峰",
+      "type": "lance",
+      "rarity": 5,
+      "duration": 15,
+      "icon": "/weapons/lance/wpn_lance_0013.webp",
+      "commonSlots": [
+        {
+          "modifierId": "will",
+          "size": "medium"
+        },
+        {
+          "modifierId": "physical_dmg",
+          "size": "medium"
+        }
+      ],
+      "buffBonuses": []
+    },
+    {
+      "id": "wpn_lance_0003",
+      "name": "寻路者道标",
+      "buffName": "远途起始",
+      "type": "lance",
+      "rarity": 4,
+      "duration": 0,
+      "icon": "/weapons/lance/wpn_lance_0003.webp",
+      "commonSlots": [
+        {
+          "modifierId": "agility",
+          "size": "small"
+        },
+        {
+          "modifierId": "attack",
+          "size": "small"
+        }
+      ],
+      "buffBonuses": []
+    },
+    {
+      "id": "wpn_lance_0008",
+      "name": "天使杀手",
+      "buffName": "应急强化",
+      "type": "lance",
+      "rarity": 4,
+      "duration": 20,
+      "icon": "/weapons/lance/wpn_lance_0008.webp",
+      "commonSlots": [
+        {
+          "modifierId": "will",
+          "size": "small"
+        },
+        {
+          "modifierId": "arts_dmg",
+          "size": "small"
+        }
+      ],
+      "buffBonuses": []
+    },
+    {
+      "id": "wpn_lance_0009",
+      "name": "奥佩罗77",
+      "buffName": "武装整备",
+      "type": "lance",
+      "rarity": 3,
+      "duration": 0,
+      "icon": "/weapons/lance/wpn_lance_0009.webp",
+      "commonSlots": [
+        {
+          "modifierId": "primary_ability",
+          "size": "small"
+        },
+        {
+          "modifierId": null,
+          "size": "small"
+        }
+      ],
+      "buffBonuses": []
+    },
+    {
+      "id": "wpn_pistol_0005",
+      "name": "领航者",
+      "buffName": "远影孤帆",
+      "type": "pistol",
+      "rarity": 6,
+      "duration": 15,
+      "icon": "/weapons/pistol/wpn_pistol_0005.webp",
+      "commonSlots": [
+        {
+          "modifierId": "primary_ability",
+          "size": "large"
+        },
+        {
+          "modifierId": "ult_charge_eff",
+          "size": "large"
+        }
+      ],
+      "buffBonuses": []
+    },
+    {
+      "id": "wpn_pistol_0008",
+      "name": "楔子",
+      "buffName": "文明楔子",
+      "type": "pistol",
+      "rarity": 6,
+      "duration": 15,
+      "icon": "/weapons/pistol/wpn_pistol_0008.webp",
+      "commonSlots": [
+        {
+          "modifierId": "intellect",
+          "size": "large"
+        },
+        {
+          "modifierId": "attack",
+          "size": "large"
+        }
+      ],
+      "buffBonuses": []
+    },
+    {
+      "id": "wpn_pistol_0010",
+      "name": "艺术暴君",
+      "buffName": "艺术暴论",
+      "type": "pistol",
+      "rarity": 6,
+      "duration": 30,
+      "icon": "/weapons/pistol/wpn_pistol_0010.webp",
+      "commonSlots": [
+        {
+          "modifierId": "intellect",
+          "size": "large"
+        },
+        {
+          "modifierId": "crit_rate",
+          "size": "large"
+        }
+      ],
+      "buffBonuses": []
+    },
+    {
+      "id": "wpn_pistol_0004",
+      "name": "理性告别",
+      "buffName": "旧时之援",
+      "type": "pistol",
+      "rarity": 5,
+      "duration": 15,
+      "icon": "/weapons/pistol/wpn_pistol_0004.webp",
+      "commonSlots": [
+        {
+          "modifierId": "strength",
+          "size": "medium"
+        },
+        {
+          "modifierId": "blaze_dmg",
+          "size": "medium"
+        }
+      ],
+      "buffBonuses": []
+    },
+    {
+      "id": "wpn_pistol_0006",
+      "name": "作品：众生",
+      "buffName": "众生的归途",
+      "type": "pistol",
+      "rarity": 5,
+      "duration": 20,
+      "icon": "/weapons/pistol/wpn_pistol_0006.webp",
+      "commonSlots": [
+        {
+          "modifierId": "agility",
+          "size": "medium"
+        },
+        {
+          "modifierId": "arts_dmg",
+          "size": "medium"
+        }
+      ],
+      "buffBonuses": []
+    },
+    {
+      "id": "wpn_pistol_0012",
+      "name": "O.B.J.迅极",
+      "buffName": "迅击",
+      "type": "pistol",
+      "rarity": 5,
+      "duration": 20,
+      "icon": "/weapons/pistol/wpn_pistol_0012.webp",
+      "commonSlots": [
+        {
+          "modifierId": "agility",
+          "size": "medium"
+        },
+        {
+          "modifierId": "ult_charge_eff",
+          "size": "medium"
+        }
+      ],
+      "buffBonuses": []
+    },
+    {
+      "id": "wpn_pistol_0002",
+      "name": "呼啸守卫",
+      "buffName": "应急强化",
+      "type": "pistol",
+      "rarity": 4,
+      "duration": 20,
+      "icon": "/weapons/pistol/wpn_pistol_0002.webp",
+      "commonSlots": [
+        {
+          "modifierId": "intellect",
+          "size": "small"
+        },
+        {
+          "modifierId": "attack",
+          "size": "small"
+        }
+      ],
+      "buffBonuses": []
+    },
+    {
+      "id": "wpn_pistol_0003",
+      "name": "长路",
+      "buffName": "生生不息",
+      "type": "pistol",
+      "rarity": 4,
+      "duration": 0,
+      "icon": "/weapons/pistol/wpn_pistol_0003.webp",
+      "commonSlots": [
+        {
+          "modifierId": "strength",
+          "size": "small"
+        },
+        {
+          "modifierId": "arts_dmg",
+          "size": "small"
+        }
+      ],
+      "buffBonuses": []
+    },
+    {
+      "id": "wpn_pistol_0001",
+      "name": "佩科5",
+      "buffName": "武装整备",
+      "type": "pistol",
+      "rarity": 3,
+      "duration": 0,
+      "icon": "/weapons/pistol/wpn_pistol_0001.webp",
+      "commonSlots": [
+        {
+          "modifierId": "primary_ability",
+          "size": "small"
+        },
+        {
+          "modifierId": null,
+          "size": "small"
+        }
+      ],
+      "buffBonuses": []
+    },
+    {
+      "id": "wpn_funnel_0006",
+      "name": "作品：蚀象",
+      "buffName": "碛岩蚀痕",
+      "type": "funnel",
+      "rarity": 6,
+      "duration": 0,
+      "icon": "/weapons/funnel/wpn_funnel_0006.webp",
+      "commonSlots": [
+        {
+          "modifierId": "primary_ability",
+          "size": "large"
+        },
+        {
+          "modifierId": "attack",
+          "size": "large"
+        }
+      ],
+      "buffBonuses": []
+    },
+    {
+      "id": "wpn_funnel_0008",
+      "name": "骑士精神",
+      "buffName": "侵蚀性狂热",
+      "type": "funnel",
+      "rarity": 6,
+      "duration": 15,
+      "icon": "/weapons/funnel/wpn_funnel_0008.webp",
+      "commonSlots": [
+        {
+          "modifierId": "will",
+          "size": "large"
+        },
+        {
+          "modifierId": "hp",
+          "size": "large"
+        }
+      ],
+      "buffBonuses": []
+    },
+    {
+      "id": "wpn_funnel_0009",
+      "name": "遗忘",
+      "buffName": "耻辱",
+      "type": "funnel",
+      "rarity": 6,
+      "duration": 15,
+      "icon": "/weapons/funnel/wpn_funnel_0009.webp",
+      "commonSlots": [
+        {
+          "modifierId": "intellect",
+          "size": "large"
+        },
+        {
+          "modifierId": "attack",
+          "size": "large"
+        }
+      ],
+      "buffBonuses": []
+    },
+    {
+      "id": "wpn_funnel_0010",
+      "name": "爆破单元",
+      "buffName": "冠军威赫",
+      "type": "funnel",
+      "rarity": 6,
+      "duration": 15,
+      "icon": "/weapons/funnel/wpn_funnel_0010.webp",
+      "commonSlots": [
+        {
+          "modifierId": "intellect",
+          "size": "large"
+        },
+        {
+          "modifierId": "originium_arts_power",
+          "size": "large"
+        }
+      ],
+      "buffBonuses": []
+    },
+    {
+      "id": "wpn_funnel_0011",
+      "name": "使命必达",
+      "buffName": "不辱使命",
+      "type": "funnel",
+      "rarity": 6,
+      "duration": 15,
+      "icon": "/weapons/funnel/wpn_funnel_0011.webp",
+      "commonSlots": [
+        {
+          "modifierId": "will",
+          "size": "large"
+        },
+        {
+          "modifierId": "ult_charge_eff",
+          "size": "large"
+        }
+      ],
+      "buffBonuses": []
+    },
+    {
+      "id": "wpn_funnel_0013",
+      "name": "沧溟星梦",
+      "buffName": "潮汐低语",
+      "type": "funnel",
+      "rarity": 6,
+      "duration": 25,
+      "icon": "/weapons/funnel/wpn_funnel_0013.webp",
+      "commonSlots": [
+        {
+          "modifierId": "intellect",
+          "size": "large"
+        },
+        {
+          "modifierId": "healing_effect",
+          "size": "large"
+        }
+      ],
+      "buffBonuses": []
+    },
+    {
+      "id": "wpn_funnel_0005",
+      "name": "悼亡诗",
+      "buffName": "冢火成莹",
+      "type": "funnel",
+      "rarity": 5,
+      "duration": 20,
+      "icon": "/weapons/funnel/wpn_funnel_0005.webp",
+      "commonSlots": [
+        {
+          "modifierId": "intellect",
+          "size": "medium"
+        },
+        {
+          "modifierId": "attack",
+          "size": "medium"
+        }
+      ],
+      "buffBonuses": []
+    },
+    {
+      "id": "wpn_funnel_0007",
+      "name": "莫奈何",
+      "buffName": "榫卯分析法",
+      "type": "funnel",
+      "rarity": 5,
+      "duration": 0,
+      "icon": "/weapons/funnel/wpn_funnel_0007.webp",
+      "commonSlots": [
+        {
+          "modifierId": "will",
+          "size": "medium"
+        },
+        {
+          "modifierId": "ult_charge_eff",
+          "size": "medium"
+        }
+      ],
+      "buffBonuses": []
+    },
+    {
+      "id": "wpn_funnel_0012",
+      "name": "布道自由",
+      "buffName": "信仰救赎",
+      "type": "funnel",
+      "rarity": 5,
+      "duration": 0,
+      "icon": "/weapons/funnel/wpn_funnel_0012.webp",
+      "commonSlots": [
+        {
+          "modifierId": "will",
+          "size": "medium"
+        },
+        {
+          "modifierId": "healing_effect",
+          "size": "medium"
+        }
+      ],
+      "buffBonuses": []
+    },
+    {
+      "id": "wpn_funnel_0014",
+      "name": "O.B.J.术识",
+      "buffName": "术法升华",
+      "type": "funnel",
+      "rarity": 5,
+      "duration": 15,
+      "icon": "/weapons/funnel/wpn_funnel_0014.webp",
+      "commonSlots": [
+        {
+          "modifierId": "intellect",
+          "size": "medium"
+        },
+        {
+          "modifierId": "originium_arts_power",
+          "size": "medium"
+        }
+      ],
+      "buffBonuses": []
+    },
+    {
+      "id": "wpn_funnel_0001",
+      "name": "全自动骇新星",
+      "buffName": "远途起始",
+      "type": "funnel",
+      "rarity": 4,
+      "duration": 0,
+      "icon": "/weapons/funnel/wpn_funnel_0001.webp",
+      "commonSlots": [
+        {
+          "modifierId": "intellect",
+          "size": "small"
+        },
+        {
+          "modifierId": "attack",
+          "size": "small"
+        }
+      ],
+      "buffBonuses": []
+    },
+    {
+      "id": "wpn_funnel_0003",
+      "name": "荧光雷羽",
+      "buffName": "应急强化",
+      "type": "funnel",
+      "rarity": 4,
+      "duration": 20,
+      "icon": "/weapons/funnel/wpn_funnel_0003.webp",
+      "commonSlots": [
+        {
+          "modifierId": "will",
+          "size": "small"
+        },
+        {
+          "modifierId": "attack",
+          "size": "small"
+        }
+      ],
+      "buffBonuses": []
+    },
+    {
+      "id": "wpn_funnel_0002",
+      "name": "吉米尼12",
+      "buffName": "武装整备",
+      "type": "funnel",
+      "rarity": 3,
+      "duration": 0,
+      "icon": "/weapons/funnel/wpn_funnel_0002.webp",
+      "commonSlots": [
+        {
+          "modifierId": "primary_ability",
+          "size": "small"
+        },
+        {
+          "modifierId": null,
+          "size": "small"
+        }
+      ],
+      "buffBonuses": []
     }
   ],
   "equipmentDatabase": [
@@ -4191,6 +5380,1030 @@
       "slot": "accessory",
       "level": 70,
       "icon": "/equipment/item_equip_t4_suit_usp02_edc_03.webp"
+    },
+    {
+      "id": "item_equip_t4_suit_usp02_hand_02",
+      "name": "长息护手·壹型",
+      "category": "长息",
+      "slot": "gloves",
+      "level": 70,
+      "icon": "/equipment/item_equip_t4_suit_usp02_hand_01.webp"
+    },
+    {
+      "id": "item_equip_t4_suit_usp02_edc_02",
+      "name": "长息蓄电核·壹型",
+      "category": "长息",
+      "slot": "accessory",
+      "level": 70,
+      "icon": "/equipment/item_equip_t4_suit_usp02_edc_02.webp"
+    },
+    {
+      "id": "item_equip_t4_suit_burst01_body_01",
+      "name": "落潮轻甲",
+      "category": "潮涌",
+      "slot": "armor",
+      "level": 70,
+      "icon": "/equipment/item_equip_t4_suit_burst01_body_01.webp"
+    },
+    {
+      "id": "item_equip_t4_suit_burst01_edc_01",
+      "name": "悬河供氧栓",
+      "category": "潮涌",
+      "slot": "accessory",
+      "level": 70,
+      "icon": "/equipment/item_equip_t4_suit_burst01_edc_01.webp"
+    },
+    {
+      "id": "item_equip_t4_suit_burst01_edc_02",
+      "name": "浊流切割炬",
+      "category": "潮涌",
+      "slot": "accessory",
+      "level": 70,
+      "icon": "/equipment/item_equip_t4_suit_burst01_edc_02.webp"
+    },
+    {
+      "id": "item_equip_t4_suit_burst01_hand_01",
+      "name": "潮涌手甲",
+      "category": "潮涌",
+      "slot": "gloves",
+      "level": 70,
+      "icon": "/equipment/item_equip_t4_suit_burst01_hand_01.webp"
+    },
+    {
+      "id": "item_equip_t4_suit_atk02_body_01",
+      "name": "50式应龙重甲",
+      "category": "50式应龙",
+      "slot": "armor",
+      "level": 70,
+      "icon": "/equipment/item_equip_t4_suit_atk02_body_01.webp"
+    },
+    {
+      "id": "item_equip_t4_suit_atk02_body_04",
+      "name": "50式应龙轻甲",
+      "category": "50式应龙",
+      "slot": "armor",
+      "level": 70,
+      "icon": "/equipment/item_equip_t4_suit_atk02_body_04.webp"
+    },
+    {
+      "id": "item_equip_t4_suit_atk02_hand_01",
+      "name": "50式应龙护手",
+      "category": "50式应龙",
+      "slot": "gloves",
+      "level": 70,
+      "icon": "/equipment/item_equip_t4_suit_atk02_hand_01.webp"
+    },
+    {
+      "id": "item_equip_t4_suit_atk02_hand_03",
+      "name": "50式应龙护手·壹型",
+      "category": "50式应龙",
+      "slot": "gloves",
+      "level": 70,
+      "icon": "/equipment/item_equip_t4_suit_atk02_hand_01.webp"
+    },
+    {
+      "id": "item_equip_t4_suit_atk02_edc_01",
+      "name": "50式应龙雷达",
+      "category": "50式应龙",
+      "slot": "accessory",
+      "level": 70,
+      "icon": "/equipment/item_equip_t4_suit_atk02_edc_01.webp"
+    },
+    {
+      "id": "item_equip_t4_suit_atk02_edc_04",
+      "name": "50式应龙短刃",
+      "category": "50式应龙",
+      "slot": "accessory",
+      "level": 70,
+      "icon": "/equipment/item_equip_t4_suit_atk02_edc_04.webp"
+    },
+    {
+      "id": "item_equip_t4_suit_atk02_edc_05",
+      "name": "50式应龙短刃·壹型",
+      "category": "50式应龙",
+      "slot": "accessory",
+      "level": 70,
+      "icon": "/equipment/item_equip_t4_suit_atk02_edc_05.webp"
+    },
+    {
+      "id": "item_equip_t4_suit_criti01_body_01",
+      "name": "M.I.警用护甲",
+      "category": "M.I.警用",
+      "slot": "armor",
+      "level": 70,
+      "icon": "/equipment/item_equip_t4_suit_criti01_body_01.webp"
+    },
+    {
+      "id": "item_equip_t4_suit_criti01_body_02",
+      "name": "M.I.警用罩衣",
+      "category": "M.I.警用",
+      "slot": "armor",
+      "level": 70,
+      "icon": "/equipment/item_equip_t4_suit_criti01_body_03.webp"
+    },
+    {
+      "id": "item_equip_t4_suit_criti01_body_04",
+      "name": "M.I.警用罩衣·贰型",
+      "category": "M.I.警用",
+      "slot": "armor",
+      "level": 70,
+      "icon": "/equipment/item_equip_t4_suit_criti01_body_04.webp"
+    },
+    {
+      "id": "item_equip_t4_suit_criti01_hand_01",
+      "name": "M.I.警用手套",
+      "category": "M.I.警用",
+      "slot": "gloves",
+      "level": 70,
+      "icon": "/equipment/item_equip_t4_suit_criti01_hand_01.webp"
+    },
+    {
+      "id": "item_equip_t4_suit_criti01_hand_02",
+      "name": "M.I.警用手环",
+      "category": "M.I.警用",
+      "slot": "gloves",
+      "level": 70,
+      "icon": "/equipment/item_equip_t4_suit_criti01_hand_02.webp"
+    },
+    {
+      "id": "item_equip_t4_suit_criti01_hand_03",
+      "name": "M.I.警用手环·壹型",
+      "category": "M.I.警用",
+      "slot": "gloves",
+      "level": 70,
+      "icon": "/equipment/item_equip_t4_suit_criti01_hand_03.webp"
+    },
+    {
+      "id": "item_equip_t4_suit_criti01_edc_01",
+      "name": "M.I.警用臂环",
+      "category": "M.I.警用",
+      "slot": "accessory",
+      "level": 70,
+      "icon": "/equipment/item_equip_t4_suit_criti01_edc_01.webp"
+    },
+    {
+      "id": "item_equip_t4_suit_criti01_edc_02",
+      "name": "M.I.警用瞄具",
+      "category": "M.I.警用",
+      "slot": "accessory",
+      "level": 70,
+      "icon": "/equipment/item_equip_t4_suit_criti01_edc_02.webp"
+    },
+    {
+      "id": "item_equip_t4_suit_criti01_edc_03",
+      "name": "M.I.警用工具组",
+      "category": "M.I.警用",
+      "slot": "accessory",
+      "level": 70,
+      "icon": "/equipment/item_equip_t4_suit_criti01_edc_03.webp"
+    },
+    {
+      "id": "item_equip_t4_suit_criti01_edc_05",
+      "name": "M.I.警用刺刃·壹型",
+      "category": "M.I.警用",
+      "slot": "accessory",
+      "level": 70,
+      "icon": "/equipment/item_equip_t4_suit_criti01_edc_05.webp"
+    },
+    {
+      "id": "item_equip_t4_suit_fire_natr01_body_01",
+      "name": "动火用外骨骼",
+      "category": "动火用",
+      "slot": "armor",
+      "level": 70,
+      "icon": "/equipment/item_equip_t4_suit_fire_natr01_body_01.webp"
+    },
+    {
+      "id": "item_equip_t4_suit_fire_natr01_hand_02",
+      "name": "动火用手甲",
+      "category": "动火用",
+      "slot": "gloves",
+      "level": 70,
+      "icon": "/equipment/item_equip_t4_suit_fire_natr01_hand_02.webp"
+    },
+    {
+      "id": "item_equip_t4_suit_fire_natr01_hand_03",
+      "name": "动火用手甲·壹型",
+      "category": "动火用",
+      "slot": "gloves",
+      "level": 70,
+      "icon": "/equipment/item_equip_t4_suit_fire_natr01_hand_03.webp"
+    },
+    {
+      "id": "item_equip_t4_suit_fire_natr01_edc_01",
+      "name": "动火用储能匣",
+      "category": "动火用",
+      "slot": "accessory",
+      "level": 70,
+      "icon": "/equipment/item_equip_t4_suit_fire_natr01_edc_01.webp"
+    },
+    {
+      "id": "item_equip_t4_suit_fire_natr01_edc_02",
+      "name": "动火用测温镜",
+      "category": "动火用",
+      "slot": "accessory",
+      "level": 70,
+      "icon": "/equipment/item_equip_t4_suit_fire_natr01_edc_02.webp"
+    },
+    {
+      "id": "item_equip_t4_suit_fire_natr01_edc_03",
+      "name": "动火用电力匣",
+      "category": "动火用",
+      "slot": "accessory",
+      "level": 70,
+      "icon": "/equipment/item_equip_t4_suit_fire_natr01_edc_03.webp"
+    },
+    {
+      "id": "item_equip_t4_suit_atb01_body_01",
+      "name": "拓荒护甲",
+      "category": "拓荒",
+      "slot": "armor",
+      "level": 70,
+      "icon": "/equipment/item_equip_t4_suit_atb01_body_01.webp"
+    },
+    {
+      "id": "item_equip_t4_suit_atb01_body_02",
+      "name": "拓荒护甲·贰型",
+      "category": "拓荒",
+      "slot": "armor",
+      "level": 70,
+      "icon": "/equipment/item_equip_t4_suit_atb01_body_02.webp"
+    },
+    {
+      "id": "item_equip_t4_suit_atb01_body_03",
+      "name": "拓荒护甲·叁型",
+      "category": "拓荒",
+      "slot": "armor",
+      "level": 70,
+      "icon": "/equipment/item_equip_t4_suit_atb01_body_03.webp"
+    },
+    {
+      "id": "item_equip_t4_suit_atb01_hand_01",
+      "name": "拓荒耐蚀手套",
+      "category": "拓荒",
+      "slot": "gloves",
+      "level": 70,
+      "icon": "/equipment/item_equip_t4_suit_atb01_hand_01.webp"
+    },
+    {
+      "id": "item_equip_t4_suit_atb01_edc_02",
+      "name": "拓荒通信器·壹型",
+      "category": "拓荒",
+      "slot": "accessory",
+      "level": 70,
+      "icon": "/equipment/item_equip_t4_suit_atb01_edc_02.webp"
+    },
+    {
+      "id": "item_equip_t4_suit_atb01_edc_04",
+      "name": "拓荒增量供氧栓",
+      "category": "拓荒",
+      "slot": "accessory",
+      "level": 70,
+      "icon": "/equipment/item_equip_t4_suit_atb01_edc_04.webp"
+    },
+    {
+      "id": "item_equip_t4_suit_pulse_cryst01_body_01",
+      "name": "脉冲式干扰服",
+      "category": "脉冲式",
+      "slot": "armor",
+      "level": 70,
+      "icon": "/equipment/item_equip_t4_suit_pulse_cryst01_body_01.webp"
+    },
+    {
+      "id": "item_equip_t4_suit_pulse_cryst01_hand_01",
+      "name": "脉冲式手套",
+      "category": "脉冲式",
+      "slot": "gloves",
+      "level": 70,
+      "icon": "/equipment/item_equip_t4_suit_pulse_cryst01_hand_01.webp"
+    },
+    {
+      "id": "item_equip_t4_suit_pulse_cryst01_edc_02",
+      "name": "脉冲式校准器",
+      "category": "脉冲式",
+      "slot": "accessory",
+      "level": 70,
+      "icon": "/equipment/item_equip_t4_suit_pulse_cryst01_edc_02.webp"
+    },
+    {
+      "id": "item_equip_t4_suit_attri01_body_01",
+      "name": "碾骨重护甲",
+      "category": "碾骨",
+      "slot": "armor",
+      "level": 70,
+      "icon": "/equipment/item_equip_t4_suit_attri01_body_01.webp"
+    },
+    {
+      "id": "item_equip_t4_suit_attri01_body_02",
+      "name": "碾骨重护甲·壹型",
+      "category": "碾骨",
+      "slot": "armor",
+      "level": 70,
+      "icon": "/equipment/item_equip_t4_suit_attri01_body_02.webp"
+    },
+    {
+      "id": "item_equip_t4_suit_attri01_body_03",
+      "name": "碾骨披巾",
+      "category": "碾骨",
+      "slot": "armor",
+      "level": 70,
+      "icon": "/equipment/item_equip_t4_suit_attri01_body_03.webp"
+    },
+    {
+      "id": "item_equip_t4_suit_attri01_body_04",
+      "name": "碾骨披巾·壹型",
+      "category": "碾骨",
+      "slot": "armor",
+      "level": 70,
+      "icon": "/equipment/item_equip_t4_suit_attri01_body_03.webp"
+    },
+    {
+      "id": "item_equip_t4_suit_attri01_edc_04",
+      "name": "碾骨面具",
+      "category": "碾骨",
+      "slot": "accessory",
+      "level": 70,
+      "icon": "/equipment/item_equip_t4_suit_attri01_edc_04.webp"
+    },
+    {
+      "id": "item_equip_t4_suit_attri01_edc_05",
+      "name": "碾骨面具·壹型",
+      "category": "碾骨",
+      "slot": "accessory",
+      "level": 70,
+      "icon": "/equipment/item_equip_t4_suit_attri01_edc_05.webp"
+    },
+    {
+      "id": "item_equip_t4_suit_attri01_edc_03",
+      "name": "碾骨小雕像",
+      "category": "碾骨",
+      "slot": "accessory",
+      "level": 70,
+      "icon": "/equipment/item_equip_t4_suit_attri01_edc_03.webp"
+    },
+    {
+      "id": "item_equip_t4_suit_attri01_edc_06",
+      "name": "碾骨小雕像·壹型",
+      "category": "碾骨",
+      "slot": "accessory",
+      "level": 70,
+      "icon": "/equipment/item_equip_t4_suit_attri01_edc_06.webp"
+    },
+    {
+      "id": "item_equip_t4_suit_poise01_body_01",
+      "name": "轻超域",
+      "category": "轻超域",
+      "slot": "armor",
+      "level": 70,
+      "icon": "/equipment/item_equip_t4_suit_poise01_body_01.webp"
+    },
+    {
+      "id": "item_equip_t4_suit_poise01_hand_01",
+      "name": "轻超域护手",
+      "category": "轻超域",
+      "slot": "gloves",
+      "level": 70,
+      "icon": "/equipment/item_equip_t4_suit_poise01_hand_01.webp"
+    },
+    {
+      "id": "item_equip_t4_suit_poise01_edc_01",
+      "name": "轻超域分析环",
+      "category": "轻超域",
+      "slot": "accessory",
+      "level": 70,
+      "icon": "/equipment/item_equip_t4_suit_poise01_edc_01.webp"
+    },
+    {
+      "id": "item_equip_t4_suit_poise01_edc_02",
+      "name": "轻超域稳定盘",
+      "category": "轻超域",
+      "slot": "accessory",
+      "level": 70,
+      "icon": "/equipment/item_equip_t4_suit_poise01_edc_02.webp"
+    },
+    {
+      "id": "item_equip_t4_suit_heal01_body_01",
+      "name": "生物辅助重甲",
+      "category": "生物辅助",
+      "slot": "armor",
+      "level": 70,
+      "icon": "/equipment/item_equip_t4_suit_heal01_body_01.webp"
+    },
+    {
+      "id": "item_equip_t4_suit_heal01_body_02",
+      "name": "生物辅助胸甲",
+      "category": "生物辅助",
+      "slot": "armor",
+      "level": 70,
+      "icon": "/equipment/item_equip_t4_suit_heal01_body_02.webp"
+    },
+    {
+      "id": "item_equip_t4_suit_heal01_hand_01",
+      "name": "生物辅助臂甲",
+      "category": "生物辅助",
+      "slot": "gloves",
+      "level": 70,
+      "icon": "/equipment/item_equip_t4_suit_heal01_hand_01.webp"
+    },
+    {
+      "id": "item_equip_t4_suit_heal01_hand_02",
+      "name": "生物辅助手甲",
+      "category": "生物辅助",
+      "slot": "gloves",
+      "level": 70,
+      "icon": "/equipment/item_equip_t4_suit_heal01_hand_02.webp"
+    },
+    {
+      "id": "item_equip_t4_suit_heal01_edc_01",
+      "name": "生物辅助接驳器",
+      "category": "生物辅助",
+      "slot": "accessory",
+      "level": 70,
+      "icon": "/equipment/item_equip_t4_suit_heal01_edc_01.webp"
+    },
+    {
+      "id": "item_equip_t4_suit_heal01_edc_02",
+      "name": "生物辅助接驳器·壹型",
+      "category": "生物辅助",
+      "slot": "accessory",
+      "level": 70,
+      "icon": "/equipment/item_equip_t4_suit_heal01_edc_02.webp"
+    },
+    {
+      "id": "item_equip_t4_suit_heal01_edc_03",
+      "name": "生物辅助护板",
+      "category": "生物辅助",
+      "slot": "accessory",
+      "level": 70,
+      "icon": "/equipment/item_equip_t4_suit_heal01_edc_03.webp"
+    },
+    {
+      "id": "item_equip_t4_suit_heal01_edc_04",
+      "name": "物辅助护盾针",
+      "category": "生物辅助",
+      "slot": "accessory",
+      "level": 70,
+      "icon": "/equipment/item_equip_t4_suit_heal01_edc_04.webp"
+    },
+    {
+      "id": "item_equip_t3_suit_usp01_body_01",
+      "name": "天灾防护重甲",
+      "category": "天灾防护",
+      "slot": "armor",
+      "level": 50,
+      "icon": "/equipment/item_equip_t3_suit_usp01_body_01.webp"
+    },
+    {
+      "id": "item_equip_t3_suit_usp01_body_02",
+      "name": "天灾防护重甲·壹型",
+      "category": "天灾防护",
+      "slot": "armor",
+      "level": 50,
+      "icon": "/equipment/item_equip_t3_suit_usp01_body_02.webp"
+    },
+    {
+      "id": "item_equip_t3_suit_usp01_edc_01",
+      "name": "天灾防护净芯",
+      "category": "天灾防护",
+      "slot": "accessory",
+      "level": 50,
+      "icon": "/equipment/item_equip_t3_suit_usp01_edc_01.webp"
+    },
+    {
+      "id": "item_equip_t3_suit_usp01_edc_02",
+      "name": "天灾防护净芯·壹型",
+      "category": "天灾防护",
+      "slot": "accessory",
+      "level": 50,
+      "icon": "/equipment/item_equip_t3_suit_usp01_edc_02.webp"
+    },
+    {
+      "id": "item_equip_t3_suit_usp01_hand_01",
+      "name": "天灾防护手套",
+      "category": "天灾防护",
+      "slot": "gloves",
+      "level": 50,
+      "icon": "/equipment/item_equip_t3_suit_usp01_hand_01.webp"
+    },
+    {
+      "id": "item_equip_t3_suit_usp01_edc_03",
+      "name": "天灾防护滤芯",
+      "category": "天灾防护",
+      "slot": "accessory",
+      "level": 50,
+      "icon": "/equipment/item_equip_t3_suit_usp01_edc_03.webp"
+    },
+    {
+      "id": "item_equip_t3_suit_atk01_body_01",
+      "name": "阿伯莉重甲",
+      "category": "阿伯莉遗声",
+      "slot": "armor",
+      "level": 50,
+      "icon": "/equipment/item_equip_t3_suit_atk01_body_01.webp"
+    },
+    {
+      "id": "item_equip_t3_suit_atk01_body_02",
+      "name": "阿伯莉重甲·壹型",
+      "category": "阿伯莉遗声",
+      "slot": "armor",
+      "level": 50,
+      "icon": "/equipment/item_equip_t3_suit_atk01_body_02.webp"
+    },
+    {
+      "id": "item_equip_t3_suit_atk01_body_03",
+      "name": "阿伯莉轻甲",
+      "category": "阿伯莉遗声",
+      "slot": "armor",
+      "level": 50,
+      "icon": "/equipment/item_equip_t3_suit_atk01_body_03.webp"
+    },
+    {
+      "id": "item_equip_t3_suit_atk01_body_04",
+      "name": "阿伯莉轻甲·壹型",
+      "category": "阿伯莉遗声",
+      "slot": "armor",
+      "level": 50,
+      "icon": "/equipment/item_equip_t3_suit_atk01_body_04.webp"
+    },
+    {
+      "id": "item_equip_t3_suit_atk01_hand_01",
+      "name": "阿伯莉手甲",
+      "category": "阿伯莉遗声",
+      "slot": "gloves",
+      "level": 50,
+      "icon": "/equipment/item_equip_t3_suit_atk01_hand_01.webp"
+    },
+    {
+      "id": "item_equip_t3_suit_atk01_edc_02",
+      "name": "阿伯莉侦听芯片",
+      "category": "阿伯莉遗声",
+      "slot": "accessory",
+      "level": 50,
+      "icon": "/equipment/item_equip_t3_suit_atk01_edc_02.webp"
+    },
+    {
+      "id": "item_equip_t3_suit_atk01_edc_03",
+      "name": "阿伯莉侦听芯片·壹型",
+      "category": "阿伯莉遗声",
+      "slot": "accessory",
+      "level": 50,
+      "icon": "/equipment/item_equip_t3_suit_atk01_edc_03.webp"
+    },
+    {
+      "id": "item_equip_t3_suit_atk01_edc_01",
+      "name": "阿伯莉紫光灯",
+      "category": "阿伯莉遗声",
+      "slot": "accessory",
+      "level": 50,
+      "icon": "/equipment/item_equip_t3_suit_atk01_edc_01.webp"
+    },
+    {
+      "id": "item_equip_t3_suit_atk01_edc_04",
+      "name": "阿伯莉照明器",
+      "category": "阿伯莉遗声",
+      "slot": "accessory",
+      "level": 50,
+      "icon": "/equipment/item_equip_t3_suit_atk01_edc_04.webp"
+    },
+    {
+      "id": "item_equip_t3_suit_atk01_edc_05",
+      "name": "阿伯莉传感芯片",
+      "category": "阿伯莉遗声",
+      "slot": "accessory",
+      "level": 50,
+      "icon": "/equipment/item_equip_t3_suit_atk01_edc_05.webp"
+    },
+    {
+      "id": "item_equip_t3_suit_atk01_edc_06",
+      "name": "阿伯莉传感芯片·壹型",
+      "category": "阿伯莉遗声",
+      "slot": "accessory",
+      "level": 50,
+      "icon": "/equipment/item_equip_t3_suit_atk01_edc_06.webp"
+    },
+    {
+      "id": "item_equip_t3_suit_will01_body_01",
+      "name": "蚀电防护背心·壹型",
+      "category": "蚀电防护",
+      "slot": "armor",
+      "level": 50,
+      "icon": "/equipment/item_equip_t3_suit_will01_body_01.webp"
+    },
+    {
+      "id": "item_equip_t3_suit_will01_hand_01",
+      "name": "蚀电防护手套·壹型",
+      "category": "蚀电防护",
+      "slot": "gloves",
+      "level": 50,
+      "icon": "/equipment/item_equip_t3_suit_will01_hand_01.webp"
+    },
+    {
+      "id": "item_equip_t3_suit_will01_edc_02",
+      "name": "蚀电防护扳手·壹型",
+      "category": "蚀电防护",
+      "slot": "accessory",
+      "level": 50,
+      "icon": "/equipment/item_equip_t3_suit_will01_edc_02.webp"
+    },
+    {
+      "id": "item_equip_t3_suit_will01_edc_01",
+      "name": "蚀电防护电池·壹型",
+      "category": "蚀电防护",
+      "slot": "accessory",
+      "level": 50,
+      "icon": "/equipment/item_equip_t3_suit_will01_edc_01.webp"
+    },
+    {
+      "id": "item_equip_t2_suit_will01_body_01",
+      "name": "蚀电防护背心",
+      "category": "蚀电防护",
+      "slot": "armor",
+      "level": 36,
+      "icon": "/equipment/item_equip_t2_suit_will01_body_01.webp"
+    },
+    {
+      "id": "item_equip_t2_suit_will01_hand_01",
+      "name": "蚀电防护手套",
+      "category": "蚀电防护",
+      "slot": "gloves",
+      "level": 36,
+      "icon": "/equipment/item_equip_t2_suit_will01_hand_01.webp"
+    },
+    {
+      "id": "item_equip_t2_suit_will01_edc_01",
+      "name": "蚀电防护扳手",
+      "category": "蚀电防护",
+      "slot": "accessory",
+      "level": 36,
+      "icon": "/equipment/item_equip_t2_suit_will01_edc_01.webp"
+    },
+    {
+      "id": "item_equip_t2_suit_will01_edc_02",
+      "name": "蚀电防护电池",
+      "category": "蚀电防护",
+      "slot": "accessory",
+      "level": 36,
+      "icon": "/equipment/item_equip_t2_suit_will01_edc_02.webp"
+    },
+    {
+      "id": "item_equip_t2_suit_wisd01_body_01",
+      "name": "蚀电屏蔽背心",
+      "category": "蚀电屏蔽",
+      "slot": "armor",
+      "level": 36,
+      "icon": "/equipment/item_equip_t2_suit_wisd01_body_01.webp"
+    },
+    {
+      "id": "item_equip_t2_suit_wisd01_hand_01",
+      "name": "蚀电屏蔽手套",
+      "category": "蚀电屏蔽",
+      "slot": "gloves",
+      "level": 36,
+      "icon": "/equipment/item_equip_t2_suit_wisd01_hand_01.webp"
+    },
+    {
+      "id": "item_equip_t2_suit_wisd01_edc_01",
+      "name": "蚀电屏蔽扳手",
+      "category": "蚀电屏蔽",
+      "slot": "accessory",
+      "level": 36,
+      "icon": "/equipment/item_equip_t2_suit_wisd01_edc_01.webp"
+    },
+    {
+      "id": "item_equip_t2_suit_wisd01_edc_02",
+      "name": "蚀电屏蔽扳手·壹型",
+      "category": "蚀电屏蔽",
+      "slot": "accessory",
+      "level": 36,
+      "icon": "/equipment/item_equip_t2_suit_wisd01_edc_02.webp"
+    },
+    {
+      "id": "item_equip_t2_suit_wisd01_edc_03",
+      "name": "蚀电屏蔽电池",
+      "category": "蚀电屏蔽",
+      "slot": "accessory",
+      "level": 36,
+      "icon": "/equipment/item_equip_t2_suit_wisd01_edc_03.webp"
+    },
+    {
+      "id": "item_equip_t3_suit_wisd01_body_01",
+      "name": "蚀电屏蔽背心·壹型",
+      "category": "蚀电屏蔽",
+      "slot": "armor",
+      "level": 50,
+      "icon": "/equipment/item_equip_t3_suit_wisd01_body_01.webp"
+    },
+    {
+      "id": "item_equip_t3_suit_wisd01_body_02",
+      "name": "蚀电屏蔽背心·贰型",
+      "category": "蚀电屏蔽",
+      "slot": "armor",
+      "level": 50,
+      "icon": "/equipment/item_equip_t3_suit_wisd01_body_02.webp"
+    },
+    {
+      "id": "item_equip_t3_suit_wisd01_hand_01",
+      "name": "蚀电屏蔽手套·壹型",
+      "category": "蚀电屏蔽",
+      "slot": "armor",
+      "level": 50,
+      "icon": "/equipment/item_equip_t3_suit_wisd01_hand_01.webp"
+    },
+    {
+      "id": "item_equip_t3_suit_wisd01_edc_01",
+      "name": "蚀电屏蔽扳手·贰型",
+      "category": "蚀电屏蔽",
+      "slot": "accessory",
+      "level": 50,
+      "icon": "/equipment/item_equip_t3_suit_wisd01_edc_01.webp"
+    },
+    {
+      "id": "item_equip_t3_suit_wisd01_edc_02",
+      "name": "蚀电屏蔽电池·壹型",
+      "category": "蚀电屏蔽",
+      "slot": "accessory",
+      "level": 50,
+      "icon": "/equipment/item_equip_t3_suit_wisd01_edc_02.webp"
+    },
+    {
+      "id": "item_equip_t2_suit_agi01_body_01",
+      "name": "巡行信使夹克",
+      "category": "巡行信使",
+      "slot": "armor",
+      "level": 36,
+      "icon": "/equipment/item_equip_t2_suit_agi01_body_01.webp"
+    },
+    {
+      "id": "item_equip_t2_suit_agi01_hand_01",
+      "name": "巡行信使手套",
+      "category": "巡行信使",
+      "slot": "gloves",
+      "level": 36,
+      "icon": "/equipment/item_equip_t2_suit_agi01_hand_01.webp"
+    },
+    {
+      "id": "item_equip_t2_suit_agi01_edc_02",
+      "name": "巡行信使手电",
+      "category": "巡行信使",
+      "slot": "accessory",
+      "level": 36,
+      "icon": "/equipment/item_equip_t2_suit_agi01_edc_02.webp"
+    },
+    {
+      "id": "item_equip_t2_suit_agi01_edc_01",
+      "name": "巡行信使陀螺",
+      "category": "巡行信使",
+      "slot": "accessory",
+      "level": 36,
+      "icon": "/equipment/item_equip_t2_suit_agi01_edc_01.webp"
+    },
+    {
+      "id": "item_equip_t3_suit_agi01_body_01",
+      "name": "巡行信使夹克·壹型",
+      "category": "巡行信使",
+      "slot": "armor",
+      "level": 50,
+      "icon": "/equipment/item_equip_t3_suit_agi01_body_01.webp"
+    },
+    {
+      "id": "item_equip_t3_suit_agi01_hand_01",
+      "name": "巡行信使手套·壹型",
+      "category": "巡行信使",
+      "slot": "gloves",
+      "level": 50,
+      "icon": "/equipment/item_equip_t3_suit_agi01_hand_01.webp"
+    },
+    {
+      "id": "item_equip_t3_suit_agi01_edc_02",
+      "name": "巡行信使手电·贰型",
+      "category": "巡行信使",
+      "slot": "accessory",
+      "level": 50,
+      "icon": "/equipment/item_equip_t3_suit_agi01_edc_02.webp"
+    },
+    {
+      "id": "item_equip_t3_suit_agi01_edc_01",
+      "name": "巡行信使手电·壹型",
+      "category": "巡行信使",
+      "slot": "accessory",
+      "level": 50,
+      "icon": "/equipment/item_equip_t3_suit_agi01_edc_01.webp"
+    },
+    {
+      "id": "item_equip_t3_suit_agi01_edc_03",
+      "name": "巡行信使陀螺·壹型",
+      "category": "巡行信使",
+      "slot": "accessory",
+      "level": 50,
+      "icon": "/equipment/item_equip_t3_suit_agi01_edc_03.webp"
+    },
+    {
+      "id": "item_equip_t2_suit_str01_body_01",
+      "name": "重装信使夹克",
+      "category": "重装信徒",
+      "slot": "armor",
+      "level": 36,
+      "icon": "/equipment/item_equip_t2_suit_str01_body_01.webp"
+    },
+    {
+      "id": "item_equip_t2_suit_str01_hand_01",
+      "name": "重装信使手套",
+      "category": "重装信徒",
+      "slot": "gloves",
+      "level": 36,
+      "icon": "/equipment/item_equip_t2_suit_str01_hand_01.webp"
+    },
+    {
+      "id": "item_equip_t2_suit_str01_edc_02",
+      "name": "重装信使手电",
+      "category": "重装信徒",
+      "slot": "accessory",
+      "level": 36,
+      "icon": "/equipment/item_equip_t2_suit_str01_edc_02.webp"
+    },
+    {
+      "id": "item_equip_t2_suit_str01_edc_01",
+      "name": "重装信使陀螺",
+      "category": "重装信徒",
+      "slot": "accessory",
+      "level": 36,
+      "icon": "/equipment/item_equip_t2_suit_str01_edc_01.webp"
+    },
+    {
+      "id": "item_equip_t3_suit_str01_body_01",
+      "name": "重装信使夹克·壹型",
+      "category": "重装信徒",
+      "slot": "armor",
+      "level": 50,
+      "icon": "/equipment/item_equip_t3_suit_str01_body_01.webp"
+    },
+    {
+      "id": "item_equip_t3_suit_str01_hand_02",
+      "name": "重装信使手套·贰型",
+      "category": "重装信徒",
+      "slot": "gloves",
+      "level": 50,
+      "icon": "/equipment/item_equip_t3_suit_str01_hand_02.webp"
+    },
+    {
+      "id": "item_equip_t3_suit_str01_hand_01",
+      "name": "重装信使手套·壹型",
+      "category": "重装信徒",
+      "slot": "gloves",
+      "level": 50,
+      "icon": "/equipment/item_equip_t3_suit_str01_hand_01.webp"
+    },
+    {
+      "id": "item_equip_t3_suit_str01_edc_02",
+      "name": "重装信使手电·壹型",
+      "category": "重装信徒",
+      "slot": "accessory",
+      "level": 50,
+      "icon": "/equipment/item_equip_t3_suit_str01_edc_02.webp"
+    },
+    {
+      "id": "item_equip_t3_suit_str01_edc_01",
+      "name": "重装信使陀螺·壹型",
+      "category": "重装信徒",
+      "slot": "accessory",
+      "level": 50,
+      "icon": "/equipment/item_equip_t3_suit_str01_edc_01.webp"
+    },
+    {
+      "id": "item_equip_t1_suit_wisdwill01_body_01",
+      "name": "集成化轻甲",
+      "category": "集成轻型",
+      "slot": "armor",
+      "level": 20,
+      "icon": "/equipment/item_equip_t1_suit_wisdwill01_body_01.webp"
+    },
+    {
+      "id": "item_equip_t1_suit_wisdwill01_hand_01",
+      "name": "集成化战术手套",
+      "category": "集成轻型",
+      "slot": "gloves",
+      "level": 20,
+      "icon": "/equipment/item_equip_t1_suit_wisdwill01_hand_01.webp"
+    },
+    {
+      "id": "item_equip_t1_suit_wisdwill01_edc_01",
+      "name": "集成化轻甲片",
+      "category": "集成轻型",
+      "slot": "accessory",
+      "level": 20,
+      "icon": "/equipment/item_equip_t1_suit_wisdwill01_edc_01.webp"
+    },
+    {
+      "id": "item_equip_t1_suit_wisdwill01_edc_02",
+      "name": "集成化陶瓷板",
+      "category": "集成轻型",
+      "slot": "accessory",
+      "level": 20,
+      "icon": "/equipment/item_equip_t1_suit_wisdwill01_edc_02.webp"
+    },
+    {
+      "id": "item_equip_t1_suit_stragi01_body_01",
+      "name": "集成化重甲",
+      "category": "集成重型",
+      "slot": "armor",
+      "level": 20,
+      "icon": "/equipment/item_equip_t1_suit_stragi01_body_01.webp"
+    },
+    {
+      "id": "item_equip_t1_suit_stragi01_hand_01",
+      "name": "集成化手甲",
+      "category": "集成重型",
+      "slot": "gloves",
+      "level": 20,
+      "icon": "/equipment/item_equip_t1_suit_stragi01_hand_01.webp"
+    },
+    {
+      "id": "item_equip_t1_suit_stragi01_edc_02",
+      "name": "集成化重甲片",
+      "category": "集成重型",
+      "slot": "accessory",
+      "level": 20,
+      "icon": "/equipment/item_equip_t1_suit_stragi01_edc_02.webp"
+    },
+    {
+      "id": "item_equip_t1_suit_stragi01_edc_01",
+      "name": "集成化合金板",
+      "category": "集成重型",
+      "slot": "accessory",
+      "level": 20,
+      "icon": "/equipment/item_equip_t1_suit_stragi01_edc_01.webp"
+    },
+    {
+      "id": "item_equip_t2_parts_tundra01_edc_04",
+      "name": "矿场联络仪·壹型",
+      "category": "四号谷地",
+      "slot": "accessory",
+      "level": 50,
+      "icon": "/equipment/item_equip_t2_parts_tundra01_edc_04.webp"
+    },
+    {
+      "id": "item_equip_t0_parts_tundra01_hand_02",
+      "name": "简易护手",
+      "category": "四号谷地",
+      "slot": "gloves",
+      "level": 10,
+      "icon": "/equipment/item_equip_t0_parts_tundra01_hand_02.webp"
+    },
+    {
+      "id": "item_equip_t0_parts_tundra01_hand_01",
+      "name": "简易手甲",
+      "category": "四号谷地",
+      "slot": "gloves",
+      "level": 10,
+      "icon": "/equipment/item_equip_t0_parts_tundra01_hand_01.webp"
+    },
+    {
+      "id": "item_equip_t0_parts_tundra01_body_02",
+      "name": "简易护服",
+      "category": "四号谷地",
+      "slot": "armor",
+      "level": 10,
+      "icon": "/equipment/item_equip_t0_parts_tundra01_body_02.webp"
+    },
+    {
+      "id": "item_equip_t0_parts_tundra01_body_01",
+      "name": "简易护甲",
+      "category": "四号谷地",
+      "slot": "armor",
+      "level": 10,
+      "icon": "/equipment/item_equip_t0_parts_tundra01_body_01.webp"
+    },
+    {
+      "id": "item_equip_t4_parts_wuling01_edc_03",
+      "name": "纾难印章",
+      "category": "武陵",
+      "slot": "accessory",
+      "level": 70,
+      "icon": "/equipment/item_equip_t4_parts_wuling01_edc_03.webp"
+    },
+    {
+      "id": "item_equip_t4_parts_wuling01_edc_04",
+      "name": "纾难印章·壹型",
+      "category": "武陵",
+      "slot": "accessory",
+      "level": 70,
+      "icon": "/equipment/item_equip_t4_parts_wuling01_edc_04.webp"
+    },
+    {
+      "id": "item_equip_t4_parts_wuling01_edc_01",
+      "name": "纾难识别牌",
+      "category": "武陵",
+      "slot": "accessory",
+      "level": 70,
+      "icon": "/equipment/item_equip_t4_parts_wuling01_edc_01.webp"
+    },
+    {
+      "id": "item_equip_t4_parts_wuling01_edc_02",
+      "name": "纾难识别牌·壹型",
+      "category": "武陵",
+      "slot": "accessory",
+      "level": 70,
+      "icon": "/equipment/item_equip_t4_parts_wuling01_edc_02.webp"
     }
   ],
   "equipmentCategories": [
@@ -4234,7 +6447,7 @@
     },
     "集成轻型": {
       "setBonus": {
-        "duration": 0
+        "duration": 5
       }
     },
     "重装信徒": {
@@ -4259,7 +6472,7 @@
     },
     "阿伯莉遗声": {
       "setBonus": {
-        "duration": 0
+        "duration": 15
       }
     },
     "天灾防护": {
@@ -4279,7 +6492,7 @@
     },
     "轻超域": {
       "setBonus": {
-        "duration": 0
+        "duration": 15
       }
     },
     "碾骨": {
@@ -4294,17 +6507,17 @@
     },
     "拓荒": {
       "setBonus": {
-        "duration": 0
+        "duration": 12
       }
     },
     "动火用": {
       "setBonus": {
-        "duration": 0
+        "duration": 8
       }
     },
     "M.I.警用": {
       "setBonus": {
-        "duration": 0
+        "duration": 5
       }
     },
     "50式应龙": {
@@ -4314,12 +6527,778 @@
     },
     "潮涌": {
       "setBonus": {
-        "duration": 0
+        "duration": 10
       }
     },
     "长息": {
       "setBonus": {
         "duration": 15
+      }
+    }
+  },
+  "misc": {
+    "modifierDefs": [
+      {
+        "id": "primary_ability",
+        "label": "主能力提升",
+        "unit": "flat"
+      },
+      {
+        "id": "secondary_ability",
+        "label": "副能力提升",
+        "unit": "percent"
+      },
+      {
+        "id": "strength",
+        "label": "力量提升",
+        "unit": "flat"
+      },
+      {
+        "id": "agility",
+        "label": "敏捷提升",
+        "unit": "flat"
+      },
+      {
+        "id": "intellect",
+        "label": "智识提升",
+        "unit": "flat"
+      },
+      {
+        "id": "will",
+        "label": "意志提升",
+        "unit": "flat"
+      },
+      {
+        "id": "attack",
+        "label": "攻击提升",
+        "unit": "percent"
+      },
+      {
+        "id": "hp",
+        "label": "生命提升",
+        "unit": "percent"
+      },
+      {
+        "id": "crit_rate",
+        "label": "暴击率提升",
+        "unit": "percent"
+      },
+      {
+        "id": "blaze_dmg",
+        "label": "灼热伤害提升",
+        "unit": "percent"
+      },
+      {
+        "id": "emag_dmg",
+        "label": "电磁伤害提升",
+        "unit": "percent"
+      },
+      {
+        "id": "cold_dmg",
+        "label": "寒冷伤害提升",
+        "unit": "percent"
+      },
+      {
+        "id": "nature_dmg",
+        "label": "自然伤害提升",
+        "unit": "percent"
+      },
+      {
+        "id": "healing_effect",
+        "label": "治疗效果提升",
+        "unit": "percent"
+      },
+      {
+        "id": "physical_dmg",
+        "label": "物理伤害提升",
+        "unit": "percent"
+      },
+      {
+        "id": "arts_dmg",
+        "label": "法术伤害提升",
+        "unit": "percent"
+      },
+      {
+        "id": "originium_arts_power",
+        "label": "源石技艺强度提升",
+        "unit": "flat"
+      },
+      {
+        "id": "ult_charge_eff",
+        "label": "终结技充能效率提升",
+        "unit": "percent"
+      },
+      {
+        "id": "link_cd_reduction",
+        "label": "连携冷却缩减提升",
+        "unit": "percent"
+      }
+    ],
+    "weaponCommonModifiers": {
+      "primary_ability": {
+        "small": [
+          8,
+          15,
+          21,
+          28,
+          35,
+          42,
+          48,
+          55,
+          65
+        ],
+        "medium": [
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        "large": [
+          14,
+          25,
+          36,
+          47,
+          58,
+          70,
+          81,
+          92,
+          109
+        ]
+      },
+      "secondary_ability": {
+        "small": [
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        "medium": [
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        "large": [
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ]
+      },
+      "strength": {
+        "small": [
+          12,
+          21,
+          31,
+          40,
+          50,
+          60,
+          69,
+          79,
+          93
+        ],
+        "medium": [
+          16,
+          28,
+          41,
+          54,
+          67,
+          80,
+          92,
+          105,
+          124
+        ],
+        "large": [
+          20,
+          36,
+          52,
+          68,
+          84,
+          100,
+          116,
+          132,
+          156
+        ]
+      },
+      "agility": {
+        "small": [
+          12,
+          21,
+          31,
+          40,
+          50,
+          60,
+          69,
+          79,
+          93
+        ],
+        "medium": [
+          16,
+          28,
+          41,
+          54,
+          67,
+          80,
+          92,
+          105,
+          124
+        ],
+        "large": [
+          20,
+          36,
+          52,
+          68,
+          84,
+          100,
+          116,
+          132,
+          156
+        ]
+      },
+      "intellect": {
+        "small": [
+          12,
+          21,
+          31,
+          40,
+          50,
+          60,
+          69,
+          79,
+          93
+        ],
+        "medium": [
+          16,
+          28,
+          41,
+          54,
+          67,
+          80,
+          92,
+          105,
+          124
+        ],
+        "large": [
+          20,
+          36,
+          52,
+          68,
+          84,
+          100,
+          116,
+          132,
+          156
+        ]
+      },
+      "will": {
+        "small": [
+          12,
+          21,
+          31,
+          40,
+          50,
+          60,
+          69,
+          79,
+          93
+        ],
+        "medium": [
+          16,
+          28,
+          41,
+          54,
+          67,
+          80,
+          92,
+          105,
+          124
+        ],
+        "large": [
+          20,
+          36,
+          52,
+          68,
+          84,
+          100,
+          116,
+          132,
+          156
+        ]
+      },
+      "attack": {
+        "small": [
+          3,
+          5.4,
+          7.8,
+          10.2,
+          12.6,
+          15,
+          17.4,
+          19.8,
+          23.4
+        ],
+        "medium": [
+          4,
+          7.2,
+          10.4,
+          13.6,
+          16.8,
+          20,
+          23.2,
+          26.4,
+          31.2
+        ],
+        "large": [
+          5,
+          9,
+          13,
+          17,
+          21,
+          25,
+          29,
+          33,
+          39
+        ]
+      },
+      "hp": {
+        "small": [
+          6,
+          10.8,
+          15.6,
+          20.4,
+          25.2,
+          30,
+          34.8,
+          39.6,
+          46.8
+        ],
+        "medium": [
+          8,
+          14.4,
+          20.8,
+          27.2,
+          33.6,
+          40,
+          46.4,
+          52.8,
+          62.4
+        ],
+        "large": [
+          10,
+          18,
+          26,
+          34,
+          42,
+          50,
+          58,
+          66,
+          78
+        ]
+      },
+      "crit_rate": {
+        "small": [
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        "medium": [
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        "large": [
+          2.5,
+          4.5,
+          6.5,
+          8.5,
+          10.5,
+          12.5,
+          14.5,
+          16.5,
+          19.5
+        ]
+      },
+      "blaze_dmg": {
+        "small": [
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        "medium": [
+          4.4,
+          8,
+          11.6,
+          15.1,
+          18.7,
+          22.2,
+          25.8,
+          29.3,
+          34.7
+        ],
+        "large": [
+          5.6,
+          10,
+          14.4,
+          18.9,
+          23.3,
+          27.8,
+          32.2,
+          36.7,
+          43.3
+        ]
+      },
+      "emag_dmg": {
+        "small": [
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        "medium": [
+          4.4,
+          8,
+          11.6,
+          15.1,
+          18.7,
+          22.2,
+          25.8,
+          29.3,
+          34.7
+        ],
+        "large": [
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ]
+      },
+      "cold_dmg": {
+        "small": [
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        "medium": [
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        "large": [
+          5.6,
+          10,
+          14.4,
+          18.9,
+          23.3,
+          27.8,
+          32.2,
+          36.7,
+          43.3
+        ]
+      },
+      "nature_dmg": {
+        "small": [
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        "medium": [
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        "large": [
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ]
+      },
+      "healing_effect": {
+        "small": [
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        "medium": [
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        "large": [
+          6,
+          10.7,
+          15.5,
+          20.2,
+          25,
+          29.8,
+          34.5,
+          39.3,
+          46.4
+        ]
+      },
+      "physical_dmg": {
+        "small": [
+          3.3,
+          6,
+          8.7,
+          11.3,
+          14,
+          16.7,
+          19.3,
+          22,
+          26
+        ],
+        "medium": [
+          4.4,
+          8,
+          11.6,
+          15.1,
+          18.7,
+          22.2,
+          25.8,
+          29.3,
+          34.7
+        ],
+        "large": [
+          5.6,
+          10,
+          14.4,
+          18.9,
+          23.3,
+          27.8,
+          32.2,
+          36.7,
+          43.3
+        ]
+      },
+      "arts_dmg": {
+        "small": [
+          3.3,
+          6,
+          8.7,
+          11.3,
+          14,
+          16.7,
+          19.3,
+          22,
+          26
+        ],
+        "medium": [
+          4.4,
+          8,
+          11.6,
+          15.1,
+          18.7,
+          22.2,
+          25.8,
+          29.3,
+          34.7
+        ],
+        "large": [
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ]
+      },
+      "originium_arts_power": {
+        "small": [
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        "medium": [
+          8,
+          14,
+          20,
+          27,
+          33,
+          40,
+          46,
+          52,
+          62
+        ],
+        "large": [
+          10,
+          18,
+          26,
+          34,
+          42,
+          50,
+          58,
+          66,
+          78
+        ]
+      },
+      "ult_charge_eff": {
+        "small": [
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        "medium": [
+          4.8,
+          8.6,
+          12.4,
+          16.2,
+          20,
+          23.8,
+          27.6,
+          31.4,
+          37.1
+        ],
+        "large": [
+          6,
+          10.7,
+          15.5,
+          20.2,
+          25,
+          29.8,
+          34.5,
+          39.3,
+          46.4
+        ]
+      },
+      "link_cd_reduction": {
+        "small": [
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        "medium": [
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        "large": [
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ]
       }
     }
   }

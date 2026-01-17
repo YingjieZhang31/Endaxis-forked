@@ -2660,7 +2660,8 @@ body.capture-mode .davinci-range {
   position: relative;
   flex: 1;
   min-height: var(--track-height);
-  padding-bottom: 60px;
+  padding-top: 30px;
+  padding-bottom: 30px;
   width: fit-content;
   min-width: 100%;
   display: flex;
