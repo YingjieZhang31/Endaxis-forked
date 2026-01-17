@@ -841,10 +841,6 @@ function handleGroupCheck(list, isChecked, key) {
   if (group) {
     if (isChecked) {
       group.forEach(item => { if (!list.includes(item)) list.push(item) })
-    } else {
-      const keep = list.filter(item => !group.includes(item))
-      list.length = 0
-      keep.forEach(k => list.push(k))
     }
   }
 
