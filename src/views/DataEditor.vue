@@ -82,6 +82,73 @@ const miscSection = ref('stats') // 'stats' | 'weapon_table' | 'equipment_catego
 const newEquipmentCategoryName = ref('')
 const newEnemyCategoryName = ref('')
 const activeTab = ref('basic')
+const attackSegmentIndex = ref(0)
+
+const ATTACK_SEGMENT_COUNT = 5
+
+function ensureAttackSegments(char) {
+  if (!char) return
+
+  const isValidSeg = (seg) => {
+    if (!seg || typeof seg !== 'object') return false
+    if (seg.duration === undefined) return false
+    if (seg.gaugeGain === undefined) return false
+    if (seg.allowed_types === undefined) return false
+    if (seg.anomalies === undefined) return false
+    if (seg.damage_ticks === undefined) return false
+    return true
+  }
+
+  const legacy = {
+    duration: Number(char.attack_duration) || 0,
+    gaugeGain: Number(char.attack_gaugeGain) || 0,
+    allowed_types: Array.isArray(char.attack_allowed_types) ? [...char.attack_allowed_types] : [],
+    anomalies: char.attack_anomalies ? JSON.parse(JSON.stringify(char.attack_anomalies)) : [],
+    damage_ticks: char.attack_damage_ticks ? JSON.parse(JSON.stringify(char.attack_damage_ticks)) : []
+  }
+
+  const migrateFromLegacy = () => {
+    const base = {
+      duration: legacy.duration,
+      gaugeGain: legacy.gaugeGain,
+      allowed_types: [...legacy.allowed_types],
+      anomalies: JSON.parse(JSON.stringify(legacy.anomalies)),
+      damage_ticks: JSON.parse(JSON.stringify(legacy.damage_ticks)),
+    }
+    char.attack_segments = Array.from({ length: ATTACK_SEGMENT_COUNT }, (_, idx) => {
+      if (idx === 0) return base
+      return { ...JSON.parse(JSON.stringify(base)), duration: 0 }
+    })
+  }
+
+  if (!Array.isArray(char.attack_segments)) {
+    migrateFromLegacy()
+    return
+  }
+
+  if (char.attack_segments.length !== ATTACK_SEGMENT_COUNT) {
+    char.attack_segments = char.attack_segments.slice(0, ATTACK_SEGMENT_COUNT)
+    while (char.attack_segments.length < ATTACK_SEGMENT_COUNT) {
+      char.attack_segments.push({ duration: 0, gaugeGain: 0, allowed_types: [], anomalies: [], damage_ticks: [] })
+    }
+  }
+
+  if (char.attack_segments.some(s => !isValidSeg(s))) {
+    migrateFromLegacy()
+    return
+  }
+
+  for (const seg of char.attack_segments) {
+    seg.duration = Number(seg.duration) || 0
+    seg.gaugeGain = Number(seg.gaugeGain) || 0
+    if (!Array.isArray(seg.allowed_types)) seg.allowed_types = []
+    if (!Array.isArray(seg.anomalies)) seg.anomalies = []
+    if (!Array.isArray(seg.damage_ticks)) seg.damage_ticks = []
+    if (seg.element !== undefined && typeof seg.element !== 'string') delete seg.element
+    if (seg.icon !== undefined && typeof seg.icon !== 'string') delete seg.icon
+  }
+}
+
 
 const filteredRoster = computed(() => {
   let list = characterRoster.value || []
@@ -199,6 +266,54 @@ const selectedChar = computed(() => {
   return characterRoster.value.find(c => c.id === selectedCharId.value)
 })
 
+const currentAttackSegment = computed(() => {
+  const char = selectedChar.value
+  if (!char) return null
+  if (!Array.isArray(char.attack_segments) || char.attack_segments.length === 0) return null
+  const idx = Math.min(Math.max(attackSegmentIndex.value, 0), ATTACK_SEGMENT_COUNT - 1)
+  return char.attack_segments[idx] || null
+})
+
+const attackTotalDuration = computed(() => {
+  const char = selectedChar.value
+  if (!char) return 0
+  const list = Array.isArray(char.attack_segments) ? char.attack_segments : null
+  if (!list) return Number(char.attack_duration) || 0
+  return list.reduce((acc, seg) => acc + (Number(seg?.duration) || 0), 0)
+})
+
+function applyAttackSegmentToAll({ includeDuration = false } = {}) {
+  const char = selectedChar.value
+  if (!char) return
+  ensureAttackSegments(char)
+
+  const idx = Math.min(Math.max(attackSegmentIndex.value, 0), ATTACK_SEGMENT_COUNT - 1)
+  const source = char.attack_segments[idx]
+  if (!source) return
+
+  const deepClone = (val) => (val ? JSON.parse(JSON.stringify(val)) : val)
+
+  for (let i = 0; i < ATTACK_SEGMENT_COUNT; i++) {
+    if (i === idx) continue
+    const target = char.attack_segments[i]
+    if (!target) continue
+
+    if (includeDuration) {
+      target.duration = Number(source.duration) || 0
+    }
+
+    target.gaugeGain = Number(source.gaugeGain) || 0
+    target.allowed_types = Array.isArray(source.allowed_types) ? [...source.allowed_types] : []
+    target.anomalies = deepClone(source.anomalies) || []
+    target.damage_ticks = deepClone(source.damage_ticks) || []
+
+    if (source.element !== undefined) target.element = source.element
+    if (source.icon !== undefined) target.icon = source.icon
+  }
+
+  ElMessage.success(includeDuration ? '已覆盖到所有段（包含持续时间）' : '已覆盖到所有段（不含持续时间）')
+}
+
 const selectedEnemy = computed(() => {
   return enemyDatabase.value.find(e => e.id === selectedEnemyId.value)
 })
@@ -230,6 +345,16 @@ watch(characterRoster, (newList) => {
     selectedCharId.value = newList[0].id
   }
 }, { immediate: true })
+
+watch(selectedCharId, () => {
+  attackSegmentIndex.value = 0
+  if (!selectedChar.value) return
+  ensureAttackSegments(selectedChar.value)
+  for (const seg of selectedChar.value.attack_segments || []) {
+    normalizeDamageTicks(seg.damage_ticks)
+    ensureEffectIds(seg.anomalies)
+  }
+})
 
 watch(enemyDatabase, (newList) => {
   if (newList && newList.length > 0 && !selectedEnemyId.value) {
@@ -412,7 +537,13 @@ function addNewCharacter() {
     accept_team_gauge: true,
 
     // 初始化各类动作属性
-    attack_duration: 2.5, attack_gaugeGain: 0, attack_allowed_types: allGlobalEffects, attack_anomalies: [], attack_damage_ticks: [],
+    attack_segments: Array.from({ length: ATTACK_SEGMENT_COUNT }, (_, idx) => ({
+      duration: idx === 0 ? 2.5 : 0,
+      gaugeGain: 0,
+      allowed_types: allGlobalEffects,
+      anomalies: [],
+      damage_ticks: []
+    })),
     skill_duration: 2, skill_spCost: 100, skill_gaugeGain: 0, skill_teamGaugeGain: 0, skill_allowed_types: [], skill_anomalies: [], skill_damage_ticks: [], skill_icon: "",
     link_duration: 1.5, link_cooldown: 15, link_gaugeGain: 0, link_allowed_types: [], link_anomalies: [], link_damage_ticks: [], link_icon: "",
     ultimate_duration: 3, ultimate_gaugeMax: 100, ultimate_gaugeReply: 0, ultimate_enhancementTime: 0, ultimate_allowed_types: [], ultimate_anomalies: [], ultimate_damage_ticks: [], ultimate_animationTime: 1.5, ultimate_icon: "",
@@ -724,6 +855,13 @@ function setCategorySetBonusDuration(category, value) {
 // === 判定点逻辑 (Damage Ticks) ===
 function getDamageTicks(char, type) {
   if (!char) return []
+
+  if (type === 'attack') {
+    const idx = Math.min(Math.max(attackSegmentIndex.value, 0), ATTACK_SEGMENT_COUNT - 1)
+    const seg = Array.isArray(char.attack_segments) ? char.attack_segments[idx] : null
+    return Array.isArray(seg?.damage_ticks) ? seg.damage_ticks : []
+  }
+
   const key = `${type}_damage_ticks`
   if (!char[key]) char[key] = []
   normalizeDamageTicks(char[key])
@@ -731,12 +869,33 @@ function getDamageTicks(char, type) {
 }
 
 function addDamageTick(char, type) {
+  if (!char) return
+  if (type === 'attack') {
+    ensureAttackSegments(char)
+    const idx = Math.min(Math.max(attackSegmentIndex.value, 0), ATTACK_SEGMENT_COUNT - 1)
+    const seg = char.attack_segments[idx]
+    if (!Array.isArray(seg.damage_ticks)) seg.damage_ticks = []
+    normalizeDamageTicks(seg.damage_ticks)
+    seg.damage_ticks.push({ offset: 0, stagger: 0, sp: 0, boundEffects: [] })
+    return
+  }
+
   const list = getDamageTicks(char, type)
   // 默认判定点：0秒时，造成0失衡，回复0技力
   list.push({ offset: 0, stagger: 0, sp: 0, boundEffects: [] })
 }
 
 function removeDamageTick(char, type, index) {
+  if (!char) return
+  if (type === 'attack') {
+    ensureAttackSegments(char)
+    const idx = Math.min(Math.max(attackSegmentIndex.value, 0), ATTACK_SEGMENT_COUNT - 1)
+    const seg = char.attack_segments[idx]
+    if (!Array.isArray(seg.damage_ticks)) seg.damage_ticks = []
+    seg.damage_ticks.splice(index, 1)
+    return
+  }
+
   const list = getDamageTicks(char, type)
   list.splice(index, 1)
 }
@@ -751,6 +910,17 @@ function normalizeDamageTicks(list = []) {
 // === 变体动作核心逻辑 ===
 
 function getSnapshotFromBase(char, type) {
+  if (type === 'attack') {
+    ensureAttackSegments(char)
+    const baseSeg = (char.attack_segments || [])[0] || {}
+    return {
+      duration: Number(baseSeg.duration) || 0,
+      allowedTypes: Array.isArray(baseSeg.allowed_types) ? [...baseSeg.allowed_types] : [],
+      physicalAnomaly: baseSeg.anomalies ? JSON.parse(JSON.stringify(baseSeg.anomalies)) : [],
+      damageTicks: baseSeg.damage_ticks ? JSON.parse(JSON.stringify(baseSeg.damage_ticks)) : []
+    }
+  }
+
   // 基础数值
   const snapshot = {
     duration: char[`${type}_duration`] || 1,
@@ -823,6 +993,19 @@ function onVariantCheckChange(variant, key) {
 }
 
 function onCheckChange(char, skillType, key) {
+  if (!char) return
+
+  if (skillType === 'attack') {
+    ensureAttackSegments(char)
+    const idx = Math.min(Math.max(attackSegmentIndex.value, 0), ATTACK_SEGMENT_COUNT - 1)
+    const seg = char.attack_segments[idx]
+    if (!seg.allowed_types) seg.allowed_types = []
+    const list = seg.allowed_types
+    const isChecked = list.includes(key)
+    handleGroupCheck(list, isChecked, key)
+    return
+  }
+
   const fieldName = `${skillType}_allowed_types`
   if (!char[fieldName]) char[fieldName] = []
   const list = char[fieldName]
@@ -879,6 +1062,14 @@ function getVariantAvailableOptions(variant) {
 
 function getAvailableAnomalyOptions(skillType) {
   if (!selectedChar.value) return []
+  if (skillType === 'attack') {
+    const idx = Math.min(Math.max(attackSegmentIndex.value, 0), ATTACK_SEGMENT_COUNT - 1)
+    const seg = Array.isArray(selectedChar.value.attack_segments) ? selectedChar.value.attack_segments[idx] : null
+    const allowedList = seg?.allowed_types || []
+    const combinedKeys = new Set([...allowedList, 'default'])
+    return buildOptions(combinedKeys)
+  }
+
   const allowedList = selectedChar.value[`${skillType}_allowed_types`] || []
   const combinedKeys = new Set([...allowedList, 'default'])
   return buildOptions(combinedKeys)
@@ -913,6 +1104,13 @@ function buildBindingOptionsFromAnomalies(raw) {
 
 function getBindingOptions(skillType) {
   if (!selectedChar.value) return []
+  if (skillType === 'attack') {
+    const idx = Math.min(Math.max(attackSegmentIndex.value, 0), ATTACK_SEGMENT_COUNT - 1)
+    const seg = Array.isArray(selectedChar.value.attack_segments) ? selectedChar.value.attack_segments[idx] : null
+    const raw = seg?.anomalies
+    return buildBindingOptionsFromAnomalies(raw)
+  }
+
   const raw = selectedChar.value[`${skillType}_anomalies`]
   return buildBindingOptionsFromAnomalies(raw)
 }
@@ -926,6 +1124,15 @@ function getVariantBindingOptions(variant) {
 
 function getAnomalyRows(char, skillType) {
   if (!char) return []
+  if (skillType === 'attack') {
+    const idx = Math.min(Math.max(attackSegmentIndex.value, 0), ATTACK_SEGMENT_COUNT - 1)
+    const seg = Array.isArray(char.attack_segments) ? char.attack_segments[idx] : null
+    const raw = seg?.anomalies || []
+    if (raw.length === 0) return []
+    if (!Array.isArray(raw[0])) return [raw]
+    return raw
+  }
+
   const key = `${skillType}_anomalies`
   const raw = char[key] || []
   if (raw.length === 0) return []
@@ -935,6 +1142,22 @@ function getAnomalyRows(char, skillType) {
 }
 
 function addAnomalyRow(char, skillType) {
+  if (!char) return
+
+  if (skillType === 'attack') {
+    ensureAttackSegments(char)
+    const idx = Math.min(Math.max(attackSegmentIndex.value, 0), ATTACK_SEGMENT_COUNT - 1)
+    const seg = char.attack_segments[idx]
+    let rows = getAnomalyRows(char, skillType)
+    if (!seg.anomalies || (seg.anomalies.length > 0 && !Array.isArray(seg.anomalies[0]))) {
+      seg.anomalies = rows
+    }
+    const allowedList = seg.allowed_types || []
+    const defaultType = allowedList.length > 0 ? allowedList[0] : 'default'
+    seg.anomalies.push([createEffect(defaultType)])
+    return
+  }
+
   const key = `${skillType}_anomalies`
   let rows = getAnomalyRows(char, skillType)
   if (!char[key] || (char[key].length > 0 && !Array.isArray(char[key][0]))) {
@@ -947,6 +1170,19 @@ function addAnomalyRow(char, skillType) {
 
 function addAnomalyToRow(char, skillType, rowIndex) {
   const rows = getAnomalyRows(char, skillType)
+
+  if (skillType === 'attack') {
+    ensureAttackSegments(char)
+    const idx = Math.min(Math.max(attackSegmentIndex.value, 0), ATTACK_SEGMENT_COUNT - 1)
+    const seg = char.attack_segments[idx]
+    const allowedList = seg.allowed_types || []
+    const defaultType = allowedList.length > 0 ? allowedList[0] : 'default'
+    if (rows[rowIndex]) {
+      rows[rowIndex].push(createEffect(defaultType))
+    }
+    return
+  }
+
   const allowedList = char[`${skillType}_allowed_types`] || []
   const defaultType = allowedList.length > 0 ? allowedList[0] : 'default'
   if (rows[rowIndex]) {
@@ -1011,13 +1247,28 @@ function onSkillGaugeInput(event) {
 }
 
 function normalizeCharacterForSave(char) {
-  const skillTypes = ['attack', 'skill', 'link', 'ultimate', 'execution']
+  const skillTypes = ['skill', 'link', 'ultimate', 'execution']
   skillTypes.forEach(type => {
     const tickKey = `${type}_damage_ticks`
     if (!char[tickKey]) char[tickKey] = []
     normalizeDamageTicks(char[tickKey])
     ensureEffectIds(char[`${type}_anomalies`])
   })
+
+  ensureAttackSegments(char)
+  for (const seg of char.attack_segments || []) {
+    if (!seg.damage_ticks) seg.damage_ticks = []
+    normalizeDamageTicks(seg.damage_ticks)
+    ensureEffectIds(seg.anomalies)
+    if (!Array.isArray(seg.allowed_types)) seg.allowed_types = []
+  }
+
+  // Legacy attack fields are no longer persisted.
+  delete char.attack_duration
+  delete char.attack_gaugeGain
+  delete char.attack_allowed_types
+  delete char.attack_anomalies
+  delete char.attack_damage_ticks
 
   if (char.variants) {
     char.variants.forEach(variant => {
@@ -1601,7 +1852,30 @@ function saveData() {
           <template v-for="type in ['attack', 'skill', 'link', 'ultimate', 'execution']" :key="type">
             <div v-show="activeTab === type" class="form-section">
               <h3 class="section-title">数值配置</h3>
-              <div class="form-grid three-col">
+
+              <div v-if="type === 'attack'" class="attack-seg-toolbar">
+                <div class="attack-seg-buttons">
+                  <button
+                      v-for="i in ATTACK_SEGMENT_COUNT"
+                      :key="`atkseg_${i}`"
+                      class="ea-btn ea-btn--glass-cut ea-btn--sm"
+                      :class="{ active: attackSegmentIndex === (i - 1) }"
+                      @click="attackSegmentIndex = i - 1"
+                  >第{{ i }}段</button>
+                </div>
+                <div class="attack-seg-meta">
+                  <span class="meta-item">总时长：{{ attackTotalDuration }}s</span>
+                  <button class="ea-btn ea-btn--glass-cut ea-btn--sm" @click="applyAttackSegmentToAll({ includeDuration: false })">批量覆盖（不含时长）</button>
+                  <button class="ea-btn ea-btn--glass-cut ea-btn--sm" @click="applyAttackSegmentToAll({ includeDuration: true })">批量覆盖（含时长）</button>
+                </div>
+              </div>
+
+              <div v-if="type === 'attack' && currentAttackSegment" class="form-grid three-col">
+                <div class="form-group"><label>本段持续时间 (s)</label><input type="number" step="0.1" v-model.number="currentAttackSegment.duration"></div>
+                <div class="form-group"><label>本段自身充能</label><input type="number" v-model.number="currentAttackSegment.gaugeGain"></div>
+              </div>
+
+              <div v-else class="form-grid three-col">
                 <div class="form-group" v-if="type === 'skill' || type === 'ultimate'">
                   <label>技能属性</label>
                   <el-select v-model="selectedChar[`${type}_element`]" size="large" placeholder="默认 (跟随干员)" style="width: 100%">
@@ -1613,8 +1887,6 @@ function saveData() {
                 <div class="form-group" v-if="['skill', 'link', 'ultimate'].includes(type)"><label>自定义图标路径</label><input v-model="selectedChar[`${type}_icon`]" type="text"/></div>
 
                 <div class="form-group"><label>持续时间 (s)</label><input type="number" step="0.1" v-model.number="selectedChar[`${type}_duration`]"></div>
-
-                <div class="form-group" v-if="type === 'attack'"><label>自身充能</label><input type="number" v-model.number="selectedChar[`${type}_gaugeGain`]"></div>
 
                 <div class="form-group" v-if="type === 'skill'"><label>技力消耗</label><input type="number" v-model.number="selectedChar[`${type}_spCost`]"></div>
                 <div class="form-group" v-if="type === 'skill'"><label>自身充能</label><input type="number" v-model.number="selectedChar[`${type}_gaugeGain`]" @input="onSkillGaugeInput"></div>
@@ -1667,7 +1939,17 @@ function saveData() {
               </div>
 
               <h3 class="section-title">效果池配置</h3>
-              <div class="checkbox-grid">
+              <div v-if="type === 'attack' && currentAttackSegment" class="checkbox-grid">
+                <label v-for="key in effectKeys" :key="`${type}_${attackSegmentIndex}_${key}`" class="cb-item">
+                  <input type="checkbox" :value="key" v-model="currentAttackSegment.allowed_types" @change="onCheckChange(selectedChar, type, key)">
+                  {{ EFFECT_NAMES[key] }}
+                </label>
+                <label v-for="buff in selectedChar.exclusive_buffs" :key="`${type}_${attackSegmentIndex}_${buff.key}`" class="cb-item exclusive">
+                  <input type="checkbox" :value="buff.key" v-model="currentAttackSegment.allowed_types">
+                  ★ {{ buff.name }}
+                </label>
+              </div>
+              <div v-else class="checkbox-grid">
                 <label v-for="key in effectKeys" :key="`${type}_${key}`" class="cb-item">
                   <input type="checkbox" :value="key" v-model="selectedChar[`${type}_allowed_types`]" @change="onCheckChange(selectedChar, type, key)">
                   {{ EFFECT_NAMES[key] }}
@@ -2632,6 +2914,14 @@ function saveData() {
 
 .info-banner { background: rgba(50, 50, 50, 0.5); padding: 12px; border-left: 3px solid #666; color: #aaa; margin-bottom: 20px; font-size: 13px; border-radius: 0 4px 4px 0; }
 .empty-state { display: flex; flex-direction: column; justify-content: center; align-items: center; height: 400px; color: #666; font-size: 16px; border: 2px dashed #333; border-radius: 8px; margin-top: 20px; }
+
+.attack-seg-toolbar { display: flex; flex-direction: column; gap: 10px; padding: 12px; border: 1px solid #333; background: #1f1f1f; border-radius: 6px; margin-bottom: 14px; }
+.attack-seg-buttons { display: flex; flex-wrap: wrap; gap: 8px; }
+.attack-seg-toolbar .ea-btn--sm { height: 30px; padding: 0 10px; font-size: 12px; }
+.attack-seg-toolbar .ea-btn.active { box-shadow: 0 0 0 1px #ffd700 inset, 0 0 14px rgba(255, 215, 0, 0.15); }
+.attack-seg-toolbar .ea-btn--glass-cut { clip-path: polygon(12px 0, 100% 0, calc(100% - 12px) 100%, 0 100%); }
+.attack-seg-meta { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; color: #aaa; font-size: 12px; }
+.attack-seg-meta .meta-item { color: #ccc; font-weight: 600; }
 
 @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
 .rarity-6-border { border: 2px solid transparent; background: linear-gradient(#2b2b2b, #2b2b2b) padding-box, linear-gradient(135deg, #FFD700, #FF8C00, #FF4500) border-box; box-shadow: 0 0 6px rgba(255, 140, 0, 0.3); }

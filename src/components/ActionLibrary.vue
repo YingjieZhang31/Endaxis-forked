@@ -184,7 +184,7 @@ watch(
     () => currentLibrary.value,
     (newVal) => {
       if (newVal && newVal.length > 0) {
-        localSkills.value = JSON.parse(JSON.stringify(newVal))
+        localSkills.value = JSON.parse(JSON.stringify(newVal.filter(s => !s.hiddenInLibraryGrid)))
       } else {
         localSkills.value = []
       }
@@ -256,6 +256,30 @@ function formatDurationLabel(val) {
   if (!Number.isFinite(num)) return 0
   const rounded = Math.round(num * 1000) / 1000
   return rounded
+}
+
+function isAttackSegmentDisabled(seg) {
+  return (Number(seg?.duration) || 0) <= 0
+}
+
+function getVisibleAttackSegments(skill) {
+  const list = Array.isArray(skill?.attackSegmentsAll)
+      ? skill.attackSegmentsAll
+      : (Array.isArray(skill?.attackSegments) ? skill.attackSegments : [])
+  return list.filter(seg => (Number(seg?.duration) || 0) > 0)
+}
+
+function onAttackSegmentDragStart(evt, seg) {
+  if (isAttackSegmentDisabled(seg)) {
+    evt.preventDefault()
+    return
+  }
+  onNativeDragStart(evt, seg)
+}
+
+function onAttackSegmentClick(seg) {
+  if (isAttackSegmentDisabled(seg)) return
+  onSkillClick(seg.id)
 }
 
 function onNativeDragStart(evt, skill) {
@@ -513,27 +537,44 @@ function onNativeDragEnd() {
         <div
             v-for="skill in localSkills"
             :key="skill.id"
-            class="skill-card"
-            :class="{ 'is-selected': store.selectedLibrarySkillId === skill.id && store.selectedLibrarySource === activeLibraryTab }"
+            class="skill-item"
             :style="{ '--accent-color': getSkillThemeColor(skill) }"
-            draggable="true"
-            @dragstart="onNativeDragStart($event, skill)"
-            @dragend="onNativeDragEnd"
-            @click="onSkillClick(skill.id)"
         >
-          <div class="card-edge"></div>
-          <div class="card-body">
-            <div class="skill-meta"><span v-if="!skill.name.includes(getFullTypeName(skill.type))" class="skill-type">{{ getFullTypeName(skill.type) }}</span>
-              <span v-else class="skill-type-empty"></span>
-              <span class="skill-time">{{ formatDurationLabel(skill.duration) }}s</span>
+          <div
+              class="skill-card"
+              :class="{ 'is-selected': store.selectedLibrarySkillId === skill.id && store.selectedLibrarySource === activeLibraryTab }"
+              draggable="true"
+              @dragstart="onNativeDragStart($event, skill)"
+              @dragend="onNativeDragEnd"
+              @click="onSkillClick(skill.id)"
+          >
+            <div class="card-edge"></div>
+            <div class="card-body">
+              <div class="skill-meta"><span v-if="!skill.name.includes(getFullTypeName(skill.type))" class="skill-type">{{ getFullTypeName(skill.type) }}</span>
+                <span v-else class="skill-type-empty"></span>
+                <span class="skill-time">{{ formatDurationLabel(skill.duration) }}s</span>
+              </div>
+              <div class="skill-name">{{ skill.name }}</div>
             </div>
-            <div class="skill-name">{{ skill.name }}</div>
+
+            <div class="card-bg-deco" v-if="getSkillDisplayIcon(skill)">
+              <img :src="getSkillDisplayIcon(skill)" class="weapon-icon-inner" />
+            </div>
+            <div v-else class="card-bg-deco-empty"></div>
           </div>
 
-          <div class="card-bg-deco" v-if="getSkillDisplayIcon(skill)">
-            <img :src="getSkillDisplayIcon(skill)" class="weapon-icon-inner" />
+          <div v-if="skill.kind === 'attack_group'" class="attack-segment-row" @click.stop>
+            <div
+                v-for="seg in getVisibleAttackSegments(skill)"
+                :key="seg.id"
+                class="attack-segment-chip"
+                :class="{ 'is-selected': store.selectedLibrarySkillId === seg.id && store.selectedLibrarySource === activeLibraryTab }"
+                :draggable="!isAttackSegmentDisabled(seg)"
+                @dragstart="onAttackSegmentDragStart($event, seg)"
+                @dragend="onNativeDragEnd"
+                @click.stop="onAttackSegmentClick(seg)"
+            >{{ seg.attackSegmentIndex || '' }}</div>
           </div>
-          <div v-else class="card-bg-deco-empty"></div>
         </div>
       </div>
     </div>
@@ -646,8 +687,14 @@ function onNativeDragEnd() {
   gap: 12px;
 }
 
-.skill-card {
+.skill-item {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
   --accent-color: #8c8c8c;
+}
+
+.skill-card {
   position: relative;
   height: 60px;
   background: rgba(255, 255, 255, 0.05);
@@ -666,6 +713,45 @@ function onNativeDragEnd() {
   border-color: #ffd700;
   box-shadow: inset 0 0 10px rgba(255, 215, 0, 0.1);
   background: rgba(255, 215, 0, 0.05);
+}
+
+.attack-segment-row {
+  display: flex;
+  gap: 6px;
+  width: 100%;
+  padding: 0;
+  min-height: 18px;
+  align-items: center;
+}
+
+.attack-segment-chip {
+  flex: 1 1 0;
+  min-width: 22px;
+  height: 18px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  background: rgba(0, 0, 0, 0.2);
+  color: rgba(255, 255, 255, 0.75);
+  font-family: 'Roboto Mono', 'Consolas', monospace;
+  font-size: 11px;
+  line-height: 1;
+  user-select: none;
+  cursor: grab;
+  transition: all 0.15s ease;
+}
+
+.attack-segment-chip:hover {
+  border-color: var(--accent-color);
+  color: #fff;
+  background: rgba(255, 255, 255, 0.06);
+}
+
+.attack-segment-chip.is-selected {
+  border-color: #ffd700;
+  color: #ffd700;
+  box-shadow: 0 0 10px rgba(255, 215, 0, 0.12);
 }
 
 .skill-type-empty {

@@ -6,6 +6,46 @@ import { compressGzip, decompressGzip } from '@/utils/gzipUtils'
 import { CORE_STATS, createDefaultStats } from '@/utils/coreStats.js'
 
 const uid = () => Math.random().toString(36).substring(2, 9)
+const ATTACK_SEGMENT_COUNT = 5
+
+function normalizeAttackSegmentsForCharacter(char) {
+    if (!char) return
+
+    const legacy = {
+        duration: Number(char.attack_duration) || 0,
+        gaugeGain: Number(char.attack_gaugeGain) || 0,
+        allowed_types: Array.isArray(char.attack_allowed_types) ? [...char.attack_allowed_types] : [],
+        anomalies: char.attack_anomalies ? JSON.parse(JSON.stringify(char.attack_anomalies)) : [],
+        damage_ticks: char.attack_damage_ticks ? JSON.parse(JSON.stringify(char.attack_damage_ticks)) : [],
+    }
+
+    const sanitizeSeg = (seg, fallback) => {
+        const raw = seg && typeof seg === 'object' ? seg : {}
+        const base = fallback && typeof fallback === 'object' ? fallback : {}
+        return {
+            duration: Number(raw.duration ?? base.duration) || 0,
+            gaugeGain: Number(raw.gaugeGain ?? base.gaugeGain) || 0,
+            allowed_types: Array.isArray(raw.allowed_types) ? raw.allowed_types : (Array.isArray(base.allowed_types) ? [...base.allowed_types] : []),
+            anomalies: raw.anomalies ? JSON.parse(JSON.stringify(raw.anomalies)) : (base.anomalies ? JSON.parse(JSON.stringify(base.anomalies)) : []),
+            damage_ticks: raw.damage_ticks ? JSON.parse(JSON.stringify(raw.damage_ticks)) : (base.damage_ticks ? JSON.parse(JSON.stringify(base.damage_ticks)) : []),
+            element: typeof raw.element === 'string' ? raw.element : (typeof base.element === 'string' ? base.element : undefined),
+            icon: typeof raw.icon === 'string' ? raw.icon : (typeof base.icon === 'string' ? base.icon : undefined),
+        }
+    }
+
+    if (!Array.isArray(char.attack_segments)) {
+        const seg0 = sanitizeSeg(null, legacy)
+        char.attack_segments = Array.from({ length: ATTACK_SEGMENT_COUNT }, (_, idx) => {
+            if (idx === 0) return seg0
+            return sanitizeSeg({ duration: 0 }, seg0)
+        })
+        return
+    }
+
+    const normalized = char.attack_segments.slice(0, ATTACK_SEGMENT_COUNT).map(seg => sanitizeSeg(seg, legacy))
+    while (normalized.length < ATTACK_SEGMENT_COUNT) normalized.push(sanitizeSeg({ duration: 0 }, legacy))
+    char.attack_segments = normalized
+}
 
 export const useTimelineStore = defineStore('timeline', () => {
 
@@ -905,8 +945,6 @@ export const useTimelineStore = defineStore('timeline', () => {
                 defaults.gaugeGain = activeChar.ultimate_gaugeReply || 0
                 defaults.enhancementTime = activeChar.ultimate_enhancementTime || 0
                 defaults.animationTime = activeChar.ultimate_animationTime || 0.5
-            } else if (suffix === 'attack') {
-                defaults.gaugeGain = activeChar.attack_gaugeGain || 0
             }
 
             const merged = { duration: rawDuration, cooldown: rawCooldown, icon: activeChar[`${suffix}_icon`] || "", ...defaults, ...globalOverride }
@@ -927,6 +965,71 @@ export const useTimelineStore = defineStore('timeline', () => {
                 allowedTypes: finalAllowedTypes,
                 physicalAnomaly: finalAnomalies,
             }
+        }
+
+        const createAttackLibrary = () => {
+            normalizeAttackSegmentsForCharacter(activeChar)
+
+            const groupId = `${activeChar.id}_attack`
+            const groupOverrideRaw = characterOverrides.value[groupId] || {}
+            const { duration: _ignoredDuration, ...groupOverride } = (groupOverrideRaw && typeof groupOverrideRaw === 'object') ? groupOverrideRaw : {}
+
+            const derivedElement = activeChar.attack_element || activeChar.element || 'physical'
+
+            const segmentSkills = (activeChar.attack_segments || []).slice(0, ATTACK_SEGMENT_COUNT).map((seg, idx) => {
+                const segId = `${groupId}_seg${idx + 1}`
+                const segOverride = characterOverrides.value[segId] || {}
+                const mergedOverride = { ...groupOverride, ...(segOverride && typeof segOverride === 'object' ? segOverride : {}) }
+
+                const rawDuration = Number(seg?.duration) || 0
+                const rawTicks = seg?.damage_ticks ? JSON.parse(JSON.stringify(seg.damage_ticks)) : []
+                const rawAnomalies = seg?.anomalies ? JSON.parse(JSON.stringify(seg.anomalies)) : []
+                const rawAllowed = Array.isArray(seg?.allowed_types) ? [...seg.allowed_types] : []
+
+                const merged = {
+                    id: segId,
+                    type: 'attack',
+                    name: `重击 ${idx + 1}`,
+                    librarySource: 'character',
+                    element: seg?.element || derivedElement,
+                    icon: seg?.icon || '',
+                    duration: rawDuration,
+                    cooldown: 0,
+                    gaugeGain: Number(seg?.gaugeGain) || 0,
+                    ...mergedOverride,
+                }
+
+                const finalDamageTicks = mergedOverride.damageTicks || rawTicks
+                const finalAnomalies = mergedOverride.physicalAnomaly || rawAnomalies
+                const finalAllowedTypes = mergedOverride.allowedTypes || rawAllowed
+
+                return {
+                    ...merged,
+                    kind: 'attack_segment',
+                    attackSegmentIndex: idx + 1,
+                    hiddenInLibraryGrid: true,
+                    damageTicks: finalDamageTicks,
+                    allowedTypes: finalAllowedTypes,
+                    physicalAnomaly: finalAnomalies,
+                }
+            })
+
+            const enabledSegments = segmentSkills.filter(s => (Number(s.duration) || 0) > 0)
+            const totalDuration = enabledSegments.reduce((acc, s) => acc + (Number(s.duration) || 0), 0)
+
+            const groupSkill = {
+                id: groupId,
+                type: 'attack',
+                name: '重击',
+                librarySource: 'character',
+                element: derivedElement,
+                duration: totalDuration,
+                kind: 'attack_group',
+                attackSegments: enabledSegments,
+                attackSegmentsAll: segmentSkills,
+            }
+
+            return { groupSkill, segmentSkills }
         }
 
         const createVariantSkill = (variant) => {
@@ -951,8 +1054,10 @@ export const useTimelineStore = defineStore('timeline', () => {
             }
         }
 
+        const { groupSkill: attackGroupSkill, segmentSkills: attackSegmentSkills } = createAttackLibrary()
+
         const standardSkills = [
-            createBaseSkill('attack', 'attack', '重击'),
+            attackGroupSkill,
             createBaseSkill('execution', 'execution', '处决'),
             createBaseSkill('skill', 'skill', '战技'),
             createBaseSkill('link', 'link', '连携'),
@@ -961,7 +1066,7 @@ export const useTimelineStore = defineStore('timeline', () => {
 
         const variantSkills = (activeChar.variants || []).map(v => createVariantSkill(v))
 
-        const allSkills = [...standardSkills, ...variantSkills];
+        const allSkills = [...standardSkills, ...variantSkills, ...attackSegmentSkills];
 
         return allSkills.sort((a, b) => {
             const weightA = TYPE_ORDER[a.type] || 99;
@@ -1243,38 +1348,62 @@ export const useTimelineStore = defineStore('timeline', () => {
     function addSkillToTrack(trackId, skill, startTime) {
         const track = tracks.value.find(t => t.id === trackId); if (!track) return
 
-        const clonedAnomalies = skill.physicalAnomaly ? JSON.parse(JSON.stringify(skill.physicalAnomaly)) : []
-        const anomalyRows = Array.isArray(clonedAnomalies?.[0]) ? clonedAnomalies : [clonedAnomalies]
-        const effectIdMap = new Map()
+        const cloneEffectsForAction = (skillForClone) => {
+            const clonedAnomalies = skillForClone.physicalAnomaly ? JSON.parse(JSON.stringify(skillForClone.physicalAnomaly)) : []
+            const anomalyRows = Array.isArray(clonedAnomalies?.[0]) ? clonedAnomalies : [clonedAnomalies]
+            const effectIdMap = new Map()
 
-        anomalyRows.forEach(row => {
-            if (!Array.isArray(row)) return
-            row.forEach(effect => {
-                if (!effect) return
-                const oldId = effect._id
-                const newId = uid()
-                effect._id = newId
-                if (oldId) effectIdMap.set(oldId, newId)
+            anomalyRows.forEach(row => {
+                if (!Array.isArray(row)) return
+                row.forEach(effect => {
+                    if (!effect) return
+                    const oldId = effect._id
+                    const newId = uid()
+                    effect._id = newId
+                    if (oldId) effectIdMap.set(oldId, newId)
+                })
             })
-        })
 
-        const clonedTicks = skill.damageTicks ? JSON.parse(JSON.stringify(skill.damageTicks)) : []
-        clonedTicks.forEach(tick => {
-            if (!tick || !Array.isArray(tick.boundEffects) || tick.boundEffects.length === 0) return
-            tick.boundEffects = tick.boundEffects.map(id => effectIdMap.get(id) || id)
-        })
+            const clonedTicks = skillForClone.damageTicks ? JSON.parse(JSON.stringify(skillForClone.damageTicks)) : []
+            clonedTicks.forEach(tick => {
+                if (!tick || !Array.isArray(tick.boundEffects) || tick.boundEffects.length === 0) return
+                tick.boundEffects = tick.boundEffects.map(id => effectIdMap.get(id) || id)
+            })
 
-        const newAction = {
-            ...skill,
-            instanceId: `inst_${uid()}`,
-            librarySource: skill.librarySource || 'character',
-            sourceWeaponId: skill.weaponId || track.weaponId || null,
-            physicalAnomaly: clonedAnomalies,
-            damageTicks: clonedTicks,
-            logicalStartTime: startTime,
-            startTime: startTime
+            return { clonedAnomalies, clonedTicks }
         }
-        track.actions.push(newAction);
+
+        const createActionFromSkill = (skillForCreate, actionStartTime) => {
+            const { clonedAnomalies, clonedTicks } = cloneEffectsForAction(skillForCreate)
+            return {
+                ...skillForCreate,
+                instanceId: `inst_${uid()}`,
+                librarySource: skillForCreate.librarySource || 'character',
+                sourceWeaponId: skillForCreate.weaponId || track.weaponId || null,
+                physicalAnomaly: clonedAnomalies,
+                damageTicks: clonedTicks,
+                logicalStartTime: actionStartTime,
+                startTime: actionStartTime
+            }
+        }
+
+        if (skill?.kind === 'attack_group' && Array.isArray(skill.attackSegments)) {
+            const segments = skill.attackSegments.filter(s => (Number(s?.duration) || 0) > 0)
+            let cursor = startTime
+
+            for (const seg of segments) {
+                const newAction = createActionFromSkill(seg, cursor)
+                track.actions.push(newAction)
+                cursor += Number(seg.duration) || 0
+            }
+
+            track.actions.sort((a, b) => a.startTime - b.startTime)
+            commitState()
+            return
+        }
+
+        const newAction = createActionFromSkill(skill, startTime)
+        track.actions.push(newAction)
         track.actions.sort((a, b) => a.startTime - b.startTime)
         if (skill.type === 'link' || skill.type === 'ultimate') {
             const amount = skill.type === 'link' ? 0.5 : (Number(skill.animationTime) || 1.5);
@@ -2628,6 +2757,7 @@ export const useTimelineStore = defineStore('timeline', () => {
         if (data) {
             if (data.characterRoster) {
                 characterRoster.value = data.characterRoster.sort((a, b) => (b.rarity || 0) - (a.rarity || 0))
+                characterRoster.value.forEach(c => normalizeAttackSegmentsForCharacter(c))
             }
             if (data.ICON_DATABASE) {
                 iconDatabase.value = data.ICON_DATABASE
