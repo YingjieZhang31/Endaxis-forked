@@ -1663,7 +1663,7 @@ onUnmounted(() => {
         </div>
 
         <div class="char-select-trigger">
-          <div class="trigger-avatar-wrapper">
+          <div class="operator-row">
             <div class="trigger-avatar-box" @click.stop="openCharacterSelector(index)" title="点击更换干员">
               <img v-if="track.id" :src="track.avatar" class="avatar-image" :alt="track.name"/>
               <div v-else class="avatar-placeholder"></div>
@@ -1676,35 +1676,46 @@ onUnmounted(() => {
                 </svg>
               </div>
             </div>
-            <div v-if="track.id" class="weapon-slot-compact" @click.stop="openWeaponSelector(index)" title="选择武器">
-              <div class="weapon-box" :class="getWeaponForTrack(track) ? '' : 'weapon-empty'">
-                <img v-if="getWeaponForTrack(track)?.icon" :src="getWeaponForTrack(track).icon" @error="e=>e.target.style.display='none'" />
-                <div v-else class="weapon-placeholder"></div>
-              </div>
-            </div>
-            <div v-if="track.id" class="equip-slots-compact">
-              <div class="equip-grid">
-                <div class="equip-box" :class="getEquipmentForTrack(track, 'armor') ? '' : 'equip-empty'" @click.stop="openEquipmentSelector(index, 'armor')" title="护甲">
-                  <img v-if="getEquipmentForTrack(track, 'armor')?.icon" :src="getEquipmentForTrack(track, 'armor').icon" @error="e=>e.target.style.display='none'" />
-                  <div v-else class="equip-placeholder"></div>
-                </div>
-                <div class="equip-box" :class="getEquipmentForTrack(track, 'gloves') ? '' : 'equip-empty'" @click.stop="openEquipmentSelector(index, 'gloves')" title="护手">
-                  <img v-if="getEquipmentForTrack(track, 'gloves')?.icon" :src="getEquipmentForTrack(track, 'gloves').icon" @error="e=>e.target.style.display='none'" />
-                  <div v-else class="equip-placeholder"></div>
-                </div>
-                <div class="equip-box" :class="getEquipmentForTrack(track, 'accessory1') ? '' : 'equip-empty'" @click.stop="openEquipmentSelector(index, 'accessory1')" title="配件 1">
-                  <img v-if="getEquipmentForTrack(track, 'accessory1')?.icon" :src="getEquipmentForTrack(track, 'accessory1').icon" @error="e=>e.target.style.display='none'" />
-                  <div v-else class="equip-placeholder"></div>
-                </div>
-                <div class="equip-box" :class="getEquipmentForTrack(track, 'accessory2') ? '' : 'equip-empty'" @click.stop="openEquipmentSelector(index, 'accessory2')" title="配件 2">
-                  <img v-if="getEquipmentForTrack(track, 'accessory2')?.icon" :src="getEquipmentForTrack(track, 'accessory2').icon" @error="e=>e.target.style.display='none'" />
-                  <div v-else class="equip-placeholder"></div>
-                </div>
-              </div>
+            <div class="trigger-info" @click="!track.id && openCharacterSelector(index)">
+              <span class="trigger-name">{{ track.name || '请选择干员' }}</span>
             </div>
           </div>
-          <div class="trigger-info" @click="!track.id && openCharacterSelector(index)">
-            <span class="trigger-name">{{ track.name || '请选择干员' }}</span>
+
+          <div v-if="track.id" class="gear-panel">
+            <div class="gear-row">
+              <div class="weapon-slot-compact" @click.stop="openWeaponSelector(index)" title="选择武器">
+                <div class="weapon-box" :class="getWeaponForTrack(track) ? '' : 'weapon-empty'">
+                  <img v-if="getWeaponForTrack(track)?.icon" :src="getWeaponForTrack(track).icon" @error="e=>e.target.style.display='none'" />
+                  <div v-else class="weapon-placeholder"></div>
+                </div>
+              </div>
+              <div class="equip-slots-compact">
+                <div class="equip-grid">
+                  <div class="equip-box" :class="getEquipmentForTrack(track, 'armor') ? '' : 'equip-empty'" @click.stop="openEquipmentSelector(index, 'armor')" title="护甲">
+                    <img v-if="getEquipmentForTrack(track, 'armor')?.icon" :src="getEquipmentForTrack(track, 'armor').icon" @error="e=>e.target.style.display='none'" />
+                    <div v-else class="equip-placeholder"></div>
+                  </div>
+                  <div class="equip-box" :class="getEquipmentForTrack(track, 'gloves') ? '' : 'equip-empty'" @click.stop="openEquipmentSelector(index, 'gloves')" title="护手">
+                    <img v-if="getEquipmentForTrack(track, 'gloves')?.icon" :src="getEquipmentForTrack(track, 'gloves').icon" @error="e=>e.target.style.display='none'" />
+                    <div v-else class="equip-placeholder"></div>
+                  </div>
+                  <div class="equip-box" :class="getEquipmentForTrack(track, 'accessory1') ? '' : 'equip-empty'" @click.stop="openEquipmentSelector(index, 'accessory1')" title="配件 1">
+                    <img v-if="getEquipmentForTrack(track, 'accessory1')?.icon" :src="getEquipmentForTrack(track, 'accessory1').icon" @error="e=>e.target.style.display='none'" />
+                    <div v-else class="equip-placeholder"></div>
+                  </div>
+                  <div class="equip-box" :class="getEquipmentForTrack(track, 'accessory2') ? '' : 'equip-empty'" @click.stop="openEquipmentSelector(index, 'accessory2')" title="配件 2">
+                    <img v-if="getEquipmentForTrack(track, 'accessory2')?.icon" :src="getEquipmentForTrack(track, 'accessory2').icon" @error="e=>e.target.style.display='none'" />
+                    <div v-else class="equip-placeholder"></div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div class="gear-hint-row">
+              <div class="set-bonus-hint" :class="{ 'is-hidden': !store.getActiveSetBonusCategories(track.id)?.length }">
+                已激活套装效果
+              </div>
+            </div>
           </div>
         </div>
 
@@ -2337,10 +2348,20 @@ body.capture-mode .davinci-range {
 
 .char-select-trigger {
   display: flex;
-  align-items: center;
+  flex-direction: column;
+  align-items: stretch;
+  justify-content: center;
   width: 100%;
   height: 100%;
   padding: 0 6px;
+  gap: 0;
+  position: relative;
+}
+
+.operator-row {
+  display: flex;
+  align-items: center;
+  min-width: 0;
 }
 
 .trigger-avatar-box {
@@ -2437,8 +2458,8 @@ body.capture-mode .davinci-range {
   display: flex;
   flex-direction: column;
   justify-content: center;
-  flex-grow: 1;
-  height: 100%;
+  flex: 1 1 auto;
+  min-width: 0;
   cursor: default;
 }
 
@@ -2453,8 +2474,30 @@ body.capture-mode .davinci-range {
   user-select: none;
 }
 
-.trigger-avatar-wrapper { display: flex; flex-direction: column; align-items: center; gap: 4px; position: relative; width: 64px; }
-.weapon-slot-compact { cursor: pointer; position: absolute; top: 80%; left: -12px; }
+.gear-panel {
+  --gear-gap: 4px;
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: calc(50% + 33px);
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+  pointer-events: auto;
+  z-index: 2;
+}
+
+.gear-row {
+  display: flex;
+  align-items: flex-end;
+  gap: var(--gear-gap);
+  min-width: 0;
+  height: 22px;
+  overflow: visible;
+}
+
+.weapon-slot-compact { cursor: pointer; flex: 0 0 auto; }
 .weapon-box { width: 32px; height: 32px; border-radius: 6px; background: #444; display: flex; align-items: center; justify-content: center; overflow: hidden; border: 2px solid #555; box-sizing: border-box; transition: border-color 0.2s, background 0.2s; position: relative; }
 .weapon-box.weapon-empty { border: 2px dashed #666; }
 .weapon-slot-compact:hover .weapon-box { border-color: #ffd700; background: #555; box-shadow: none; }
@@ -2477,20 +2520,9 @@ body.capture-mode .davinci-range {
   background: #ffd700;
 }
 
-.equip-slots-compact {
-  position: absolute;
-  top: 80%;
-  right: -12px;
-  pointer-events: auto;
-}
+.equip-slots-compact { pointer-events: auto; flex: 1 1 auto; min-width: 0; }
 
-.equip-grid {
-  display: grid;
-  grid-template-columns: repeat(2, 22px);
-  grid-template-rows: repeat(2, 22px);
-  gap: 3px;
-  padding: 0;
-}
+.equip-grid { display: flex; align-items: center; gap: var(--gear-gap); padding: 0; flex-wrap: nowrap; }
 
 .equip-box {
   width: 22px;
@@ -2543,6 +2575,24 @@ body.capture-mode .davinci-range {
 .equip-placeholder::after { width: 2px; height: 12px; transform: translate(-50%, -50%); }
 .equip-box:hover .equip-placeholder::before,
 .equip-box:hover .equip-placeholder::after { background: #2dd4bf; }
+
+.gear-hint-row { height: 22px; }
+
+.set-bonus-hint {
+  height: 22px;
+  line-height: 22px;
+  font-size: 12px;
+  font-weight: 800;
+  color: #2dd4bf;
+  letter-spacing: 0.5px;
+  margin-left: calc(32px + var(--gear-gap));
+  user-select: none;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.set-bonus-hint.is-hidden { visibility: hidden; }
 
 /* ==========================================================================
    5. Main Content Scroller
