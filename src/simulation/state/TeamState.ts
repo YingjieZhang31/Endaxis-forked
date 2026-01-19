@@ -7,7 +7,10 @@ export class TeamState implements BaseGameState<TeamSnapshot> {
   private isSpRegenPaused: boolean = false;
   private spRegenPauseDuration: number = 0;
 
-  constructor(readonly config: TeamConfig, _engine: SimulationEngine) {
+  constructor(
+    readonly config: TeamConfig,
+    _engine: SimulationEngine,
+  ) {
     this.sp = config.initialSp || 0;
   }
 
@@ -33,7 +36,7 @@ export class TeamState implements BaseGameState<TeamSnapshot> {
     if (amount === 0) {
       return this.sp;
     }
-    this.sp = this.sp + amount;
+    this.sp = Math.min(this.sp + amount, this.config.maxSp);
     return this.sp;
   }
 
