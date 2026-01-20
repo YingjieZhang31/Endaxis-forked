@@ -10,7 +10,6 @@ import ContextMenu from './ContextMenu.vue'
 import { ElMessage } from 'element-plus'
 import { Search } from '@element-plus/icons-vue'
 import { useDragConnection } from '@/composables/useDragConnection.js'
-import { watchEffect } from 'vue'
 
 const store = useTimelineStore()
 const connectionHandler = useDragConnection()
@@ -54,6 +53,7 @@ const draggingSwitchEventId = ref(null)
 const draggingWeaponStatusId = ref(null)
 const wasWeaponStatusSelectedOnPress = ref(false)
 const weaponStatusDragOffset = ref(0)
+const dragStartMouseTime = ref(0)
 
 // === 边缘自动滚动相关状态 ===
 const autoScrollSpeed = ref(0)
@@ -72,6 +72,7 @@ const boxRect = ref({ left: 0, top: 0, width: 0, height: 0 })
 
 const draggingTrackOrderIndex = ref(null)
 const reorderDropTargetIndex = ref(null)
+const isResizingPrep = ref(false)
 
 function onReorderDragStart(evt, index) {
   draggingTrackOrderIndex.value = index
@@ -429,7 +430,7 @@ const setStatusesByTrack = computed(() => {
 
 function getWeaponStatusLeft(status) {
   const start = Number(status.startTime) || 0
-  return start * TIME_BLOCK_WIDTH.value
+  return store.timeToPx(start)
 }
 
 function getWeaponStatusBarStyle(status) {
@@ -437,7 +438,7 @@ function getWeaponStatusBarStyle(status) {
   const rawDuration = Number(status.duration) || 0
   const shiftedEnd = store.getShiftedEndTime(start, rawDuration, status.id)
   const finalDuration = Math.max(0, shiftedEnd - start)
-  let width = finalDuration > 0 ? (finalDuration * TIME_BLOCK_WIDTH.value) : 0
+  let width = finalDuration > 0 ? (store.timeToPx(start + finalDuration) - store.timeToPx(start)) : 0
   if (width > 0) {
     const ICON_SIZE = 20
     const BAR_MARGIN = 2
@@ -469,7 +470,6 @@ function getWeaponStatusDurationLabel(status) {
 
 const operationMarkers = computed(() => {
   let rawMarkers = []
-  const widthUnit = TIME_BLOCK_WIDTH.value
 
   store.tracks.forEach((track, index) => {
     if (!track.id) return
@@ -489,9 +489,9 @@ const operationMarkers = computed(() => {
 
       rawMarkers.push({
         id: `op-${action.instanceId}`,
-        left: (action.startTime || 0) * widthUnit,
+        left: store.timeToPx(action.startTime || 0),
         width: isHold ? null : 24,
-        right: ((action.startTime || 0) * widthUnit) + (isHold ? ((action.duration || 0) * widthUnit) : 24),
+        right: store.timeToPx(action.startTime || 0) + (isHold ? (store.timeToPx((action.startTime || 0) + (action.duration || 0)) - store.timeToPx(action.startTime || 0)) : 24),
         label, isHold, customClass,
         top: 0, height: 14, fontSize: 9
       })
@@ -502,9 +502,9 @@ const operationMarkers = computed(() => {
     mySwitchEvents.forEach(sw => {
       rawMarkers.push({
         id: `op-sw-${sw.id}`,
-        left: sw.time * widthUnit,
+        left: store.timeToPx(sw.time),
         width: 24,
-        right: (sw.time * widthUnit) + 24,
+        right: store.timeToPx(sw.time) + 24,
         label: `F${keyNum}`,
         isHold: false,
         customClass: 'op-switch',
@@ -548,7 +548,7 @@ const operationMarkers = computed(() => {
 // ===================================================================================
 
 const totalWidthComputed = computed(() => {
-  return store.TOTAL_DURATION * TIME_BLOCK_WIDTH.value
+  return store.totalTimelineWidthPx
 })
 
 const transformStyle = computed(() => {
@@ -572,13 +572,13 @@ const getTrackLaneStyle = computed(() => {
 })
 
 function getViewWindow({ bufferPx = 0 } = {}) {
-  const width = TIME_BLOCK_WIDTH.value;
-  const totalSeconds = store.TOTAL_DURATION;
+  const totalPx = store.totalTimelineWidthPx;
+  const totalSeconds = store.viewDuration;
 
   if (!tracksContentRef.value || store.isCapturing) {
     return {
       startPx: 0,
-      endPx: totalSeconds * width,
+      endPx: totalPx,
       startTime: 0,
       endTime: totalSeconds
     }
@@ -588,13 +588,13 @@ function getViewWindow({ bufferPx = 0 } = {}) {
   const scrollLeft = store.timelineShift;
 
   const startPx = Math.max(scrollLeft - bufferPx, 0);
-  const endPx = Math.min(scrollLeft + timelineWidth + bufferPx, totalSeconds * width);
+  const endPx = Math.min(scrollLeft + timelineWidth + bufferPx, totalPx);
 
   return {
     startPx,
     endPx,
-    startTime: Math.floor(startPx / width),
-    endTime: Math.ceil(endPx / width)
+    startTime: store.pxToTime(startPx),
+    endTime: store.pxToTime(endPx)
   }
 }
 
@@ -602,30 +602,36 @@ const rawDynamicTicks = computed(() => {
   const width = TIME_BLOCK_WIDTH.value;
   const viewWindow = getViewWindow({ bufferPx: 100 });
 
-  const realStart = viewWindow.startTime;
-  const realEnd = viewWindow.endTime;
-  
-  const gameStart = store.toGameTime(realStart);
+  const prep = store.prepDuration || 0
+  const realStartVT = viewWindow.startTime;
+  const realEndVT = viewWindow.endTime;
+
+  const btStart = realStartVT - prep
+  const btEnd = realEndVT - prep
+
+  const gameStartVT = store.toGameTime(realStartVT);
+  const gameStartBT = gameStartVT - prep
 
   let subDivision = 1;
   if (width >= 800) subDivision = 60;
   else if (width >= 200) subDivision = 10;
   else if (width >= 100) subDivision = 2;
 
-  const startStep = Math.floor(Math.min(realStart, gameStart) * subDivision);
-  const endStep = Math.ceil(realEnd * subDivision);
+  const minBtForTicks = (!store.prepExpanded && prep > 0) ? 0 : Math.min(btStart, gameStartBT)
+  const startStep = Math.floor(minBtForTicks * subDivision);
+  const endStep = Math.ceil(btEnd * subDivision);
 
   const realTicks = [];
   const gameTicks = [];
 
   for (let i = startStep; i <= endStep; i++) {
-    const t = i / subDivision;
+    const bt = i / subDivision;
     let type = '';
     let label = '';
     const isIntegerSecond = (i % subDivision === 0);
 
     if (isIntegerSecond) {
-      const secondValue = Math.round(t);
+      const secondValue = Math.round(bt);
       const isFiveSec = secondValue % 5 === 0;
       const showAllLabels = width >= 100;
 
@@ -641,7 +647,7 @@ const rawDynamicTicks = computed(() => {
         type = 'tenth';
       } else if (subDivision === 10) {
         type = 'tenth';
-        if (width >= 500) label = `.${Math.round((t % 1) * 10)}`;
+        if (width >= 500) label = `.${Math.round((bt % 1) * 10)}`;
       } else if (subDivision === 60) {
         const frameIdx = i % 60;
         if (frameIdx % 10 === 0 && frameIdx !== 0) {
@@ -658,22 +664,29 @@ const rawDynamicTicks = computed(() => {
       }
     }
 
+    const realVT = bt + prep
+    if (!store.prepExpanded && prep > 0 && bt < -0.0001) {
+      continue
+    }
+    const realX = store.timeToPx(realVT)
+
     realTicks.push({
-      time: t,
+      time: bt,
       type,
       label,
-      x: t * width
+      x: realX
     });
 
-    const realT = store.toRealTime(t);
+    const gameVT = bt + prep
+    const mappedRealVT = store.toRealTime(gameVT);
 
     // 游戏时间相对现实时间有偏移，所以再检查一次窗口边界
-    if (realT >= realStart && realT <= realEnd) {
+    if (mappedRealVT >= realStartVT && mappedRealVT <= realEndVT) {
       gameTicks.push({
-        time: t,
+        time: bt,
         type,
         label,
-        x: realT * width
+        x: store.timeToPx(mappedRealVT)
       });
     }
   }
@@ -696,7 +709,7 @@ function updateScrollbarHeight() {
 function calculateTimeFromEvent(evt, fixedStep = null) {
   const mouseXInTrack = store.toTimelineSpace(evt.clientX, evt.clientY).x
 
-  const rawTime = mouseXInTrack / TIME_BLOCK_WIDTH.value
+  const rawTime = store.pxToTime(mouseXInTrack)
 
   const step = fixedStep !== null ? fixedStep : store.snapStep
 
@@ -705,6 +718,53 @@ function calculateTimeFromEvent(evt, fixedStep = null) {
   if (startTime < 0) startTime = 0
 
   return startTime
+}
+
+function onPrepResizeMouseDown(evt) {
+  if (!store.prepExpanded) return
+  if (store.prepDuration <= 0) return
+  evt.stopPropagation()
+  evt.preventDefault()
+  isResizingPrep.value = true
+  document.body.classList.add('is-dragging')
+  window.addEventListener('mousemove', onPrepResizeMouseMove)
+  window.addEventListener('mouseup', onPrepResizeMouseUp)
+}
+
+function onPrepResizeMouseMove(evt) {
+  if (!isResizingPrep.value) return
+  const newDuration = calculateTimeFromEvent(evt, store.snapStep)
+  store.setPrepDuration(newDuration, { commit: false })
+}
+
+function onPrepResizeMouseUp() {
+  if (!isResizingPrep.value) return
+  isResizingPrep.value = false
+  store.commitState()
+  document.body.classList.remove('is-dragging')
+  window.removeEventListener('mousemove', onPrepResizeMouseMove)
+  window.removeEventListener('mouseup', onPrepResizeMouseUp)
+}
+
+const isPrepDurationEditorOpen = ref(false)
+const prepDurationDraft = ref('')
+const prepDurationInputRef = ref(null)
+
+function openPrepDurationEditor() {
+  prepDurationDraft.value = String(Number(store.prepDuration) || 0)
+  isPrepDurationEditorOpen.value = true
+  nextTick(() => prepDurationInputRef.value?.focus?.())
+}
+
+function closePrepDurationEditor() {
+  isPrepDurationEditorOpen.value = false
+}
+
+function applyPrepDurationDraft() {
+  const v = Number(prepDurationDraft.value)
+  if (!Number.isFinite(v)) return
+  store.setPrepDuration(v)
+  closePrepDurationEditor()
 }
 
 const fakeScrollbarRef = ref(null)
@@ -754,7 +814,7 @@ function onActionContextMenu(evt, action) {
 
 const cachedSpData = computed(() => store.calculateGlobalSpData())
 const currentSpValue = computed(() => {
-  const time = store.cursorPosTimeline.x / TIME_BLOCK_WIDTH.value
+  const time = store.cursorCurrentTime
   const points = cachedSpData.value
   if (!points || points.length === 0) {
     const val = Number(store.systemConstants.initialSp)
@@ -773,7 +833,7 @@ const currentSpValue = computed(() => {
 
 const cachedStaggerData = computed(() => store.calculateGlobalStaggerData().points)
 const currentStaggerValue = computed(() => {
-  const time = store.cursorPosTimeline.x / TIME_BLOCK_WIDTH.value
+  const time = store.cursorCurrentTime
   const points = cachedStaggerData.value
   if (!points || points.length === 0) return 0
   for (let i = 0; i < points.length - 1; i++) {
@@ -859,8 +919,9 @@ function onBoxMouseUp() {
     const trackRelativeBottom = trackRelativeTop + trackRect.height
     if (trackRelativeBottom < selection.top || trackRelativeTop > selection.bottom) return
     track.actions.forEach(action => {
-      const startPixel = action.startTime * TIME_BLOCK_WIDTH.value
-      const endPixel = (action.startTime + action.duration) * TIME_BLOCK_WIDTH.value
+      const endTime = store.getShiftedEndTime(action.startTime, action.duration, action.instanceId)
+      const startPixel = store.timeToPx(action.startTime)
+      const endPixel = store.timeToPx(endTime)
       if (startPixel < selection.right && endPixel > selection.left) foundIds.push(action.instanceId)
     })
   })
@@ -883,17 +944,17 @@ function adjustZoom(delta, anchorTime = null) {
 
   if (anchorTime === null) {
     const viewportCenterX = store.timelineShift + store.timelineRect.width / 2
-    anchorTime = viewportCenterX / oldWidth
+    anchorTime = store.pxToTime(viewportCenterX)
   }
 
-  const anchorOffsetInViewport = (anchorTime * oldWidth) - store.timelineShift
+  const anchorOffsetInViewport = store.timeToPx(anchorTime) - store.timelineShift
 
   const newVal = oldWidth + delta
   store.setBaseBlockWidth(newVal)
 
   const newWidth = store.timeBlockWidth
 
-  const newScrollLeft = (anchorTime * newWidth) - anchorOffsetInViewport
+  const newScrollLeft = store.timeToPx(anchorTime) - anchorOffsetInViewport
 
   nextTick(() => {
     store.setTimelineShift(newScrollLeft)
@@ -1034,7 +1095,7 @@ function onBackgroundContextMenu(evt) {
   if (isBoxSelecting.value || isDragStarted.value) return
 
   const cursorPos = store.toTimelineSpace(evt.clientX, evt.clientY)
-  const rawTime = cursorPos.x / TIME_BLOCK_WIDTH.value
+  const rawTime = store.pxToTime(cursorPos.x)
 
   const snap = store.snapStep
   let clickTime = Math.round(rawTime / snap) * snap
@@ -1114,6 +1175,7 @@ function onActionMouseDown(evt, track, action) {
     })
 
     initialMouseX.value = evt.clientX
+    dragStartMouseTime.value = store.pxToTime(mousePos.x)
 
     window.addEventListener('mousemove', onWindowMouseMove)
     window.addEventListener('mouseup', onWindowMouseUp)
@@ -1124,8 +1186,9 @@ function onActionMouseDown(evt, track, action) {
 function updateDragPosition(clientX) {
   if (!isDragStarted.value || !movingActionId.value) return;
 
-  const delta = clientX - initialMouseX.value;
-  const deltaTime = delta / TIME_BLOCK_WIDTH.value
+  const timelineX = store.toTimelineSpace(clientX, initialMouseY.value).x
+  const mouseTime = store.pxToTime(timelineX)
+  const deltaTime = mouseTime - dragStartMouseTime.value
 
   const selectedIds = store.multiSelectedIds;
   const snap = store.snapStep;
@@ -1197,7 +1260,7 @@ function onWeaponStatusMouseDown(evt, status) {
 
   draggingWeaponStatusId.value = status.id
   const mousePos = store.toTimelineSpace(evt.clientX, evt.clientY)
-  const offset = (mousePos.x / TIME_BLOCK_WIDTH.value) - (Number(status.startTime) || 0)
+  const offset = store.pxToTime(mousePos.x) - (Number(status.startTime) || 0)
   weaponStatusDragOffset.value = Number.isFinite(offset) ? offset : 0
   initialMouseX.value = evt.clientX
   initialMouseY.value = evt.clientY
@@ -1212,13 +1275,13 @@ function onWeaponStatusMouseDown(evt, status) {
 }
 
 function onWindowMouseMove(evt) {
-  if (draggingSwitchEventId.value) {
+    if (draggingSwitchEventId.value) {
     if (!isDragStarted.value) {
       const dist = Math.sqrt(Math.pow(evt.clientX - initialMouseX.value, 2) + Math.pow(evt.clientY - initialMouseY.value, 2))
       if (dist > dragThreshold) isDragStarted.value = true; else return
     }
     let newTime = calculateTimeFromEvent(evt, store.snapStep)
-    if (newTime > store.TOTAL_DURATION) newTime = store.TOTAL_DURATION
+    if (newTime > store.viewDuration) newTime = store.viewDuration
     newTime = Math.round(newTime * 1000) / 1000
     store.updateSwitchEvent(draggingSwitchEventId.value, newTime)
     return
@@ -1229,7 +1292,7 @@ function onWindowMouseMove(evt) {
       if (dist > dragThreshold) isDragStarted.value = true; else return
     }
     let newTime = calculateTimeFromEvent(evt, store.snapStep) - weaponStatusDragOffset.value
-    if (newTime > store.TOTAL_DURATION) newTime = store.TOTAL_DURATION
+    if (newTime > store.viewDuration) newTime = store.viewDuration
     if (newTime < 0) newTime = 0
     newTime = Math.round(newTime * 1000) / 1000
     const status = store.weaponStatuses.find(s => s.id === draggingWeaponStatusId.value)
@@ -1249,7 +1312,7 @@ function onWindowMouseMove(evt) {
       }
     }
     let newTime = calculateTimeFromEvent(evt, store.snapStep)
-    if (newTime > store.TOTAL_DURATION) newTime = store.TOTAL_DURATION
+    if (newTime > store.viewDuration) newTime = store.viewDuration
     newTime = Math.round(newTime * 1000) / 1000
     store.updateCycleBoundary(draggingCycleBoundaryId.value, newTime)
     return
@@ -1528,6 +1591,8 @@ onUnmounted(() => {
   window.removeEventListener('mouseup', onBoxMouseUp)
   window.removeEventListener('blur', resetModifierKeys)
   window.removeEventListener('mouseup', onGlobalWindowMouseUp)
+  window.removeEventListener('mousemove', onPrepResizeMouseMove)
+  window.removeEventListener('mouseup', onPrepResizeMouseUp)
 })
 </script>
 
@@ -1576,41 +1641,85 @@ onUnmounted(() => {
           </div>
         </div>
       </div>
-      <div class="timeline-label-wrapper">
-        <template v-if="showGameTime">
-          <div class="timeline-label interactable" title="游戏时间（点击折叠）" @click="isGameTimeCollapsed = true">
-            <svg viewBox="0 0 24 24" width="16" height="16" fill="none">
-              <text x="12" y="20" font-size="20" fill="currentColor" text-anchor="middle" font-weight="bold" font-family="sans-serif">G</text>
-            </svg>
-            <div class="collapse-hint-icon">
-              <svg viewBox="0 0 24 24" width="10" height="10" stroke="currentColor" stroke-width="3" fill="none"><polyline points="6 9 12 15 18 9"></polyline></svg>
-            </div>
-          </div>
-          <div class="timeline-label" title="现实时间">
-            <svg viewBox="0 0 24 24" width="16" height="16" fill="none">
-              <text x="12" y="20" font-size="20" fill="currentColor" text-anchor="middle" font-weight="bold" font-family="sans-serif">R</text>
-            </svg>
-          </div>
-        </template>
-        <template v-else>
-          <div class="timeline-label interactable expand-btn" title="展开游戏时间轴" @click="isGameTimeCollapsed = false">
-            <svg viewBox="0 0 24 24" width="16" height="16" stroke="currentColor" stroke-width="3" fill="none" stroke-linecap="round" stroke-linejoin="round">
-              <polyline points="18 15 12 9 6 15"></polyline>
-            </svg>
-          </div>
-        </template>
-      </div>
     </div>
 
     <div class="time-ruler-wrapper" ref="timeRulerWrapperRef" @click="store.selectTrack(null)">
       <div class="ruler-content-container" :style="transformStyle">
+      <div v-if="store.prepDuration > 0" class="prep-zone-bg prep-zone-bg--ruler" :style="{ width: `${store.prepZoneWidthPx}px` }"></div>
+       <div v-if="store.prepDuration > 0" class="battle-start-line battle-start-line--ruler" :style="{ left: `${store.prepZoneWidthPx}px` }">
+         <div v-if="store.prepExpanded" class="battle-start-handle" @mousedown.stop.prevent="onPrepResizeMouseDown"></div>
+       </div>
+       <div
+         v-if="store.prepDuration > 0 && store.prepExpanded"
+         class="prep-ruler-controls"
+         :style="{ left: `${store.prepZoneWidthPx}px` }"
+       >
+         <button type="button" class="prep-mini-btn" title="设置战前准备时长" @click.stop="openPrepDurationEditor">
+           <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+             <circle cx="12" cy="12" r="9"></circle>
+             <path d="M12 7v6l4 2"></path>
+           </svg>
+         </button>
+       </div>
+       <div v-if="store.prepDuration > 0 && !store.prepExpanded" class="prep-zone-controls" :style="{ width: `${store.prepZoneWidthPx}px`, bottom: showGameTime ? '40px' : '20px' }">
+         <button type="button" class="prep-mini-btn" title="设置战前准备时长" @click.stop="openPrepDurationEditor">
+           <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+             <circle cx="12" cy="12" r="9"></circle>
+             <path d="M12 7v6l4 2"></path>
+          </svg>
+        </button>
+      </div>
+
+      <div v-if="isPrepDurationEditorOpen" class="prep-duration-popover" :style="{ left: `${store.prepZoneWidthPx + 8}px` }" @mousedown.stop>
+        <input
+          ref="prepDurationInputRef"
+          v-model="prepDurationDraft"
+          class="prep-duration-input"
+          type="number"
+          min="0"
+          step="0.1"
+          @keydown.enter.prevent="applyPrepDurationDraft"
+          @keydown.esc.prevent="closePrepDurationEditor"
+          @blur="applyPrepDurationDraft"
+        />
+        <span class="prep-duration-unit">s</span>
+      </div>
+
+      <div v-if="store.prepDuration > 0" class="prep-rtgt-wrapper" :style="{ width: `${store.prepZoneWidthPx}px` }">
+        <div v-if="showGameTime" class="prep-rtgt-row prep-rtgt-row--game">
+          <button type="button" class="timeline-label interactable" title="游戏时间（点击折叠）" @click.stop="isGameTimeCollapsed = true">
+            <svg viewBox="0 0 24 24" width="16" height="16" fill="none">
+              <text x="12" y="20" font-size="20" fill="currentColor" text-anchor="middle" font-weight="bold" font-family="sans-serif">G</text>
+            </svg>
+            <span class="collapse-hint-icon">
+              <svg viewBox="0 0 24 24" width="10" height="10" stroke="currentColor" stroke-width="3" fill="none"><polyline points="6 9 12 15 18 9"></polyline></svg>
+            </span>
+          </button>
+        </div>
+        <div class="prep-rtgt-row prep-rtgt-row--real">
+          <template v-if="showGameTime">
+            <div class="timeline-label" title="现实时间">
+              <svg viewBox="0 0 24 24" width="16" height="16" fill="none">
+                <text x="12" y="20" font-size="20" fill="currentColor" text-anchor="middle" font-weight="bold" font-family="sans-serif">R</text>
+              </svg>
+            </div>
+          </template>
+          <template v-else>
+            <button type="button" class="timeline-label interactable expand-btn" title="展开游戏时间轴" @click.stop="isGameTimeCollapsed = false">
+              <svg viewBox="0 0 24 24" width="16" height="16" stroke="currentColor" stroke-width="3" fill="none" stroke-linecap="round" stroke-linejoin="round">
+                <polyline points="18 15 12 9 6 15"></polyline>
+              </svg>
+            </button>
+          </template>
+        </div>
+      </div>
       <div v-show="showGameTime" class="time-ruler-track game-time" :style="{ width: `${totalWidthComputed}px` }">
         <div v-for="(ext, idx) in store.globalExtensions"
              :key="idx"
              class="freeze-region-dim timeline"
              :style="{
-             left: `${ext.time * TIME_BLOCK_WIDTH}px`,
-             width: `${ext.amount * TIME_BLOCK_WIDTH}px`}">
+             left: `${store.timeToPx(ext.time)}px`,
+             width: `${store.timeToPx(ext.time + ext.amount) - store.timeToPx(ext.time)}px`}">
         </div>
         <div v-for="tick in dynamicTicks.gameTicks"
              :key="tick.time"
@@ -1735,7 +1844,7 @@ onUnmounted(() => {
              v-show="isCursorVisible">
 
           <div class="guide-time-label">
-            {{ store.formatTimeLabel(store.cursorCurrentTime) }}
+            {{ store.formatAxisTimeLabel(store.cursorCurrentTime) }}
           </div>
 
           <div class="guide-sp-label">技力: {{ currentSpValue }}</div>
@@ -1746,10 +1855,10 @@ onUnmounted(() => {
              :key="boundary.id"
              class="cycle-guide"
              :class="{ 'is-selected': boundary.id === store.selectedCycleBoundaryId }"
-             :style="{ left: `${boundary.time * TIME_BLOCK_WIDTH}px` }"
+             :style="{ left: `${store.timeToPx(boundary.time)}px` }"
              @mousedown="onCycleLineMouseDown($event, boundary.id)">
 
-          <div class="cycle-label-time">{{ store.formatTimeLabel(boundary.time) }}</div>
+          <div class="cycle-label-time">{{ store.formatAxisTimeLabel(boundary.time) }}</div>
           <div class="cycle-label-text">循环分界线</div>
           <div class="cycle-hit-area"></div>
         </div>
@@ -1794,6 +1903,35 @@ onUnmounted(() => {
         <div v-if="isBoxSelecting" class="selection-box-overlay" :style="{ left: `${boxRect.left}px`, top: `${boxRect.top}px`, width: `${boxRect.width}px`, height: `${boxRect.height}px` }"></div>
 
         <div class="tracks-content">
+          <div v-if="store.prepDuration > 0" class="prep-zone-bg prep-zone-bg--content" :style="{ width: `${store.prepZoneWidthPx}px` }"></div>
+          <div v-if="store.prepDuration > 0" class="battle-start-line battle-start-line--content" :style="{ left: `${store.prepZoneWidthPx}px` }">
+            <div v-if="store.prepExpanded" class="battle-start-handle" @mousedown.stop.prevent="onPrepResizeMouseDown"></div>
+          </div>
+          <div
+            v-if="store.prepDuration > 0 && !store.prepExpanded"
+            class="prep-collapsed-entry"
+            :style="{ width: `${store.prepZoneWidthPx}px` }"
+          >
+            <div class="prep-collapsed-text">战前准备</div>
+            <button type="button" class="prep-collapsed-toggle" @click.stop="store.togglePrepExpanded" title="点击展开">
+              <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round">
+                <polyline points="8 6 16 12 8 18"></polyline>
+              </svg>
+            </button>
+            <div class="prep-collapsed-text">点击展开</div>
+          </div>
+
+          <div
+            v-if="store.prepDuration > 0 && store.prepExpanded"
+            class="prep-expanded-collapse"
+            :style="{ left: `${Math.max(0, store.prepZoneWidthPx - 18)}px` }"
+          >
+            <button type="button" class="prep-mini-btn" title="收起战前准备区" @click.stop="store.togglePrepExpanded">
+              <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round">
+                <polyline points="16 6 8 12 16 18"></polyline>
+              </svg>
+            </button>
+          </div>
           <ContextMenu />
           <svg class="connections-svg">
             <template v-if="tracksContentRef">
@@ -1820,13 +1958,13 @@ onUnmounted(() => {
                      :key="sw.id"
                      class="switch-tag"
                      :class="{ 'is-selected': sw.id === store.selectedSwitchEventId, 'is-dragging': sw.id === draggingSwitchEventId }"
-                     :style="{ left: `${sw.time * TIME_BLOCK_WIDTH}px` }"
+                     :style="{ left: `${store.timeToPx(sw.time)}px` }"
                      @mousedown.stop="onSwitchMarkerMouseDown($event, sw.id)">
 
                   <div class="tag-avatar">
                     <img :src="store.characterRoster.find(c => c.id === sw.characterId)?.avatar" />
                   </div>
-                  <div class="tag-time">{{ store.formatTimeLabel(sw.time) }}</div>
+                  <div class="tag-time">{{ store.formatAxisTimeLabel(sw.time) }}</div>
                 </div>
               </div>
               <div class="weapon-status-layer">
@@ -1871,8 +2009,8 @@ onUnmounted(() => {
                  :key="idx"
                  class="freeze-region-dim"
                  :style="{
-                 left: `${ext.time * TIME_BLOCK_WIDTH}px`,
-                 width: `${ext.amount * TIME_BLOCK_WIDTH}px`}">
+                 left: `${store.timeToPx(ext.time)}px`,
+                 width: `${store.timeToPx(ext.time + ext.amount) - store.timeToPx(ext.time)}px`}">
               <div class="freeze-duration-label">
                 {{ store.formatTimeLabel(ext.amount) }}
               </div>
@@ -2166,13 +2304,6 @@ body.capture-mode .davinci-range {
   border: none;
 }
 
-.timeline-label-wrapper {
-  display: flex;
-  flex-direction: column;
-  justify-content: flex-end;
-  height: 100%;
-}
-
 .timeline-label {
   flex: 0 0 auto;
   height: 20px;
@@ -2240,6 +2371,217 @@ body.capture-mode .davinci-range {
   display: flex;
   flex-direction: column;
   justify-content: flex-end;
+}
+
+.prep-zone-bg {
+  position: absolute;
+  left: 0;
+  top: 0;
+  bottom: 0;
+  background: rgba(255, 77, 79, 0.08);
+  border-right: 1px solid rgba(255, 77, 79, 0.25);
+  pointer-events: none;
+  z-index: 0;
+}
+
+.battle-start-line {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  width: 2px;
+  background: rgba(255, 77, 79, 0.75);
+  transform: translateX(-1px);
+  z-index: 2;
+}
+
+.battle-start-handle {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: -7px;
+  width: 14px;
+  cursor: ew-resize;
+  pointer-events: auto;
+  background: transparent;
+}
+
+.prep-rtgt-wrapper {
+  position: absolute;
+  left: 0;
+  bottom: 0;
+  display: flex;
+  flex-direction: column;
+  z-index: 4;
+  pointer-events: none;
+}
+
+.prep-rtgt-row {
+  height: 20px;
+  display: flex;
+  align-items: flex-end;
+  justify-content: flex-end;
+  padding-right: 2px;
+  pointer-events: auto;
+}
+
+.prep-rtgt-wrapper button.timeline-label,
+.prep-rtgt-wrapper .timeline-label {
+  border: none;
+  background: transparent;
+  padding: 0;
+}
+
+.prep-zone-controls {
+  position: absolute;
+  left: 0;
+  top: auto;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: flex-start;
+  gap: 6px;
+  pointer-events: none;
+  z-index: 6;
+}
+
+.prep-zone-controls .prep-mini-btn {
+  pointer-events: auto;
+}
+
+.prep-expanded-collapse {
+  position: absolute;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 18px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  z-index: 6;
+  pointer-events: none;
+}
+
+.prep-expanded-collapse .prep-mini-btn {
+  pointer-events: auto;
+}
+
+.prep-ruler-controls {
+  position: absolute;
+  top: 6px;
+  transform: translateX(-100%);
+  width: 18px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  z-index: 6;
+  pointer-events: none;
+}
+
+.prep-ruler-controls .prep-mini-btn {
+  pointer-events: auto;
+}
+
+.prep-mini-btn {
+  width: 18px;
+  height: 18px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+  border: none;
+  background: transparent;
+  color: rgba(255, 255, 255, 0.85);
+  cursor: pointer;
+  border-radius: 6px;
+  outline: none;
+  transition: color 0.12s ease;
+}
+.prep-mini-btn:hover {
+  color: #ffd700;
+}
+.prep-mini-btn:focus-visible {
+  box-shadow: 0 0 0 2px rgba(255, 215, 0, 0.35);
+}
+
+.prep-duration-popover {
+  position: absolute;
+  top: 6px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 8px;
+  background: rgba(0, 0, 0, 0.85);
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.5);
+  z-index: 50;
+}
+
+.prep-duration-input {
+  width: 72px;
+  height: 22px;
+  background: rgba(255, 255, 255, 0.06);
+  color: #fff;
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  outline: none;
+  padding: 0 6px;
+  font-family: 'Roboto Mono', 'Consolas', monospace;
+  font-size: 12px;
+}
+.prep-duration-input:focus {
+  border-color: rgba(255, 215, 0, 0.7);
+}
+.prep-duration-unit {
+  color: rgba(255, 255, 255, 0.6);
+  font-size: 12px;
+  font-family: 'Roboto Mono', 'Consolas', monospace;
+}
+
+.prep-collapsed-entry {
+  position: absolute;
+  left: 0;
+  top: 50%;
+  transform: translateY(-50%);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  z-index: 6;
+  pointer-events: none;
+}
+
+.prep-collapsed-text {
+  writing-mode: vertical-rl;
+  text-orientation: mixed;
+  font-size: 12px;
+  font-weight: 900;
+  letter-spacing: 2px;
+  color: rgba(255, 255, 255, 0.72);
+  text-shadow: 0 2px 8px rgba(0, 0, 0, 0.65);
+}
+
+.prep-collapsed-toggle {
+  width: 18px;
+  height: 18px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+  line-height: 1;
+  background: transparent;
+  border: none;
+  color: rgba(255, 255, 255, 0.9);
+  cursor: pointer;
+  pointer-events: auto;
+  border-radius: 8px;
+  outline: none;
+}
+
+.prep-collapsed-toggle:hover {
+  color: #ffd700;
+}
+.prep-collapsed-toggle:focus-visible {
+  box-shadow: 0 0 0 2px rgba(255, 215, 0, 0.35);
 }
 
 .time-ruler-track {
@@ -2588,6 +2930,7 @@ body.capture-mode .davinci-range {
   font-size: 12px;
   font-weight: 800;
   color: #2dd4bf;
+  opacity: 0.6;
   letter-spacing: 0.5px;
   margin-left: calc(32px + var(--gear-gap));
   user-select: none;

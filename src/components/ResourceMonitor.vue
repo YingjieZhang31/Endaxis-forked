@@ -15,7 +15,17 @@ const TIER_WEIGHTS = { 'boss': 4, 'champion': 3, 'elite': 2, 'normal': 1 }
 const TOTAL_HEIGHT = 200
 const STAGGER_HEIGHT = 60
 const SP_HEIGHT = 140
-const gridLinesCount = computed(() => Math.ceil(store.TOTAL_DURATION / 5))
+const gridLineTimes = computed(() => {
+  const prep = Number(store.prepDuration) || 0
+  const startBt = -prep
+  const endBt = store.TOTAL_DURATION
+  const start = Math.ceil(startBt / 5) * 5
+  const result = []
+  for (let bt = start; bt <= endBt; bt += 5) {
+    result.push(bt + prep)
+  }
+  return result
+})
 
 // === 颜色常量 ===
 const COLOR_STAGGER = '#ff7875'
@@ -112,7 +122,7 @@ const scaleY_Stagger = computed(() => {
 const staggerPolyline = computed(() => {
   if (staggerPoints.value.length === 0) return ''
   return staggerPoints.value.map(p => {
-    const x = p.time * store.timeBlockWidth
+    const x = store.timeToPx(p.time)
     const val = Math.min(p.val, store.systemConstants.maxStagger)
     const y = BASE_Y_STAGGER - (val * scaleY_Stagger.value)
     return `${x},${y}`
@@ -122,19 +132,19 @@ const staggerPolyline = computed(() => {
 const staggerArea = computed(() => {
   if (staggerPoints.value.length === 0) return ''
   const line = staggerPolyline.value
-  const lastX = staggerPoints.value[staggerPoints.value.length - 1].time * store.timeBlockWidth
+  const lastX = store.timeToPx(staggerPoints.value[staggerPoints.value.length - 1].time)
   return `0,${BASE_Y_STAGGER} ${line} ${lastX},${BASE_Y_STAGGER}`
 })
 
 const nodeZones = computed(() => nodeSegments.value.map(seg => ({
-  x: seg.start * store.timeBlockWidth,
-  width: (seg.end - seg.start) * store.timeBlockWidth,
+  x: store.timeToPx(seg.start),
+  width: store.timeToPx(seg.end) - store.timeToPx(seg.start),
   y: BASE_Y_STAGGER - (seg.thresholdVal * scaleY_Stagger.value)
 })))
 
 const lockZones = computed(() => lockSegments.value.map(seg => ({
-  x: seg.start * store.timeBlockWidth,
-  width: (seg.end - seg.start) * store.timeBlockWidth
+  x: store.timeToPx(seg.start),
+  width: store.timeToPx(seg.end) - store.timeToPx(seg.start)
 })))
 
 
@@ -155,7 +165,7 @@ const scaleY_SP = computed(() => EFFECTIVE_HEIGHT_SP / 300)
 const spPolyline = computed(() => {
   if (spData.value.length === 0) return ''
   return spData.value.map(p => {
-    const x = p.time * store.timeBlockWidth
+    const x = store.timeToPx(p.time)
     const y = BASE_Y_SP - (p.sp * scaleY_SP.value)
     return `${x},${y}`
   }).join(' ')
@@ -164,16 +174,16 @@ const spPolyline = computed(() => {
 const spArea = computed(() => {
   if (spData.value.length === 0) return ''
   const points = spData.value.map(p => {
-    const x = p.time * store.timeBlockWidth
+    const x = store.timeToPx(p.time)
     const y = BASE_Y_SP - (p.sp * scaleY_SP.value)
     return `${x},${y}`
   })
-  const lastX = spData.value[spData.value.length - 1].time * store.timeBlockWidth
+  const lastX = store.timeToPx(spData.value[spData.value.length - 1].time)
   return `0,${BASE_Y_SP} ${points.join(' ')} ${lastX},${BASE_Y_SP}`
 })
 
 const spWarningZones = computed(() => spData.value.filter(p => p.sp < 0).map(p => ({
-  left: p.time * store.timeBlockWidth,
+  left: store.timeToPx(p.time),
   sp: p.sp
 })))
 
@@ -247,7 +257,7 @@ const transformStyle = computed(() => {
 
     <div class="chart-scroll-wrapper">
       <div :style="transformStyle">
-        <svg class="chart-svg" :height="TOTAL_HEIGHT" :width="store.TOTAL_DURATION * store.timeBlockWidth">
+        <svg class="chart-svg" :height="TOTAL_HEIGHT" :width="store.totalTimelineWidthPx">
           <defs>
             <linearGradient id="stagger-grad" x1="0" y1="0" x2="0" y2="1">
               <stop offset="0%" :stop-color="COLOR_STAGGER" stop-opacity="0.5"/>
@@ -269,15 +279,18 @@ const transformStyle = computed(() => {
             </pattern>
           </defs>
 
-          <line v-for="i in gridLinesCount" :key="`grid-${i}`"
-                :x1="i * 5 * store.timeBlockWidth" y1="0"
-                :x2="i * 5 * store.timeBlockWidth" :y2="TOTAL_HEIGHT"
+          <rect v-if="store.prepDuration > 0" x="0" y="0" :width="store.prepZoneWidthPx" :height="TOTAL_HEIGHT" fill="rgba(255, 77, 79, 0.06)" />
+          <line v-if="store.prepDuration > 0" :x1="store.prepZoneWidthPx" y1="0" :x2="store.prepZoneWidthPx" :y2="TOTAL_HEIGHT" stroke="rgba(255, 77, 79, 0.75)" stroke-width="2"/>
+
+          <line v-for="(t, i) in gridLineTimes" :key="`grid-${i}`"
+                :x1="store.timeToPx(t)" y1="0"
+                :x2="store.timeToPx(t)" :y2="TOTAL_HEIGHT"
                 stroke="#333" stroke-width="1" stroke-dasharray="2"/>
 
           <g class="layer-stagger">
-            <line x1="0" :y1="PADDING_TOP_STAGGER" :x2="store.TOTAL_DURATION * store.timeBlockWidth" :y2="PADDING_TOP_STAGGER"
+            <line x1="0" :y1="PADDING_TOP_STAGGER" :x2="store.totalTimelineWidthPx" :y2="PADDING_TOP_STAGGER"
                   :stroke="COLOR_LIMIT" stroke-width="1" stroke-dasharray="4"/>
-            <line x1="0" :y1="BASE_Y_STAGGER" :x2="store.TOTAL_DURATION * store.timeBlockWidth" :y2="BASE_Y_STAGGER"
+            <line x1="0" :y1="BASE_Y_STAGGER" :x2="store.totalTimelineWidthPx" :y2="BASE_Y_STAGGER"
                   :stroke="COLOR_LIMIT" stroke-width="1" stroke-dasharray="4" opacity="0.6"/>
 
             <g v-for="(zone, i) in nodeZones" :key="`node-${i}`">
@@ -292,26 +305,26 @@ const transformStyle = computed(() => {
 
             <polygon :points="staggerArea" fill="url(#stagger-grad)"/>
             <polyline :points="staggerPolyline" fill="none" :stroke="COLOR_STAGGER" stroke-width="2"/>
-            <circle v-for="(p, idx) in staggerPoints" :key="idx" :cx="p.time * store.timeBlockWidth"
+            <circle v-for="(p, idx) in staggerPoints" :key="idx" :cx="store.timeToPx(p.time)"
                     :cy="BASE_Y_STAGGER - (Math.min(p.val, store.systemConstants.maxStagger) * scaleY_Stagger)" r="2" :fill="COLOR_STAGGER"/>
           </g>
 
-          <line x1="0" :y1="STAGGER_HEIGHT" :x2="store.TOTAL_DURATION * store.timeBlockWidth" :y2="STAGGER_HEIGHT" stroke="#444" stroke-width="2"/>
+          <line x1="0" :y1="STAGGER_HEIGHT" :x2="store.totalTimelineWidthPx" :y2="STAGGER_HEIGHT" stroke="#444" stroke-width="2"/>
 
           <g class="layer-sp">
-            <line x1="0" :y1="BASE_Y_SP - (300 * scaleY_SP)" :x2="store.TOTAL_DURATION * store.timeBlockWidth" :y2="BASE_Y_SP - (300 * scaleY_SP)" stroke="#444" stroke-width="1" stroke-dasharray="2"/>
-            <line x1="0" :y1="BASE_Y_SP - (200 * scaleY_SP)" :x2="store.TOTAL_DURATION * store.timeBlockWidth" :y2="BASE_Y_SP - (200 * scaleY_SP)" stroke="#444" stroke-width="1" stroke-dasharray="2"/>
-            <line x1="0" :y1="BASE_Y_SP - (100 * scaleY_SP)" :x2="store.TOTAL_DURATION * store.timeBlockWidth" :y2="BASE_Y_SP - (100 * scaleY_SP)" stroke="#444" stroke-width="1" stroke-dasharray="2"/>
-            <line x1="0" :y1="BASE_Y_SP" :x2="store.TOTAL_DURATION * store.timeBlockWidth" :y2="BASE_Y_SP" stroke="#aaa" stroke-width="2"/>
+            <line x1="0" :y1="BASE_Y_SP - (300 * scaleY_SP)" :x2="store.totalTimelineWidthPx" :y2="BASE_Y_SP - (300 * scaleY_SP)" stroke="#444" stroke-width="1" stroke-dasharray="2"/>
+            <line x1="0" :y1="BASE_Y_SP - (200 * scaleY_SP)" :x2="store.totalTimelineWidthPx" :y2="BASE_Y_SP - (200 * scaleY_SP)" stroke="#444" stroke-width="1" stroke-dasharray="2"/>
+            <line x1="0" :y1="BASE_Y_SP - (100 * scaleY_SP)" :x2="store.totalTimelineWidthPx" :y2="BASE_Y_SP - (100 * scaleY_SP)" stroke="#444" stroke-width="1" stroke-dasharray="2"/>
+            <line x1="0" :y1="BASE_Y_SP" :x2="store.totalTimelineWidthPx" :y2="BASE_Y_SP" stroke="#aaa" stroke-width="2"/>
 
             <text x="5" :y="BASE_Y_SP - (300 * scaleY_SP) + 12" fill="#888" font-size="10">MAX(300)</text>
             <text x="5" :y="BASE_Y_SP + 12" fill="#666" font-size="10">0</text>
 
-            <rect x="0" :y="BASE_Y_SP" :width="store.TOTAL_DURATION * store.timeBlockWidth" :height="TOTAL_HEIGHT - BASE_Y_SP" :fill="`${COLOR_SP_WARN}26`"/>
+            <rect x="0" :y="BASE_Y_SP" :width="store.totalTimelineWidthPx" :height="TOTAL_HEIGHT - BASE_Y_SP" :fill="`${COLOR_SP_WARN}26`"/>
             <polygon :points="spArea" fill="url(#sp-fill-gradient)"/>
             <polyline :points="spPolyline" fill="none" :stroke="COLOR_SP_MAIN" stroke-width="2" stroke-linejoin="round"/>
 
-            <circle v-for="(p, idx) in spData" :key="idx" :cx="p.time * store.timeBlockWidth" :cy="BASE_Y_SP - (p.sp * scaleY_SP)" r="2" :fill="p.sp < 0 ? COLOR_SP_WARN : COLOR_SP_MAIN" />
+            <circle v-for="(p, idx) in spData" :key="idx" :cx="store.timeToPx(p.time)" :cy="BASE_Y_SP - (p.sp * scaleY_SP)" r="2" :fill="p.sp < 0 ? COLOR_SP_WARN : COLOR_SP_MAIN" />
           </g>
         </svg>
         <div v-for="(w, idx) in spWarningZones" :key="idx" class="warning-tag"

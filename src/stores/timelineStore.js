@@ -11,6 +11,63 @@ import { projectStaggerSeries } from '@/simulation/projection/projectStaggerSeri
 
 const uid = () => Math.random().toString(36).substring(2, 9)
 const ATTACK_SEGMENT_COUNT = 5
+const COLLAPSED_PREP_PX = 18
+
+function shiftSnapshotTimes(snapshot, delta) {
+    const d = Number(delta) || 0
+    if (!snapshot || !Number.isFinite(d) || d === 0) return snapshot
+
+    const shiftVal = (v) => {
+        const n = Number(v) || 0
+        const out = n + d
+        return out < 0 ? 0 : out
+    }
+
+    const shiftStartLike = (obj) => {
+        if (!obj || typeof obj !== 'object') return
+        if (obj.startTime !== undefined) obj.startTime = shiftVal(obj.startTime)
+        if (obj.logicalStartTime !== undefined) obj.logicalStartTime = shiftVal(obj.logicalStartTime)
+        if (obj.time !== undefined) obj.time = shiftVal(obj.time)
+    }
+
+    if (Array.isArray(snapshot.tracks)) {
+        snapshot.tracks.forEach((track) => {
+            if (!track || !Array.isArray(track.actions)) return
+            track.actions.forEach(shiftStartLike)
+        })
+    }
+
+    if (Array.isArray(snapshot.weaponStatuses)) {
+        snapshot.weaponStatuses.forEach(shiftStartLike)
+    }
+
+    if (Array.isArray(snapshot.cycleBoundaries)) {
+        snapshot.cycleBoundaries.forEach(shiftStartLike)
+    }
+
+    if (Array.isArray(snapshot.switchEvents)) {
+        snapshot.switchEvents.forEach(shiftStartLike)
+    }
+
+    return snapshot
+}
+
+function normalizePrepConfig(snapshot) {
+    const hasPrep = snapshot && (snapshot.prepDuration !== undefined || snapshot.prepExpanded !== undefined)
+    if (hasPrep) {
+        const dur = Number(snapshot.prepDuration)
+        snapshot.prepDuration = Number.isFinite(dur) ? Math.max(0, dur) : 5
+        snapshot.prepExpanded = snapshot.prepExpanded !== false
+        return { snapshot, migrated: false }
+    }
+
+    // Legacy project: assume old "0s == battle start", migrate to default prepDuration=5
+    const migratedSnapshot = snapshot || {}
+    migratedSnapshot.prepDuration = 5
+    migratedSnapshot.prepExpanded = true
+    shiftSnapshotTimes(migratedSnapshot, 5)
+    return { snapshot: migratedSnapshot, migrated: true }
+}
 
 function normalizeAttackSegmentsForCharacter(char) {
     if (!char) return
@@ -98,6 +155,53 @@ export const useTimelineStore = defineStore('timeline', () => {
     }
     const TOTAL_DURATION = 120
     const MAX_SCENARIOS = 14
+
+    const prepDuration = ref(5)
+    const prepExpanded = ref(true)
+
+    const viewDuration = computed(() => (Number(prepDuration.value) || 0) + TOTAL_DURATION)
+    const prepZoneWidthPx = computed(() => {
+        const dur = Number(prepDuration.value) || 0
+        if (dur <= 0) return 0
+        if (prepExpanded.value) return dur * timeBlockWidth.value
+        return COLLAPSED_PREP_PX
+    })
+
+    function timeToPx(time) {
+        const t = Number(time) || 0
+        const dur = Number(prepDuration.value) || 0
+        const width = timeBlockWidth.value
+        if (dur <= 0 || prepExpanded.value) return t * width
+        if (t <= dur) return (t / dur) * COLLAPSED_PREP_PX
+        return COLLAPSED_PREP_PX + (t - dur) * width
+    }
+
+    function pxToTime(px) {
+        const x = Number(px) || 0
+        const dur = Number(prepDuration.value) || 0
+        const width = timeBlockWidth.value
+        if (dur <= 0 || prepExpanded.value) return x / width
+        if (x <= COLLAPSED_PREP_PX) return (x / COLLAPSED_PREP_PX) * dur
+        return dur + (x - COLLAPSED_PREP_PX) / width
+    }
+
+    const totalTimelineWidthPx = computed(() => timeToPx(viewDuration.value))
+
+    function toBattleTime(viewTime) {
+        return (Number(viewTime) || 0) - (Number(prepDuration.value) || 0)
+    }
+
+    function formatAxisTimeLabel(viewTime) {
+        const bt = toBattleTime(viewTime)
+        if (!Number.isFinite(bt)) return ''
+        const sign = bt < 0 ? '-' : ''
+        const abs = Math.abs(bt)
+        const totalFrames = Math.round(abs * 60)
+        const s = Math.floor(totalFrames / 60)
+        const f = totalFrames % 60
+        if (f === 0) return `${sign}${s}s`
+        return `${sign}${s}s ${f.toString().padStart(2, '0')}f`
+    }
 
     const ELEMENT_COLORS = {
         "blaze": "#ff4d4f", "cold": "#00e5ff", "emag": "#ffbf00", "nature": "#52c41a", "physical": "#e0e0e0",
@@ -390,8 +494,9 @@ export const useTimelineStore = defineStore('timeline', () => {
     })
 
     const cursorCurrentTime = computed(() => {
-        const exactTime = cursorPosTimeline.value.x / timeBlockWidth.value
-        return Math.max(0, Math.round(exactTime * 1000) / 1000)
+        const exactTime = pxToTime(cursorPosTimeline.value.x)
+        const clamped = Math.min(Math.max(0, exactTime), viewDuration.value)
+        return Math.round(clamped * 1000) / 1000
     })
 
     function setIsCapturing(val) { isCapturing.value = val }
@@ -417,6 +522,8 @@ export const useTimelineStore = defineStore('timeline', () => {
             weaponOverrides: weaponOverrides.value,
             equipmentCategoryOverrides: equipmentCategoryOverrides.value,
             weaponStatuses: weaponStatuses.value,
+            prepDuration: prepDuration.value,
+            prepExpanded: prepExpanded.value,
             cycleBoundaries: cycleBoundaries.value,
             switchEvents: switchEvents.value
         })
@@ -449,6 +556,8 @@ export const useTimelineStore = defineStore('timeline', () => {
         weaponOverrides.value = snapshot.weaponOverrides || {}
         equipmentCategoryOverrides.value = snapshot.equipmentCategoryOverrides || {}
         weaponStatuses.value = snapshot.weaponStatuses || []
+        if (snapshot.prepDuration !== undefined) prepDuration.value = Math.max(0, Number(snapshot.prepDuration) || 0)
+        if (snapshot.prepExpanded !== undefined) prepExpanded.value = snapshot.prepExpanded !== false
         cycleBoundaries.value = snapshot.cycleBoundaries || []
         switchEvents.value = snapshot.switchEvents || []
         clearSelection()
@@ -466,6 +575,8 @@ export const useTimelineStore = defineStore('timeline', () => {
             weaponOverrides: weaponOverrides.value,
             equipmentCategoryOverrides: equipmentCategoryOverrides.value,
             weaponStatuses: weaponStatuses.value,
+            prepDuration: prepDuration.value,
+            prepExpanded: prepExpanded.value,
             systemConstants: systemConstants.value,
             activeEnemyId: activeEnemyId.value,
             customEnemyParams: customEnemyParams.value,
@@ -476,24 +587,31 @@ export const useTimelineStore = defineStore('timeline', () => {
 
     function _loadSnapshot(data) {
         if (!data) return
-        const incomingTracks = data.tracks
-            ? JSON.parse(JSON.stringify(data.tracks))
+        const normalized = normalizePrepConfig(JSON.parse(JSON.stringify(data)))
+        const incoming = normalized.snapshot
+
+        const incomingTracks = incoming.tracks
+            ? JSON.parse(JSON.stringify(incoming.tracks))
             : createDefaultTracks()
         tracks.value = normalizeTracks(incomingTracks)
-        connections.value = JSON.parse(JSON.stringify(data.connections || []))
-        characterOverrides.value = JSON.parse(JSON.stringify(data.characterOverrides || {}))
-        weaponOverrides.value = JSON.parse(JSON.stringify(data.weaponOverrides || {}))
-        equipmentCategoryOverrides.value = JSON.parse(JSON.stringify(data.equipmentCategoryOverrides || {}))
-        weaponStatuses.value = JSON.parse(JSON.stringify(data.weaponStatuses || []))
-        if (data.systemConstants) {
-            systemConstants.value = { ...systemConstants.value, ...data.systemConstants }
+        connections.value = JSON.parse(JSON.stringify(incoming.connections || []))
+        characterOverrides.value = JSON.parse(JSON.stringify(incoming.characterOverrides || {}))
+        weaponOverrides.value = JSON.parse(JSON.stringify(incoming.weaponOverrides || {}))
+        equipmentCategoryOverrides.value = JSON.parse(JSON.stringify(incoming.equipmentCategoryOverrides || {}))
+        weaponStatuses.value = JSON.parse(JSON.stringify(incoming.weaponStatuses || []))
+
+        prepDuration.value = Math.max(0, Number(incoming.prepDuration) || 0)
+        prepExpanded.value = incoming.prepExpanded !== false
+
+        if (incoming.systemConstants) {
+            systemConstants.value = { ...systemConstants.value, ...incoming.systemConstants }
         }
-        activeEnemyId.value = data.activeEnemyId || 'custom'
-        if (data.customEnemyParams) {
-            customEnemyParams.value = { ...customEnemyParams.value, ...data.customEnemyParams }
+        activeEnemyId.value = incoming.activeEnemyId || 'custom'
+        if (incoming.customEnemyParams) {
+            customEnemyParams.value = { ...customEnemyParams.value, ...incoming.customEnemyParams }
         }
-        cycleBoundaries.value = data.cycleBoundaries ? JSON.parse(JSON.stringify(data.cycleBoundaries)) : []
-        switchEvents.value = data.switchEvents ? JSON.parse(JSON.stringify(data.switchEvents)) : []
+        cycleBoundaries.value = incoming.cycleBoundaries ? JSON.parse(JSON.stringify(incoming.cycleBoundaries)) : []
+        switchEvents.value = incoming.switchEvents ? JSON.parse(JSON.stringify(incoming.switchEvents)) : []
         syncAllWeaponModifiers()
         clearSelection()
     }
@@ -574,6 +692,11 @@ export const useTimelineStore = defineStore('timeline', () => {
             tracks: [{ id: null, actions: [] }, { id: null, actions: [] }, { id: null, actions: [] }, { id: null, actions: [] }],
             connections: [],
             characterOverrides: {},
+            weaponOverrides: {},
+            equipmentCategoryOverrides: {},
+            weaponStatuses: [],
+            prepDuration: 5,
+            prepExpanded: true,
             systemConstants: { ...DEFAULT_SYSTEM_CONSTANTS }
         }
 
@@ -1194,7 +1317,7 @@ export const useTimelineStore = defineStore('timeline', () => {
     // ===================================================================================
 
     function setTimelineShift(val) {
-        const width = TOTAL_DURATION * timeBlockWidth.value
+        const width = totalTimelineWidthPx.value
         const maxShift = width - timelineRect.value.width
         timelineShift.value = Math.min(Math.max(0, val), maxShift)
     }
@@ -1856,11 +1979,10 @@ export const useTimelineStore = defineStore('timeline', () => {
         const ACTION_BORDER = 2
         const LINE_GAP = 6
         const LINE_HEIGHT = 2
-        const widthUnit = timeBlockWidth.value
 
         compiledTimeline.value.actions.forEach(resAction => {
-            const left = resAction.realStartTime * widthUnit
-            const width = resAction.realDuration * widthUnit
+            const left = timeToPx(resAction.realStartTime)
+            const width = timeToPx(resAction.realStartTime + resAction.realDuration) - timeToPx(resAction.realStartTime)
             const finalWidth = width < 2 ? 2 : width
             const trackRect = trackLaneRects.value[resAction.trackIndex]
 
@@ -1880,7 +2002,8 @@ export const useTimelineStore = defineStore('timeline', () => {
             let triggerWindowLayout = { hasWindow: false }
             if (resAction.triggerWindow && resAction.triggerWindow.hasWindow) {
                 const twDuration = resAction.triggerWindow.duration
-                const twWidth = twDuration * widthUnit
+                const twStart = Math.max(0, resAction.realStartTime - twDuration)
+                const twWidth = timeToPx(resAction.realStartTime) - timeToPx(twStart)
 
                 const barYRelative = ACTION_BORDER + LINE_GAP - LINE_HEIGHT / 2
 
@@ -1929,10 +2052,9 @@ export const useTimelineStore = defineStore('timeline', () => {
 
         actionMap.value.forEach(action => {
             const end = getShiftedEndTime(action.node.startTime, action.node.duration, action.id)
-            const shiftedWidth = end - action.node.startTime
-            const widthUnit = timeBlockWidth.value
-            const left = (action.node.startTime || 0) * widthUnit
-            const width = shiftedWidth * widthUnit
+            const start = action.node.startTime || 0
+            const left = timeToPx(start)
+            const width = timeToPx(end) - timeToPx(start)
             const finalWidth = width < 2 ? 2 : width
             const trackRect = trackLaneRects.value[action.trackIndex]
 
@@ -1964,7 +2086,8 @@ export const useTimelineStore = defineStore('timeline', () => {
             const barY = rect.top + rect.height + barYRelative - ACTION_BORDER
 
             if (snappedWindow > 0) {
-                const twWidth = snappedWindow * widthUnit
+                const twStart = Math.max(0, start - snappedWindow)
+                const twWidth = timeToPx(start) - timeToPx(twStart)
 
                 const triggerBarRight = rect.left + leftEdge
                 const triggerBarLeft = triggerBarRight - twWidth
@@ -2009,7 +2132,6 @@ export const useTimelineStore = defineStore('timeline', () => {
         const BAR_MARGIN = 2
         const VERTICAL_GAP = 3
         const ACTION_BORDER = 2
-        const widthUnit = timeBlockWidth.value
 
         compiledTimeline.value.actions.forEach(resAction => {
             const actionRect = nodeRects.value[resAction.id]?.rect
@@ -2018,7 +2140,7 @@ export const useTimelineStore = defineStore('timeline', () => {
             resAction.effects.forEach(effect => {
                 const effectId = effect.id
 
-                const effectLeft = effect.realStartTime * widthUnit
+                const effectLeft = timeToPx(effect.realStartTime)
 
                 const relativeX = effectLeft - actionRect.left
                 const relativeY = (effect.rowIndex * (VERTICAL_GAP + ICON_SIZE)) + VERTICAL_GAP + ACTION_BORDER;
@@ -2037,7 +2159,7 @@ export const useTimelineStore = defineStore('timeline', () => {
 
                 const displayDuration = effect.displayDuration
 
-                let finalBarWidth = displayDuration > 0 ? (displayDuration * widthUnit) : 0;
+                let finalBarWidth = displayDuration > 0 ? (timeToPx(effect.realStartTime + displayDuration) - timeToPx(effect.realStartTime)) : 0;
                 if (finalBarWidth > 0) {
                     finalBarWidth = Math.max(0, finalBarWidth - ICON_SIZE - BAR_MARGIN)
                 }
@@ -2091,7 +2213,6 @@ export const useTimelineStore = defineStore('timeline', () => {
         const BAR_MARGIN = 2
         const VERTICAL_GAP = 3
         const ACTION_BORDER = 2
-        const widthUnit = timeBlockWidth.value
 
         actionMap.value.forEach(action => {
             const actionRect = nodeRects.value[action.id]?.rect
@@ -2114,7 +2235,7 @@ export const useTimelineStore = defineStore('timeline', () => {
 
                         // 计算图标的起始现实位置
                         const shiftedStartTimestamp = getShiftedEndTime(action.node.startTime, originalOffset, action.id);
-                        const effectLeft = shiftedStartTimestamp * widthUnit;
+                        const effectLeft = timeToPx(shiftedStartTimestamp);
 
                         // 相对动作的位置
                         const relativeX = effectLeft - actionRect.left
@@ -2154,7 +2275,7 @@ export const useTimelineStore = defineStore('timeline', () => {
                             }
                         }
 
-                        let finalBarWidth = finalDuration > 0 ? (finalDuration * widthUnit) : 0;
+                        let finalBarWidth = finalDuration > 0 ? (timeToPx(shiftedStartTimestamp + finalDuration) - timeToPx(shiftedStartTimestamp)) : 0;
                         if (finalBarWidth > 0) {
                             finalBarWidth = Math.max(0, finalBarWidth - ICON_SIZE - BAR_MARGIN)
                         }
@@ -2642,13 +2763,15 @@ export const useTimelineStore = defineStore('timeline', () => {
             points.push({ time: currentTime, val: currentVal });
         });
 
-        if (currentTime < TOTAL_DURATION) advanceTime(TOTAL_DURATION);
+        if (currentTime < viewDuration.value) advanceTime(viewDuration.value);
 
         return { points, lockSegments, nodeSegments, nodeStep };
     }
 
     function calculateGlobalSpData() {
         const { maxSp, spRegenRate, initialSp, executionRecovery } = systemConstants.value;
+        const prep = Math.max(0, Number(prepDuration.value) || 0)
+        const endTime = viewDuration.value
 
         const snap = (t) => Math.round(t * 1000) / 1000;
 
@@ -2697,6 +2820,11 @@ export const useTimelineStore = defineStore('timeline', () => {
             });
         });
 
+        // 战前准备：冻结全部 SP 变化
+        if (prep > 0) {
+            pauseWindows.push({ start: 0, end: snap(prep) })
+        }
+
         globalExtensions.value.forEach(ext => {
             pauseWindows.push({
                 start: snap(ext.time),
@@ -2706,9 +2834,12 @@ export const useTimelineStore = defineStore('timeline', () => {
 
         const criticalTimes = new Set();
         criticalTimes.add(0);
-        criticalTimes.add(snap(TOTAL_DURATION));
+        criticalTimes.add(snap(endTime));
+        if (prep > 0) criticalTimes.add(snap(prep))
 
-        instantEvents.forEach(e => criticalTimes.add(e.time));
+        instantEvents
+            .filter(e => e.time >= prep - 0.0001)
+            .forEach(e => criticalTimes.add(e.time));
         pauseWindows.forEach(w => {
             criticalTimes.add(w.start);
             criticalTimes.add(w.end);
@@ -2749,7 +2880,12 @@ export const useTimelineStore = defineStore('timeline', () => {
 
             points.push({ time: now, sp: currentSp });
 
-            const eventsNow = instantEvents.filter(e => e.time === now);
+            if (now < prep - 0.0001) {
+                prevTime = now
+                continue
+            }
+
+            const eventsNow = instantEvents.filter(e => e.time === now && e.time >= prep - 0.0001);
             if (eventsNow.length > 0) {
                 eventsNow.forEach(e => {
                     currentSp += e.change;
@@ -2857,8 +2993,69 @@ export const useTimelineStore = defineStore('timeline', () => {
             points.push({ time: ev.time, val: currentGauge, ratio: currentGauge / GAUGE_MAX });
         });
 
-        points.push({ time: TOTAL_DURATION, val: currentGauge, ratio: currentGauge / GAUGE_MAX });
+        points.push({ time: viewDuration.value, val: currentGauge, ratio: currentGauge / GAUGE_MAX });
         return points;
+    }
+
+    function togglePrepExpanded() {
+        prepExpanded.value = !prepExpanded.value
+        commitState()
+    }
+
+    function setPrepDuration(newDuration, { commit = true } = {}) {
+        const next = Math.max(0, Number(newDuration) || 0)
+        const prev = Math.max(0, Number(prepDuration.value) || 0)
+        if (Math.abs(next - prev) < 0.0001) return
+
+        const delta = next - prev
+
+        // clamp so that no VT time becomes negative
+        let minTime = Infinity
+        tracks.value.forEach(t => {
+            t.actions?.forEach(a => {
+                const st = Number(a.startTime) || 0
+                const lt = (a.logicalStartTime !== undefined) ? (Number(a.logicalStartTime) || 0) : st
+                minTime = Math.min(minTime, st, lt)
+            })
+        })
+        weaponStatuses.value.forEach(s => {
+            const st = Number(s.startTime) || 0
+            const lt = (s.logicalStartTime !== undefined) ? (Number(s.logicalStartTime) || 0) : st
+            minTime = Math.min(minTime, st, lt)
+        })
+        cycleBoundaries.value.forEach(b => { minTime = Math.min(minTime, Number(b.time) || 0) })
+        switchEvents.value.forEach(e => { minTime = Math.min(minTime, Number(e.time) || 0) })
+        if (!Number.isFinite(minTime)) minTime = 0
+
+        const minAllowedDelta = -minTime
+        const appliedDelta = Math.max(delta, minAllowedDelta)
+
+        const shiftVal = (v) => {
+            const n = Number(v) || 0
+            const out = n + appliedDelta
+            return out < 0 ? 0 : out
+        }
+
+        tracks.value.forEach(track => {
+            track.actions?.forEach(a => {
+                a.startTime = shiftVal(a.startTime)
+                if (a.logicalStartTime !== undefined) a.logicalStartTime = shiftVal(a.logicalStartTime)
+                else a.logicalStartTime = a.startTime
+            })
+            track.actions?.sort((a, b) => a.startTime - b.startTime)
+        })
+        weaponStatuses.value.forEach(s => {
+            s.startTime = shiftVal(s.startTime)
+            if (s.logicalStartTime !== undefined) s.logicalStartTime = shiftVal(s.logicalStartTime)
+            else s.logicalStartTime = s.startTime
+        })
+        cycleBoundaries.value.forEach(b => { b.time = shiftVal(b.time) })
+        switchEvents.value.forEach(e => { e.time = shiftVal(e.time) })
+
+        prepDuration.value = prev + appliedDelta
+        refreshAllActionShifts()
+        setTimelineShift(timelineShift.value)
+        if (commit) commitState()
     }
 
     // ===================================================================================
@@ -2884,6 +3081,8 @@ export const useTimelineStore = defineStore('timeline', () => {
                         weaponOverrides: newWeaponOverrides,
                         equipmentCategoryOverrides: newEquipmentCatOverrides,
                         weaponStatuses: newWeaponStatuses,
+                        prepDuration: prepDuration.value,
+                        prepExpanded: prepExpanded.value,
                         systemConstants: newSys,
                         activeEnemyId: newEnemyId,
                         customEnemyParams: newCustomParams,
@@ -2914,7 +3113,14 @@ export const useTimelineStore = defineStore('timeline', () => {
 
                 if (data.systemConstants) systemConstants.value = { ...systemConstants.value, ...data.systemConstants };
 
-                scenarioList.value = data.scenarioList
+                scenarioList.value = data.scenarioList.map(sc => {
+                    const cloned = JSON.parse(JSON.stringify(sc))
+                    if (cloned?.data) {
+                        const normalized = normalizePrepConfig(cloned.data)
+                        cloned.data = normalized.snapshot
+                    }
+                    return cloned
+                })
                 activeScenarioId.value = data.activeScenarioId || scenarioList.value[0].id
 
                 const currentSc = scenarioList.value.find(s => s.id === activeScenarioId.value)
@@ -2926,6 +3132,8 @@ export const useTimelineStore = defineStore('timeline', () => {
                     characterOverrides.value = {};
                     weaponOverrides.value = {};
                     equipmentCategoryOverrides.value = {};
+                    prepDuration.value = 5
+                    prepExpanded.value = true
                 }
 
                 historyStack.value = []; historyIndex.value = -1; commitState();
@@ -2945,6 +3153,8 @@ export const useTimelineStore = defineStore('timeline', () => {
         weaponStatuses.value = [];
         cycleBoundaries.value = [];
         switchEvents.value = [];
+        prepDuration.value = 5
+        prepExpanded.value = true
 
         systemConstants.value = { ...DEFAULT_SYSTEM_CONSTANTS };
 
@@ -3039,6 +3249,8 @@ export const useTimelineStore = defineStore('timeline', () => {
                 weaponOverrides: weaponOverrides.value,
                 equipmentCategoryOverrides: equipmentCategoryOverrides.value,
                 weaponStatuses: weaponStatuses.value,
+                prepDuration: prepDuration.value,
+                prepExpanded: prepExpanded.value,
                 activeEnemyId: activeEnemyId.value,
                 customEnemyParams: customEnemyParams.value,
                 cycleBoundaries: cycleBoundaries.value,
@@ -3099,8 +3311,16 @@ export const useTimelineStore = defineStore('timeline', () => {
             }
 
             if (data.scenarioList) {
-                scenarioList.value = data.scenarioList
-                const validId = data.scenarioList.find(s => s.id === data.activeScenarioId) ? data.activeScenarioId : data.scenarioList[0].id
+                // normalize & migrate legacy scenarios
+                scenarioList.value = data.scenarioList.map(sc => {
+                    const cloned = JSON.parse(JSON.stringify(sc))
+                    if (cloned?.data) {
+                        const normalized = normalizePrepConfig(cloned.data)
+                        cloned.data = normalized.snapshot
+                    }
+                    return cloned
+                })
+                const validId = scenarioList.value.find(s => s.id === data.activeScenarioId) ? data.activeScenarioId : scenarioList.value[0].id
                 activeScenarioId.value = validId
 
                 const currentSc = scenarioList.value.find(s => s.id === activeScenarioId.value)
@@ -3115,6 +3335,8 @@ export const useTimelineStore = defineStore('timeline', () => {
                     cycleBoundaries.value = [];
                     switchEvents.value = [];
                     equipmentCategoryOverrides.value = {};
+                    prepDuration.value = 5
+                    prepExpanded.value = true
                 }
             }
 
@@ -3170,6 +3392,8 @@ export const useTimelineStore = defineStore('timeline', () => {
         equipmentCategoryOverrides, updateEquipmentCategoryOverride,
         activeSetBonusLibrary, addSetBonusStatus, getActiveSetBonusCategories,
         misc,
+        prepDuration, prepExpanded, viewDuration, prepZoneWidthPx, totalTimelineWidthPx,
+        timeToPx, pxToTime, toBattleTime, formatAxisTimeLabel, togglePrepExpanded, setPrepDuration,
         useNewCompiler, compiledTimeline, spSeries, staggerSeries
     }
 })

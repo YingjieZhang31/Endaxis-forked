@@ -172,12 +172,12 @@ const cdStyle = computed(() => {
     return { display: 'none' }
   }
 
-  const widthUnit = store.timeBlockWidth
+  const start = Number(props.action.startTime) || 0
   const cdVal = effectiveCooldown.value
 
   if (cdVal <= 0) return { display: 'none' }
 
-  const width = cdVal * widthUnit
+  const width = store.timeToPx(start + cdVal) - store.timeToPx(start)
   return {
     width: `${width}px`,
     transform: `translate(${layout.bar.leftEdge}px, ${layout.bar.relativeY}px)`,
@@ -193,9 +193,10 @@ const enhancementStyle = computed(() => {
     return { display: 'none' }
   }
 
-  const widthUnit = store.timeBlockWidth
+  const start = Number(props.action.startTime) || 0
+  const end = store.getShiftedEndTime(start, props.action.duration || 0, props.action.instanceId)
   const time = props.action.enhancementTime || 0
-  const width = time > 0 ? time * widthUnit : 0
+  const width = time > 0 ? (store.timeToPx(end + time) - store.timeToPx(end)) : 0
 
   return { 
     width: `${width}px`, 
@@ -223,7 +224,6 @@ const triggerWindowStyle = computed(() => {
 
 // 自定义时间条
 const customBarsToRender = computed(() => {
-  const widthUnit = store.timeBlockWidth
   const bars = props.action.customBars || []
   return bars.map((bar, index) => {
     const originalDuration = bar.duration || 0
@@ -241,8 +241,9 @@ const customBarsToRender = computed(() => {
     // 计算延长量
     const extensionAmount = Math.round((shiftedDuration - originalDuration) * 1000) / 1000
 
-    const left = (shiftedOffset * widthUnit) - 2
-    const width = shiftedDuration * widthUnit
+    const base = Number(props.action.startTime) || 0
+    const left = (store.timeToPx(shiftedStartTimestamp) - store.timeToPx(base)) - 2
+    const width = store.timeToPx(shiftedEndTimestamp) - store.timeToPx(shiftedStartTimestamp)
     const bottomOffset = -24 - (index * 16)
 
     return {
@@ -255,13 +256,11 @@ const customBarsToRender = computed(() => {
 
 // 计算动画时间的视觉宽度
 const animationTimeWidth = computed(() => {
-  const widthUnit = store.timeBlockWidth
-
   // 从 Store 的计算结果中找到属于自己的那一项
   const myExtension = store.globalExtensions.find(ext => ext.sourceId === props.action.instanceId)
 
   if (myExtension) {
-    return myExtension.amount * widthUnit
+    return store.timeToPx(myExtension.time + myExtension.amount) - store.timeToPx(myExtension.time)
   }
 
   return 0
@@ -305,12 +304,10 @@ const connectionSourceActionId = computed(() => {
 
 // 计算判定点的位置样式
 const renderableTicks = computed(() => {
-  const widthUnit = store.timeBlockWidth
-
   if (store.useNewCompiler) {
     const resolvedAction = store.compiledTimeline.actionMap.get(props.action.instanceId)
     return resolvedAction?.resolvedDamageTicks.map(tick => {
-        const left = tick.realOffset * widthUnit
+        const left = store.timeToPx(tick.realTime) - store.timeToPx(resolvedAction.realStartTime)
         return {
             style: { left: `${left}px` },
             data: tick
@@ -323,9 +320,7 @@ const renderableTicks = computed(() => {
   return ticks.map(tick => {
     const originalOffset = tick.offset || 0
     const shiftedTimestamp = store.getShiftedEndTime(props.action.startTime, originalOffset, props.action.instanceId)
-    const shiftedOffset = shiftedTimestamp - props.action.startTime
-
-    const left = shiftedOffset * widthUnit
+    const left = store.timeToPx(shiftedTimestamp) - store.timeToPx(props.action.startTime)
     return {
       style: { left: `${left}px` },
       data: tick
