@@ -4,6 +4,10 @@ import { watchThrottled } from '@vueuse/core'
 import { executeFetch } from '@/api/fetchStrategy.js'
 import { compressGzip, decompressGzip } from '@/utils/gzipUtils'
 import { CORE_STATS, createDefaultStats } from '@/utils/coreStats.js'
+import { compileScenario } from '@/simulation/compiler/compileScenario'
+import { simulate } from '@/simulation/simulator'
+import { projectSpSeries } from '@/simulation/projection/projectSpSeries'
+import { projectStaggerSeries } from '@/simulation/projection/projectStaggerSeries'
 
 const uid = () => Math.random().toString(36).substring(2, 9)
 const ATTACK_SEGMENT_COUNT = 5
@@ -1844,6 +1848,80 @@ export const useTimelineStore = defineStore('timeline', () => {
     }
 
     const nodeRects = computed(() => {
+        return useNewCompiler.value ? newNodeRects.value : legacyNodeRects.value;
+    });
+
+    const newNodeRects = computed(() => {
+        const rects = {}
+        const ACTION_BORDER = 2
+        const LINE_GAP = 6
+        const LINE_HEIGHT = 2
+        const widthUnit = timeBlockWidth.value
+
+        compiledTimeline.value.actions.forEach(resAction => {
+            const left = resAction.realStartTime * widthUnit
+            const width = resAction.realDuration * widthUnit
+            const finalWidth = width < 2 ? 2 : width
+            const trackRect = trackLaneRects.value[resAction.trackIndex]
+
+            let y = 0
+            if (trackRect) {
+                y = trackRect.top
+            }
+
+            const rect = {
+                left,
+                width: finalWidth,
+                right: left + finalWidth,
+                height: trackRect?.height ?? 0,
+                top: y - timelineRect.value.top,
+            }
+
+            let triggerWindowLayout = { hasWindow: false }
+            if (resAction.triggerWindow && resAction.triggerWindow.hasWindow) {
+                const twDuration = resAction.triggerWindow.duration
+                const twWidth = twDuration * widthUnit
+
+                const barYRelative = ACTION_BORDER + LINE_GAP - LINE_HEIGHT / 2
+
+                const leftEdge = -ACTION_BORDER
+                const barY = rect.top + rect.height + barYRelative - ACTION_BORDER
+                const triggerBarRight = rect.left + leftEdge
+                const triggerBarLeft = triggerBarRight - twWidth
+
+                triggerWindowLayout = {
+                    rect: {
+                        left: triggerBarLeft,
+                        right: triggerBarRight,
+                        top: barY,
+                        height: LINE_HEIGHT,
+                        width: twWidth
+                    },
+                    localTransform: `translate(${leftEdge - twWidth}px, ${barYRelative}px)`,
+                    hasWindow: true
+                }
+            }
+
+            const barYRelative = ACTION_BORDER + LINE_GAP - LINE_HEIGHT / 2
+            const leftEdge = -ACTION_BORDER
+            const rightEdge = leftEdge + finalWidth + ACTION_BORDER
+            const barY = rect.top + rect.height + barYRelative - ACTION_BORDER
+
+            rects[resAction.id] = {
+                rect,
+                bar: {
+                    top: barY,
+                    relativeY: barYRelative,
+                    leftEdge,
+                    rightEdge
+                },
+                triggerWindow: undefined
+            }
+        })
+        return rects
+    });
+
+    const legacyNodeRects = computed(() => {
         const rects = {}
         const ACTION_BORDER = 2
         const LINE_GAP = 6
@@ -1922,6 +2000,82 @@ export const useTimelineStore = defineStore('timeline', () => {
     })
 
     const effectLayouts = computed(() => {
+        return useNewCompiler.value ? newEffectLayouts.value : legacyEffectLayouts.value;
+    });
+
+    const newEffectLayouts = computed(() => {
+        const layoutMap = new Map()
+        const ICON_SIZE = 20
+        const BAR_MARGIN = 2
+        const VERTICAL_GAP = 3
+        const ACTION_BORDER = 2
+        const widthUnit = timeBlockWidth.value
+
+        compiledTimeline.value.actions.forEach(resAction => {
+            const actionRect = nodeRects.value[resAction.id]?.rect
+            if (!actionRect) return
+
+            resAction.effects.forEach(effect => {
+                const effectId = effect.id
+
+                const effectLeft = effect.realStartTime * widthUnit
+
+                const relativeX = effectLeft - actionRect.left
+                const relativeY = (effect.rowIndex * (VERTICAL_GAP + ICON_SIZE)) + VERTICAL_GAP + ACTION_BORDER;
+                const localTransform = `translate(${relativeX}px, ${-relativeY}px)`
+
+                const absoluteTop = actionRect.top - relativeY - ICON_SIZE + ACTION_BORDER;
+                const absoluteLeft = effectLeft + 1
+
+                const iconRect = {
+                    left: absoluteLeft,
+                    width: ICON_SIZE,
+                    right: absoluteLeft + ICON_SIZE,
+                    height: ICON_SIZE,
+                    top: absoluteTop
+                };
+
+                const displayDuration = effect.displayDuration
+
+                let finalBarWidth = displayDuration > 0 ? (displayDuration * widthUnit) : 0;
+                if (finalBarWidth > 0) {
+                    finalBarWidth = Math.max(0, finalBarWidth - ICON_SIZE - BAR_MARGIN)
+                }
+
+                layoutMap.set(effectId, {
+                    rect: iconRect,
+                    localTransform,
+                    barData: {
+                        width: finalBarWidth,
+                        isConsumed: effect.isConsumed,
+                        displayDuration,
+                        extensionAmount: effect.extensionAmount
+                    },
+                    data: effect.node,
+                    actionId: resAction.id,
+                    flatIndex: effect.flatIndex
+                })
+
+                if (effect.isConsumed) {
+                    const barLeft = absoluteLeft + ICON_SIZE + BAR_MARGIN;
+                    const barRight = barLeft + finalBarWidth;
+
+                    const transferRect = {
+                        left: barRight,
+                        width: 0,
+                        right: barRight,
+                        height: ICON_SIZE,
+                        top: absoluteTop
+                    };
+                    layoutMap.set(`${effectId}_transfer`, { rect: transferRect })
+                }
+            });
+        });
+
+        return layoutMap;
+    });
+
+    const legacyEffectLayouts = computed(() => {
         const layoutMap = new Map()
         const consumptionMap = new Map()
 
@@ -2120,9 +2274,51 @@ export const useTimelineStore = defineStore('timeline', () => {
     // ===================================================================================
     // 监控数据计算 (Monitor Data)
     // ===================================================================================
+    const useNewCompiler = ref(false);
 
-    // 获取全局所有的时停延长点
-    const globalExtensions = computed(() => {
+    function toggleNewCompiler() {
+        useNewCompiler.value = !useNewCompiler.value;
+    }
+
+    const compiledScenario = computed(() => {
+        const currentScenario = scenarioList.value.find(s => s.id === activeScenarioId.value);
+        if (!currentScenario) return null;
+        const { timeline, actors, teamConfig, enemyConfig } = compileScenario(
+            {
+                ...currentScenario.data,
+                tracks: tracks.value // add tracks as a dependency
+            }
+            , { systemConstants: systemConstants.value });
+        return { timeline, actors, teamConfig, enemyConfig };
+    });
+
+    const compiledTimeline = computed(() => {
+        return compiledScenario.value?.timeline;
+    });
+
+    const simulation = computed(() => {
+        const scenario = compiledScenario.value;
+        if (!scenario) return null;
+        const timeline = scenario.timeline;
+        const teamConfig = scenario.teamConfig;
+        const enemyConfig = scenario.enemyConfig;
+        const actors = scenario.actors;
+        return simulate(timeline, teamConfig, enemyConfig, actors);
+    });
+
+    const spSeries = computed(() => {
+        if (!simulation.value) return [];
+        return projectSpSeries(simulation.value.simLog, simulation.value.state.getInitialSnapshot());
+    });
+
+    const staggerSeries = computed(() => {
+        if (!simulation.value) return [];
+        return projectStaggerSeries(simulation.value.simLog, simulation.value.state.getInitialSnapshot(), compiledScenario.value.enemyConfig);
+    });
+
+    const timeContext = computed(() => compiledTimeline.value.timeContext);
+
+    const legacyGlobalExtensions = computed(() => {
         const sources = [];
         tracks.value.forEach(track => {
             track.actions.forEach(action => {
@@ -2169,6 +2365,10 @@ export const useTimelineStore = defineStore('timeline', () => {
             cumulativeTime += amount;
         }
         return extensions;
+    });
+
+    const globalExtensions = computed(() => {
+        return useNewCompiler.value ? compiledTimeline.value.timeExtensions : legacyGlobalExtensions.value;
     });
 
     function refreshAllActionShifts(excludeIds = []) {
@@ -2228,6 +2428,10 @@ export const useTimelineStore = defineStore('timeline', () => {
     }
 
     function getShiftedEndTime(startTime, duration, excludeActionId = null) {
+        if (useNewCompiler.value) {
+            return timeContext.value.getShiftedEndTime(startTime, duration, excludeActionId);
+        }
+
         let currentTimeLimit = startTime + duration;
         let processedExtensions = new Set();
         let changed = true;
@@ -2246,6 +2450,10 @@ export const useTimelineStore = defineStore('timeline', () => {
     }
 
     function toGameTime(realTimeS) {
+        if (useNewCompiler.value) {
+            return timeContext.value.toGameTime(realTimeS);
+        }
+
         const extensions = globalExtensions.value;
 
         for (const ext of extensions) {
@@ -2272,6 +2480,10 @@ export const useTimelineStore = defineStore('timeline', () => {
     }
 
     function toRealTime(gameTimeS) {
+        if (useNewCompiler.value) {
+            return timeContext.value.toRealTime(gameTimeS);
+        }
+
         const extensions = globalExtensions.value;
         const breakPoint = extensions.toReversed().find(e => e.gameTime <= gameTimeS);
 
@@ -2933,7 +3145,7 @@ export const useTimelineStore = defineStore('timeline', () => {
     }
 
     return {
-        MAX_SCENARIOS, toTimelineSpace, toViewportSpace, toGameTime, toRealTime,
+        MAX_SCENARIOS, toTimelineSpace, toViewportSpace, toGameTime, toRealTime, toggleNewCompiler,
         systemConstants, isLoading, characterRoster, iconDatabase, tracks, connections, activeTrackId, timelineScrollTop, timelineShift, timelineRect, trackLaneRects, nodeRects, draggingSkillData,
         selectedActionId, selectedLibrarySkillId, selectedLibrarySource, selectedWeaponStatusId, multiSelectedIds, clipboard, isCapturing, setIsCapturing, showCursorGuide, isBoxSelectMode, cursorPosTimeline, cursorCurrentTime, cursorPosition, snapStep,
         selectedAnomalyId, setSelectedAnomalyId, updateTrackGaugeEfficiency,
@@ -2958,5 +3170,6 @@ export const useTimelineStore = defineStore('timeline', () => {
         equipmentCategoryOverrides, updateEquipmentCategoryOverride,
         activeSetBonusLibrary, addSetBonusStatus, getActiveSetBonusCategories,
         misc,
+        useNewCompiler, compiledTimeline, spSeries, staggerSeries
     }
 })
