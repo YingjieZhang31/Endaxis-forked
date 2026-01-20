@@ -551,6 +551,8 @@ const totalWidthComputed = computed(() => {
   return store.totalTimelineWidthPx
 })
 
+const prepZoneWidthPxRounded = computed(() => Math.round(store.prepZoneWidthPx))
+
 const transformStyle = computed(() => {
   return {
     transform: `translateX(${-store.timelineShift}px)`,
@@ -1645,14 +1647,14 @@ onUnmounted(() => {
 
     <div class="time-ruler-wrapper" ref="timeRulerWrapperRef" @click="store.selectTrack(null)">
       <div class="ruler-content-container" :style="transformStyle">
-      <div v-if="store.prepDuration > 0" class="prep-zone-bg prep-zone-bg--ruler" :style="{ width: `${store.prepZoneWidthPx}px` }"></div>
-       <div v-if="store.prepDuration > 0" class="battle-start-line battle-start-line--ruler" :style="{ left: `${store.prepZoneWidthPx}px` }">
+      <div v-if="store.prepDuration > 0" class="prep-zone-bg prep-zone-bg--ruler" :style="{ width: `${prepZoneWidthPxRounded}px` }"></div>
+       <div v-if="store.prepDuration > 0" class="battle-start-line battle-start-line--ruler" :style="{ left: `${prepZoneWidthPxRounded}px` }">
          <div v-if="store.prepExpanded" class="battle-start-handle" @mousedown.stop.prevent="onPrepResizeMouseDown"></div>
        </div>
        <div
          v-if="store.prepDuration > 0 && store.prepExpanded"
          class="prep-ruler-controls"
-         :style="{ left: `${store.prepZoneWidthPx}px` }"
+         :style="{ left: `${prepZoneWidthPxRounded}px` }"
        >
          <button type="button" class="prep-mini-btn" title="设置战前准备时长" @click.stop="openPrepDurationEditor">
            <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
@@ -1661,22 +1663,22 @@ onUnmounted(() => {
            </svg>
          </button>
        </div>
-       <div v-if="store.prepDuration > 0 && !store.prepExpanded" class="prep-zone-controls" :style="{ width: `${store.prepZoneWidthPx}px`, bottom: showGameTime ? '40px' : '20px' }">
+       <div v-if="store.prepDuration > 0 && !store.prepExpanded" class="prep-zone-controls" :style="{ width: `${prepZoneWidthPxRounded}px`, bottom: showGameTime ? '40px' : '20px' }">
          <button type="button" class="prep-mini-btn" title="设置战前准备时长" @click.stop="openPrepDurationEditor">
            <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
              <circle cx="12" cy="12" r="9"></circle>
              <path d="M12 7v6l4 2"></path>
-          </svg>
-        </button>
-      </div>
+           </svg>
+         </button>
+       </div>
 
-      <div v-if="isPrepDurationEditorOpen" class="prep-duration-popover" :style="{ left: `${store.prepZoneWidthPx + 8}px` }" @mousedown.stop>
+      <div v-if="isPrepDurationEditorOpen" class="prep-duration-popover" :style="{ left: `${prepZoneWidthPxRounded + 8}px` }" @mousedown.stop>
         <input
           ref="prepDurationInputRef"
           v-model="prepDurationDraft"
           class="prep-duration-input"
           type="number"
-          min="0"
+          min="0.5"
           step="0.1"
           @keydown.enter.prevent="applyPrepDurationDraft"
           @keydown.esc.prevent="closePrepDurationEditor"
@@ -1685,7 +1687,7 @@ onUnmounted(() => {
         <span class="prep-duration-unit">s</span>
       </div>
 
-      <div v-if="store.prepDuration > 0" class="prep-rtgt-wrapper" :style="{ width: `${store.prepZoneWidthPx}px` }">
+      <div v-if="store.prepDuration > 0" class="prep-rtgt-wrapper" :style="{ width: `${prepZoneWidthPxRounded}px` }">
         <div v-if="showGameTime" class="prep-rtgt-row prep-rtgt-row--game">
           <button type="button" class="timeline-label interactable" title="游戏时间（点击折叠）" @click.stop="isGameTimeCollapsed = true">
             <svg viewBox="0 0 24 24" width="16" height="16" fill="none">
@@ -1903,14 +1905,14 @@ onUnmounted(() => {
         <div v-if="isBoxSelecting" class="selection-box-overlay" :style="{ left: `${boxRect.left}px`, top: `${boxRect.top}px`, width: `${boxRect.width}px`, height: `${boxRect.height}px` }"></div>
 
         <div class="tracks-content">
-          <div v-if="store.prepDuration > 0" class="prep-zone-bg prep-zone-bg--content" :style="{ width: `${store.prepZoneWidthPx}px` }"></div>
-          <div v-if="store.prepDuration > 0" class="battle-start-line battle-start-line--content" :style="{ left: `${store.prepZoneWidthPx}px` }">
+          <div v-if="store.prepDuration > 0" class="prep-zone-bg prep-zone-bg--content" :style="{ width: `${prepZoneWidthPxRounded}px` }"></div>
+          <div v-if="store.prepDuration > 0" class="battle-start-line battle-start-line--content" :style="{ left: `${prepZoneWidthPxRounded}px` }">
             <div v-if="store.prepExpanded" class="battle-start-handle" @mousedown.stop.prevent="onPrepResizeMouseDown"></div>
           </div>
           <div
             v-if="store.prepDuration > 0 && !store.prepExpanded"
             class="prep-collapsed-entry"
-            :style="{ width: `${store.prepZoneWidthPx}px` }"
+            :style="{ width: `${prepZoneWidthPxRounded}px` }"
           >
             <div class="prep-collapsed-text">战前准备</div>
             <button type="button" class="prep-collapsed-toggle" @click.stop="store.togglePrepExpanded" title="点击展开">
@@ -1924,7 +1926,7 @@ onUnmounted(() => {
           <div
             v-if="store.prepDuration > 0 && store.prepExpanded"
             class="prep-expanded-collapse"
-            :style="{ left: `${Math.max(0, store.prepZoneWidthPx - 18)}px` }"
+            :style="{ left: `${Math.max(0, prepZoneWidthPxRounded - 18)}px` }"
           >
             <button type="button" class="prep-mini-btn" title="收起战前准备区" @click.stop="store.togglePrepExpanded">
               <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round">
@@ -2378,8 +2380,8 @@ body.capture-mode .davinci-range {
   left: 0;
   top: 0;
   bottom: 0;
-  background: rgba(255, 77, 79, 0.08);
-  border-right: 1px solid rgba(255, 77, 79, 0.25);
+  background: rgba(255, 255, 255, 0.04);
+  border-right: 1px solid rgba(255, 255, 255, 0.12);
   pointer-events: none;
   z-index: 0;
 }
@@ -2389,7 +2391,7 @@ body.capture-mode .davinci-range {
   top: 0;
   bottom: 0;
   width: 2px;
-  background: rgba(255, 77, 79, 0.75);
+  background: rgba(255, 255, 255, 0.38);
   transform: translateX(-1px);
   z-index: 2;
 }
@@ -2475,6 +2477,7 @@ body.capture-mode .davinci-range {
   gap: 8px;
   z-index: 6;
   pointer-events: none;
+  margin-left: -1px;
 }
 
 .prep-ruler-controls .prep-mini-btn {

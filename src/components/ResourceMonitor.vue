@@ -279,8 +279,8 @@ const transformStyle = computed(() => {
             </pattern>
           </defs>
 
-          <rect v-if="store.prepDuration > 0" x="0" y="0" :width="store.prepZoneWidthPx" :height="TOTAL_HEIGHT" fill="rgba(255, 77, 79, 0.06)" />
-          <line v-if="store.prepDuration > 0" :x1="store.prepZoneWidthPx" y1="0" :x2="store.prepZoneWidthPx" :y2="TOTAL_HEIGHT" stroke="rgba(255, 77, 79, 0.75)" stroke-width="2"/>
+          <rect v-if="store.prepDuration > 0" x="0" y="0" :width="store.prepZoneWidthPx" :height="TOTAL_HEIGHT" fill="rgba(255, 255, 255, 0.04)" />
+          <line v-if="store.prepDuration > 0" :x1="store.prepZoneWidthPx" y1="0" :x2="store.prepZoneWidthPx" :y2="TOTAL_HEIGHT" stroke="rgba(255, 255, 255, 0.38)" stroke-width="2"/>
 
           <line v-for="(t, i) in gridLineTimes" :key="`grid-${i}`"
                 :x1="store.timeToPx(t)" y1="0"

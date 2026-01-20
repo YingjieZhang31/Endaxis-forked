@@ -12,6 +12,7 @@ import { projectStaggerSeries } from '@/simulation/projection/projectStaggerSeri
 const uid = () => Math.random().toString(36).substring(2, 9)
 const ATTACK_SEGMENT_COUNT = 5
 const COLLAPSED_PREP_PX = 18
+const MIN_PREP_DURATION = 0.5
 
 function shiftSnapshotTimes(snapshot, delta) {
     const d = Number(delta) || 0
@@ -56,7 +57,15 @@ function normalizePrepConfig(snapshot) {
     const hasPrep = snapshot && (snapshot.prepDuration !== undefined || snapshot.prepExpanded !== undefined)
     if (hasPrep) {
         const dur = Number(snapshot.prepDuration)
-        snapshot.prepDuration = Number.isFinite(dur) ? Math.max(0, dur) : 5
+        if (Number.isFinite(dur)) {
+            const clamped = Math.max(MIN_PREP_DURATION, dur)
+            if (Math.abs(clamped - dur) > 0.0001) {
+                shiftSnapshotTimes(snapshot, clamped - dur)
+            }
+            snapshot.prepDuration = clamped
+        } else {
+            snapshot.prepDuration = 5
+        }
         snapshot.prepExpanded = snapshot.prepExpanded !== false
         return { snapshot, migrated: false }
     }
@@ -550,13 +559,17 @@ export const useTimelineStore = defineStore('timeline', () => {
     }
 
     function restoreState(snapshot) {
+        const rawPrep = Number(snapshot?.prepDuration)
+        if (snapshot?.prepDuration !== undefined && Number.isFinite(rawPrep) && rawPrep < MIN_PREP_DURATION) {
+            shiftSnapshotTimes(snapshot, MIN_PREP_DURATION - rawPrep)
+        }
         tracks.value = normalizeTracks(snapshot.tracks)
         connections.value = snapshot.connections
         characterOverrides.value = snapshot.characterOverrides
         weaponOverrides.value = snapshot.weaponOverrides || {}
         equipmentCategoryOverrides.value = snapshot.equipmentCategoryOverrides || {}
         weaponStatuses.value = snapshot.weaponStatuses || []
-        if (snapshot.prepDuration !== undefined) prepDuration.value = Math.max(0, Number(snapshot.prepDuration) || 0)
+        if (snapshot.prepDuration !== undefined) prepDuration.value = Math.max(MIN_PREP_DURATION, Number(snapshot.prepDuration) || 0)
         if (snapshot.prepExpanded !== undefined) prepExpanded.value = snapshot.prepExpanded !== false
         cycleBoundaries.value = snapshot.cycleBoundaries || []
         switchEvents.value = snapshot.switchEvents || []
@@ -600,7 +613,7 @@ export const useTimelineStore = defineStore('timeline', () => {
         equipmentCategoryOverrides.value = JSON.parse(JSON.stringify(incoming.equipmentCategoryOverrides || {}))
         weaponStatuses.value = JSON.parse(JSON.stringify(incoming.weaponStatuses || []))
 
-        prepDuration.value = Math.max(0, Number(incoming.prepDuration) || 0)
+        prepDuration.value = Math.max(MIN_PREP_DURATION, Number(incoming.prepDuration) || 0)
         prepExpanded.value = incoming.prepExpanded !== false
 
         if (incoming.systemConstants) {
@@ -2770,7 +2783,7 @@ export const useTimelineStore = defineStore('timeline', () => {
 
     function calculateGlobalSpData() {
         const { maxSp, spRegenRate, initialSp, executionRecovery } = systemConstants.value;
-        const prep = Math.max(0, Number(prepDuration.value) || 0)
+        const prep = Math.max(MIN_PREP_DURATION, Number(prepDuration.value) || 0)
         const endTime = viewDuration.value
 
         const snap = (t) => Math.round(t * 1000) / 1000;
@@ -3003,8 +3016,8 @@ export const useTimelineStore = defineStore('timeline', () => {
     }
 
     function setPrepDuration(newDuration, { commit = true } = {}) {
-        const next = Math.max(0, Number(newDuration) || 0)
-        const prev = Math.max(0, Number(prepDuration.value) || 0)
+        const next = Math.max(MIN_PREP_DURATION, Number(newDuration) || 0)
+        const prev = Math.max(MIN_PREP_DURATION, Number(prepDuration.value) || 0)
         if (Math.abs(next - prev) < 0.0001) return
 
         const delta = next - prev
